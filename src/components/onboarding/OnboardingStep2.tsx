@@ -3,7 +3,7 @@ import { ArrowRight, Palette } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { cn } from '@/lib/utils';
 
-type ThemeColor = 'bubblegum' | 'electric' | 'minty' | 'sunset';
+type ThemeColor = 'bubblegum' | 'electric' | 'minty' | 'sky' | 'coral' | 'lavender' | 'peach' | 'rose';
 
 interface OnboardingStep2Props {
   theme: ThemeColor;
@@ -15,7 +15,11 @@ const themes: { id: ThemeColor; name: string; color: string }[] = [
   { id: 'bubblegum', name: 'Bubblegum', color: 'bg-pink-400' },
   { id: 'electric', name: 'Electric', color: 'bg-yellow-400' },
   { id: 'minty', name: 'Minty', color: 'bg-emerald-400' },
-  { id: 'sunset', name: 'Sunset', color: 'bg-orange-400' },
+  { id: 'sky', name: 'Sky', color: 'bg-blue-400' },
+  { id: 'coral', name: 'Coral', color: 'bg-orange-500' },
+  { id: 'lavender', name: 'Lavender', color: 'bg-purple-400' },
+  { id: 'peach', name: 'Peach', color: 'bg-orange-300' },
+  { id: 'rose', name: 'Rose', color: 'bg-rose-400' },
 ];
 
 export function OnboardingStep2({ theme, setTheme, onNext }: OnboardingStep2Props) {
@@ -37,13 +41,13 @@ export function OnboardingStep2({ theme, setTheme, onNext }: OnboardingStep2Prop
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         {themes.map((t) => (
           <button
             key={t.id}
             onClick={() => setTheme(t.id)}
             className={cn(
-              "flex flex-col items-center justify-center p-6 rounded-xl border-2 border-border transition-all duration-150",
+              "flex flex-col items-center justify-center p-4 rounded-xl border-2 border-border transition-all duration-150",
               theme === t.id
                 ? "shadow-retro-lg -translate-x-0.5 -translate-y-0.5 bg-muted"
                 : "shadow-retro hover:shadow-retro-lg hover:-translate-x-0.5 hover:-translate-y-0.5 bg-card"
@@ -51,11 +55,11 @@ export function OnboardingStep2({ theme, setTheme, onNext }: OnboardingStep2Prop
           >
             <div
               className={cn(
-                "w-16 h-16 rounded-full border-2 border-border mb-3",
+                "w-10 h-10 rounded-full border-2 border-border mb-2",
                 t.color
               )}
             />
-            <span className="font-bold">{t.name}</span>
+            <span className="font-bold text-xs">{t.name}</span>
           </button>
         ))}
       </div>

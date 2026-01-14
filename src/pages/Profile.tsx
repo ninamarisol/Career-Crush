@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Target, User, Palette, LogOut } from 'lucide-react';
+import { FileText, Target, User, Palette, LogOut, Sun, Moon } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { MasterResumeBuilder } from '@/components/profile/MasterResumeBuilder';
@@ -18,10 +19,14 @@ const tabs = [
 ];
 
 const themeOptions = [
-  { value: 'bubblegum', label: 'Bubblegum', color: 'hsl(330, 85%, 60%)' },
-  { value: 'electric', label: 'Electric', color: 'hsl(45, 95%, 55%)' },
-  { value: 'minty', label: 'Minty', color: 'hsl(165, 75%, 45%)' },
-  { value: 'sunset', label: 'Sunset', color: 'hsl(20, 90%, 55%)' },
+  { value: 'bubblegum', label: 'Bubblegum', color: 'hsl(330, 100%, 70%)' },
+  { value: 'electric', label: 'Electric', color: 'hsl(47, 100%, 55%)' },
+  { value: 'minty', label: 'Minty', color: 'hsl(160, 60%, 45%)' },
+  { value: 'sky', label: 'Sky', color: 'hsl(214, 100%, 60%)' },
+  { value: 'coral', label: 'Coral', color: 'hsl(16, 100%, 65%)' },
+  { value: 'lavender', label: 'Lavender', color: 'hsl(270, 70%, 65%)' },
+  { value: 'peach', label: 'Peach', color: 'hsl(30, 100%, 70%)' },
+  { value: 'rose', label: 'Rose', color: 'hsl(350, 90%, 65%)' },
 ];
 
 const defaultResume: MasterResume = {
@@ -55,6 +60,7 @@ const defaultPreferences: JobPreferences = {
 export default function Profile() {
   const { profile, updateProfile, jobPreferences, updateJobPreferences } = useApp();
   const { signOut, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('resume');
   const [masterResume, setMasterResume] = useState<MasterResume>(defaultResume);
 
@@ -64,7 +70,7 @@ export default function Profile() {
     await updateJobPreferences(preferences);
   };
 
-  const updateTheme = async (themeColor: string) => {
+  const updateThemeColor = async (themeColor: string) => {
     await updateProfile({ theme_color: themeColor });
     toast.success('Theme updated!');
   };
@@ -96,7 +102,7 @@ export default function Profile() {
   const completionPercentage = calculateCompletion();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <motion.div
@@ -190,7 +196,7 @@ export default function Profile() {
                     type="text"
                     value={profile?.display_name || ''}
                     onChange={(e) => updateName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-primary focus:outline-none font-medium"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-border bg-card focus:border-primary focus:outline-none font-medium"
                     placeholder="Enter your name"
                   />
                 </CardRetroContent>
@@ -206,6 +212,34 @@ export default function Profile() {
                 </CardRetroContent>
               </CardRetro>
 
+              {/* Dark Mode Toggle */}
+              <CardRetro>
+                <CardRetroHeader>
+                  <CardRetroTitle>
+                    {theme === 'dark' ? <Moon className="w-5 h-5 inline mr-2" /> : <Sun className="w-5 h-5 inline mr-2" />}
+                    Appearance
+                  </CardRetroTitle>
+                </CardRetroHeader>
+                <CardRetroContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold">{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {theme === 'dark' ? 'Deep, immersive colors' : 'Bright, vibrant gradients'}
+                      </p>
+                    </div>
+                    <ButtonRetro
+                      variant="outline"
+                      onClick={toggleTheme}
+                      className="gap-2"
+                    >
+                      {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                      {theme === 'dark' ? 'Light' : 'Dark'}
+                    </ButtonRetro>
+                  </div>
+                </CardRetroContent>
+              </CardRetro>
+
               {/* Theme Selection */}
               <CardRetro>
                 <CardRetroHeader>
@@ -215,23 +249,23 @@ export default function Profile() {
                   </CardRetroTitle>
                 </CardRetroHeader>
                 <CardRetroContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {themeOptions.map((theme) => (
+                  <div className="grid grid-cols-4 gap-3">
+                    {themeOptions.map((themeOpt) => (
                       <button
-                        key={theme.value}
-                        onClick={() => updateTheme(theme.value)}
+                        key={themeOpt.value}
+                        onClick={() => updateThemeColor(themeOpt.value)}
                         className={cn(
-                          "p-4 rounded-xl border-2 transition-all text-center",
-                          profile?.theme_color === theme.value
-                            ? "border-primary shadow-retro"
-                            : "border-border hover:border-primary/50"
+                          "p-3 rounded-xl border-2 transition-all text-center",
+                          profile?.theme_color === themeOpt.value
+                            ? "border-primary shadow-retro scale-105"
+                            : "border-border hover:border-primary/50 hover:scale-102"
                         )}
                       >
                         <div
-                          className="w-10 h-10 rounded-full mx-auto mb-2"
-                          style={{ backgroundColor: theme.color }}
+                          className="w-8 h-8 rounded-full mx-auto mb-2 border-2 border-border"
+                          style={{ backgroundColor: themeOpt.color }}
                         />
-                        <span className="font-bold text-sm">{theme.label}</span>
+                        <span className="font-bold text-xs">{themeOpt.label}</span>
                       </button>
                     ))}
                   </div>

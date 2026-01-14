@@ -3,12 +3,13 @@ import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { motivationalQuotes } from '@/lib/data';
-import { Plus, Phone, Flame, Briefcase, FileText, Trophy, ArrowRight, Calendar, Check } from 'lucide-react';
+import { Plus, Phone, Flame, Briefcase, FileText, Trophy, ArrowRight, Calendar, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMemo } from 'react';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
 import { SmartStepDialog } from '@/components/dialogs/SmartStepDialog';
+import { useSmartSteps } from '@/hooks/useSmartSteps';
 
 const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
@@ -37,29 +38,8 @@ export default function Home() {
   const recentApps = applications.slice(0, 3);
   const upcomingEvents = events.slice(0, 3);
 
-  const smartSteps = [
-    {
-      title: 'Optimize Resume for Linear',
-      description: "Your match score is 92%. Adding 'Product Strategy' could bump it to 98%.",
-      type: 'optimize' as const,
-      buttonLabel: 'Optimize',
-      buttonVariant: 'default' as const,
-    },
-    {
-      title: 'Follow up with Vercel',
-      description: "It's been 3 days since your application. A quick note shows initiative.",
-      type: 'followup' as const,
-      buttonLabel: 'Draft Email',
-      buttonVariant: 'outline' as const,
-    },
-    {
-      title: 'Networking Opportunity',
-      description: '3 alumni from your school work at Notion. Reach out for a coffee chat?',
-      type: 'network' as const,
-      buttonLabel: 'View Contacts',
-      buttonVariant: 'outline' as const,
-    },
-  ];
+  // Get automated smart steps based on user activity
+  const smartSteps = useSmartSteps(applications, events);
 
   return (
     <div className="space-y-8">
@@ -117,22 +97,33 @@ export default function Home() {
 
       {/* Smart Next Steps */}
       <CardRetro>
-        <CardRetroHeader><CardRetroTitle>Smart Next Steps ✨</CardRetroTitle></CardRetroHeader>
+        <CardRetroHeader>
+          <CardRetroTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Smart Next Steps
+          </CardRetroTitle>
+        </CardRetroHeader>
         <CardRetroContent className="grid md:grid-cols-3 gap-4">
-          {smartSteps.map((step) => (
-            <div key={step.title} className="p-4 bg-muted rounded-lg border-2 border-border">
-              <h4 className="font-bold">{step.title}</h4>
-              <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
-              <SmartStepDialog
-                step={step}
-                trigger={
-                  <ButtonRetro size="sm" variant={step.buttonVariant} className="mt-3">
-                    {step.buttonLabel}
-                  </ButtonRetro>
-                }
-              />
+          {smartSteps.length > 0 ? (
+            smartSteps.map((step, index) => (
+              <div key={`${step.type}-${index}`} className="p-4 bg-muted rounded-lg border-2 border-border">
+                <h4 className="font-bold">{step.title}</h4>
+                <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
+                <SmartStepDialog
+                  step={step}
+                  trigger={
+                    <ButtonRetro size="sm" variant={step.buttonVariant} className="mt-3">
+                      {step.buttonLabel}
+                    </ButtonRetro>
+                  }
+                />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-3 text-center py-6 text-muted-foreground">
+              <p>All caught up! Add more applications to get personalized suggestions. ✨</p>
             </div>
-          ))}
+          )}
         </CardRetroContent>
       </CardRetro>
 
