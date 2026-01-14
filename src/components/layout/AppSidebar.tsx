@@ -3,7 +3,6 @@ import { Home, Briefcase, Users, Target, Heart, Menu, X, User } from 'lucide-rea
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { ButtonRetro } from '@/components/ui/button-retro';
-import { useTheme } from '@/hooks/useTheme';
 
 const navItems = [
   { to: '/home', icon: Home, label: 'Home' },
@@ -16,21 +15,14 @@ const navItems = [
 export function AppSidebar({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const { theme, themeColor } = useTheme();
-
-  const themeLabel = `${themeColor.charAt(0).toUpperCase()}${themeColor.slice(1)}`;
-  const modeLabel = theme === 'dark' ? 'Dark' : 'Light';
 
   return (
-    <div className="min-h-screen flex w-full bg-theme-gradient">
+    <div className="min-h-screen flex w-full">
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-card border-b-2 border-border z-50 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <Heart className="h-6 w-6 text-primary" />
           <span className="font-black text-lg">Career Crush</span>
-          <span className="hidden sm:inline-flex items-center rounded-full border-2 border-border bg-background px-2.5 py-1 text-[10px] font-black shadow-retro-sm">
-            Theme: {themeLabel} ({modeLabel})
-          </span>
         </div>
         <ButtonRetro size="icon" variant="ghost" onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X /> : <Menu />}
@@ -43,14 +35,9 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
         mobileOpen ? "translate-x-0" : "-translate-x-full",
         "lg:flex flex-col"
       )}>
-        <div className="p-6 border-b-2 border-border hidden lg:flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Heart className="h-8 w-8 text-primary" />
-            <span className="font-black text-xl">Career Crush</span>
-          </div>
-          <span className="inline-flex items-center rounded-full border-2 border-border bg-background px-3 py-1 text-xs font-black shadow-retro-sm">
-            Theme: {themeLabel} ({modeLabel})
-          </span>
+        <div className="p-6 border-b-2 border-border hidden lg:flex items-center gap-2">
+          <Heart className="h-8 w-8 text-primary" />
+          <span className="font-black text-xl">Career Crush</span>
         </div>
         <nav className="flex-1 p-4 pt-20 lg:pt-4 space-y-2">
           {navItems.map(item => (
