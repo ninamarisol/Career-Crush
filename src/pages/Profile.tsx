@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Target, User, Palette } from 'lucide-react';
+import { FileText, Target, User, Palette, LogOut } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { MasterResumeBuilder } from '@/components/profile/MasterResumeBuilder';
 import { DreamJobProfiler } from '@/components/profile/DreamJobProfiler';
 import { MasterResume, JobPreferences, defaultPriorityWeights } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const tabs = [
   { id: 'resume', label: 'Master Resume', icon: FileText, emoji: '📄' },
@@ -19,7 +21,7 @@ const themeOptions = [
   { value: 'bubblegum', label: 'Bubblegum', color: 'hsl(330, 85%, 60%)' },
   { value: 'electric', label: 'Electric', color: 'hsl(45, 95%, 55%)' },
   { value: 'minty', label: 'Minty', color: 'hsl(165, 75%, 45%)' },
-  { value: 'sky', label: 'Sky', color: 'hsl(200, 85%, 55%)' },
+  { value: 'sunset', label: 'Sunset', color: 'hsl(20, 90%, 55%)' },
 ];
 
 const defaultResume: MasterResume = {
@@ -51,34 +53,29 @@ const defaultPreferences: JobPreferences = {
 };
 
 export default function Profile() {
-  const { user, setUser } = useApp();
+  const { profile, updateProfile, jobPreferences, updateJobPreferences } = useApp();
+  const { signOut, user } = useAuth();
   const [activeTab, setActiveTab] = useState('resume');
+  const [masterResume, setMasterResume] = useState<MasterResume>(defaultResume);
 
-  const masterResume = user?.masterResume || defaultResume;
-  const jobPreferences = user?.jobPreferences || defaultPreferences;
+  const currentPreferences = jobPreferences || defaultPreferences;
 
-  const updateResume = (resume: MasterResume) => {
-    if (user) {
-      setUser({ ...user, masterResume: resume });
-    }
+  const updatePreferences = async (preferences: JobPreferences) => {
+    await updateJobPreferences(preferences);
   };
 
-  const updatePreferences = (preferences: JobPreferences) => {
-    if (user) {
-      setUser({ ...user, jobPreferences: preferences });
-    }
+  const updateTheme = async (themeColor: string) => {
+    await updateProfile({ theme_color: themeColor });
+    toast.success('Theme updated!');
   };
 
-  const updateTheme = (themeColor: 'bubblegum' | 'electric' | 'minty' | 'sky') => {
-    if (user) {
-      setUser({ ...user, themeColor });
-    }
+  const updateName = async (displayName: string) => {
+    await updateProfile({ display_name: displayName });
   };
 
-  const updateName = (name: string) => {
-    if (user) {
-      setUser({ ...user, name });
-    }
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success('Signed out successfully');
   };
 
   // Calculate profile completion
@@ -89,9 +86,9 @@ export default function Profile() {
     if (masterResume.summary) completed++;
     if (masterResume.skills.length > 0) completed++;
     if (masterResume.experience.length > 0) completed++;
-    if (jobPreferences.locations.length > 0 || jobPreferences.remotePreference !== 'flexible') completed++;
-    if (jobPreferences.roleTypes.length > 0) completed++;
-    if (jobPreferences.salaryRange.min > 0) completed++;
+    if (currentPreferences.locations.length > 0 || currentPreferences.remotePreference !== 'flexible') completed++;
+    if (currentPreferences.roleTypes.length > 0) completed++;
+    if (currentPreferences.salaryRange.min > 0) completed++;
 
     return Math.round((completed / total) * 100);
   };
@@ -170,13 +167,13 @@ export default function Profile() {
           {activeTab === 'resume' && (
             <MasterResumeBuilder
               resume={masterResume}
-              onUpdate={updateResume}
+              onUpdate={setMasterResume}
             />
           )}
 
           {activeTab === 'preferences' && (
             <DreamJobProfiler
-              preferences={jobPreferences}
+              preferences={currentPreferences}
               onUpdate={updatePreferences}
             />
           )}
@@ -191,11 +188,21 @@ export default function Profile() {
                 <CardRetroContent>
                   <input
                     type="text"
-                    value={user?.name || ''}
+                    value={profile?.display_name || ''}
                     onChange={(e) => updateName(e.target.value)}
                     className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-primary focus:outline-none font-medium"
                     placeholder="Enter your name"
                   />
+                </CardRetroContent>
+              </CardRetro>
+
+              {/* Email */}
+              <CardRetro>
+                <CardRetroHeader>
+                  <CardRetroTitle>📧 Email</CardRetroTitle>
+                </CardRetroHeader>
+                <CardRetroContent>
+                  <p className="text-muted-foreground">{user?.email || 'No email'}</p>
                 </CardRetroContent>
               </CardRetro>
 
@@ -212,10 +219,10 @@ export default function Profile() {
                     {themeOptions.map((theme) => (
                       <button
                         key={theme.value}
-                        onClick={() => updateTheme(theme.value as any)}
+                        onClick={() => updateTheme(theme.value)}
                         className={cn(
                           "p-4 rounded-xl border-2 transition-all text-center",
-                          user?.themeColor === theme.value
+                          profile?.theme_color === theme.value
                             ? "border-primary shadow-retro"
                             : "border-border hover:border-primary/50"
                         )}
@@ -239,10 +246,6 @@ export default function Profile() {
                 <CardRetroContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-muted/50 rounded-lg text-center">
-                      <p className="text-3xl font-black text-primary">{user?.weeklyStreak || 0}</p>
-                      <p className="text-sm text-muted-foreground">Day Streak 🔥</p>
-                    </div>
-                    <div className="p-4 bg-muted/50 rounded-lg text-center">
                       <p className="text-3xl font-black text-primary">{masterResume.skills.length}</p>
                       <p className="text-sm text-muted-foreground">Skills Listed</p>
                     </div>
@@ -251,32 +254,31 @@ export default function Profile() {
                       <p className="text-sm text-muted-foreground">Experiences</p>
                     </div>
                     <div className="p-4 bg-muted/50 rounded-lg text-center">
-                      <p className="text-3xl font-black text-primary">{jobPreferences.roleTypes.length}</p>
+                      <p className="text-3xl font-black text-primary">{currentPreferences.roleTypes.length}</p>
                       <p className="text-sm text-muted-foreground">Target Roles</p>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg text-center">
+                      <p className="text-3xl font-black text-primary">{currentPreferences.industries.length}</p>
+                      <p className="text-sm text-muted-foreground">Industries</p>
                     </div>
                   </div>
                 </CardRetroContent>
               </CardRetro>
 
-              {/* Reset Data */}
+              {/* Sign Out */}
               <CardRetro>
                 <CardRetroHeader>
-                  <CardRetroTitle>⚠️ Danger Zone</CardRetroTitle>
+                  <CardRetroTitle>🚪 Sign Out</CardRetroTitle>
                 </CardRetroHeader>
                 <CardRetroContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Reset all your data and start fresh. This action cannot be undone.
+                    Sign out of your account. Your data will be saved.
                   </p>
                   <ButtonRetro
-                    variant="destructive"
-                    onClick={() => {
-                      if (confirm('Are you sure you want to reset all your data? This cannot be undone.')) {
-                        localStorage.clear();
-                        window.location.reload();
-                      }
-                    }}
+                    variant="outline"
+                    onClick={handleSignOut}
                   >
-                    Reset All Data
+                    <LogOut className="h-4 w-4" /> Sign Out
                   </ButtonRetro>
                 </CardRetroContent>
               </CardRetro>

@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 interface DreamJobProfilerProps {
   preferences: JobPreferences;
   onUpdate: (preferences: JobPreferences) => void;
+  onComplete?: () => void;
+  isOnboarding?: boolean;
 }
 
 const surveySteps = [
@@ -34,7 +36,7 @@ const priorityLabels: { key: keyof PriorityWeights; label: string; emoji: string
   { key: 'workStyle', label: 'Work Style', emoji: '💖', description: 'How much does work culture/style matter?' },
 ];
 
-export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProps) {
+export function DreamJobProfiler({ preferences, onUpdate, onComplete, isOnboarding = false }: DreamJobProfilerProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [customRoleInput, setCustomRoleInput] = useState('');
@@ -153,6 +155,9 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
       setCurrentStep(currentStep + 1);
     } else {
       setIsCompleted(true);
+      if (onComplete) {
+        onComplete();
+      }
     }
   };
 

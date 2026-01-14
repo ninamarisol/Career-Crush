@@ -8,15 +8,39 @@ import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Briefcase, Heart } from 'lucide-react';
 import { DreamJobProfiler } from '@/components/profile/DreamJobProfiler';
+import { JobPreferences, defaultPriorityWeights } from '@/lib/data';
 import { toast } from 'sonner';
+
+type ThemeColor = 'bubblegum' | 'electric' | 'minty' | 'sunset';
+
+const defaultPreferences: JobPreferences = {
+  locations: [],
+  remotePreference: 'flexible',
+  companySizes: [],
+  roleTypes: [],
+  customRoleTypes: [],
+  industries: [],
+  customIndustries: [],
+  workStyle: {
+    pacePreference: 'moderate',
+    collaborationStyle: 'mixed',
+    managementPreference: 'supportive',
+    growthPriority: 'learning',
+  },
+  salaryRange: { min: 0, max: 0 },
+  dealbreakers: [],
+  additionalNotes: '',
+  priorityWeights: defaultPriorityWeights,
+};
 
 export default function Onboarding() {
   const { profile, updateProfile, updateJobPreferences, jobPreferences } = useApp();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [name, setName] = useState(profile?.display_name || user?.user_metadata?.full_name || '');
-  const [theme, setTheme] = useState<'bubblegum' | 'electric' | 'minty' | 'sunset'>('bubblegum');
+  const [theme, setTheme] = useState<ThemeColor>('bubblegum');
   const [showDreamJobProfiler, setShowDreamJobProfiler] = useState(false);
+  const [localPreferences, setLocalPreferences] = useState<JobPreferences>(jobPreferences || defaultPreferences);
 
   const handleStep1Complete = () => {
     setStep(2);
@@ -32,8 +56,12 @@ export default function Onboarding() {
     setShowDreamJobProfiler(true);
   };
 
-  const handleDreamJobComplete = async (preferences: any) => {
-    await updateJobPreferences(preferences);
+  const handlePreferencesUpdate = (preferences: JobPreferences) => {
+    setLocalPreferences(preferences);
+  };
+
+  const handleDreamJobComplete = async () => {
+    await updateJobPreferences(localPreferences);
     await updateProfile({ onboarding_complete: true });
     toast.success('Welcome to Career Crush! 🎉');
   };
@@ -41,11 +69,18 @@ export default function Onboarding() {
   if (showDreamJobProfiler) {
     return (
       <div className={`min-h-screen bg-background theme-${theme}`}>
-        <DreamJobProfiler
-          preferences={jobPreferences || undefined}
-          onComplete={handleDreamJobComplete}
-          isOnboarding={true}
-        />
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-black mb-2">Let's Find Your Dream Job! 🎯</h1>
+            <p className="text-muted-foreground">Tell us what you're looking for</p>
+          </div>
+          <DreamJobProfiler
+            preferences={localPreferences}
+            onUpdate={handlePreferencesUpdate}
+            onComplete={handleDreamJobComplete}
+            isOnboarding={true}
+          />
+        </div>
       </div>
     );
   }

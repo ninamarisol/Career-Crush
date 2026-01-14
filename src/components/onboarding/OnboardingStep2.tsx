@@ -3,17 +3,19 @@ import { ArrowRight, Palette } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { cn } from '@/lib/utils';
 
+type ThemeColor = 'bubblegum' | 'electric' | 'minty' | 'sunset';
+
 interface OnboardingStep2Props {
-  theme: 'bubblegum' | 'electric' | 'minty' | 'sky';
-  setTheme: (theme: 'bubblegum' | 'electric' | 'minty' | 'sky') => void;
+  theme: ThemeColor;
+  setTheme: (theme: ThemeColor) => void;
   onNext: () => void;
 }
 
-const themes = [
-  { id: 'bubblegum' as const, name: 'Bubblegum', color: 'bg-theme-pink' },
-  { id: 'electric' as const, name: 'Electric', color: 'bg-theme-yellow' },
-  { id: 'minty' as const, name: 'Minty', color: 'bg-theme-teal' },
-  { id: 'sky' as const, name: 'Sky', color: 'bg-theme-blue' },
+const themes: { id: ThemeColor; name: string; color: string }[] = [
+  { id: 'bubblegum', name: 'Bubblegum', color: 'bg-pink-400' },
+  { id: 'electric', name: 'Electric', color: 'bg-yellow-400' },
+  { id: 'minty', name: 'Minty', color: 'bg-emerald-400' },
+  { id: 'sunset', name: 'Sunset', color: 'bg-orange-400' },
 ];
 
 export function OnboardingStep2({ theme, setTheme, onNext }: OnboardingStep2Props) {
