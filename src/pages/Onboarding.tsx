@@ -1,34 +1,57 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { OnboardingStep1 } from '@/components/onboarding/OnboardingStep1';
 import { OnboardingStep2 } from '@/components/onboarding/OnboardingStep2';
-import { OnboardingStep3 } from '@/components/onboarding/OnboardingStep3';
-import { OnboardingStep4 } from '@/components/onboarding/OnboardingStep4';
 import { ProgressBar } from '@/components/onboarding/ProgressBar';
 import { CardRetro } from '@/components/ui/card-retro';
 import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Briefcase, Heart } from 'lucide-react';
+import { DreamJobProfiler } from '@/components/profile/DreamJobProfiler';
+import { toast } from 'sonner';
 
 export default function Onboarding() {
-  const navigate = useNavigate();
-  const { setUser } = useApp();
+  const { profile, updateProfile, updateJobPreferences, jobPreferences } = useApp();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
-  const [theme, setTheme] = useState<'bubblegum' | 'electric' | 'minty' | 'sky'>('bubblegum');
+  const [name, setName] = useState(profile?.display_name || user?.user_metadata?.full_name || '');
+  const [theme, setTheme] = useState<'bubblegum' | 'electric' | 'minty' | 'sunset'>('bubblegum');
+  const [showDreamJobProfiler, setShowDreamJobProfiler] = useState(false);
 
-  const handleComplete = () => {
-    setUser({
-      name,
-      themeColor: theme,
-      onboardingComplete: true,
-      weeklyStreak: 0,
-    });
-    navigate('/home');
+  const handleStep1Complete = () => {
+    setStep(2);
   };
 
+  const handleStep2Complete = async () => {
+    // Save name and theme
+    await updateProfile({
+      display_name: name,
+      theme_color: theme,
+    });
+    // Move to dream job profiler
+    setShowDreamJobProfiler(true);
+  };
+
+  const handleDreamJobComplete = async (preferences: any) => {
+    await updateJobPreferences(preferences);
+    await updateProfile({ onboarding_complete: true });
+    toast.success('Welcome to Career Crush! 🎉');
+  };
+
+  if (showDreamJobProfiler) {
+    return (
+      <div className={`min-h-screen bg-background theme-${theme}`}>
+        <DreamJobProfiler
+          preferences={jobPreferences || undefined}
+          onComplete={handleDreamJobComplete}
+          isOnboarding={true}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className={`min-h-screen bg-background relative overflow-hidden theme-${theme}`}>
       {/* Decorative gradient blobs */}
       <div className="absolute top-0 left-0 w-96 h-96 blob-pink blur-3xl opacity-50" />
       <div className="absolute bottom-0 right-0 w-96 h-96 blob-yellow blur-3xl opacity-50" />
@@ -57,37 +80,37 @@ export default function Onboarding() {
               <h1 className="text-2xl font-black">Career Crush 💼</h1>
             </div>
             
-            <ProgressBar currentStep={step} totalSteps={4} />
+            <ProgressBar currentStep={step} totalSteps={2} />
 
             <div className="mt-8">
               <AnimatePresence mode="wait">
                 {step === 1 && (
-                  <OnboardingStep1
+                  <motion.div
                     key="step1"
-                    name={name}
-                    setName={setName}
-                    onNext={() => setStep(2)}
-                  />
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                  >
+                    <OnboardingStep1
+                      name={name}
+                      setName={setName}
+                      onNext={handleStep1Complete}
+                    />
+                  </motion.div>
                 )}
                 {step === 2 && (
-                  <OnboardingStep2
+                  <motion.div
                     key="step2"
-                    theme={theme}
-                    setTheme={setTheme}
-                    onNext={() => setStep(3)}
-                  />
-                )}
-                {step === 3 && (
-                  <OnboardingStep3
-                    key="step3"
-                    onNext={() => setStep(4)}
-                  />
-                )}
-                {step === 4 && (
-                  <OnboardingStep4
-                    key="step4"
-                    onComplete={handleComplete}
-                  />
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                  >
+                    <OnboardingStep2
+                      theme={theme}
+                      setTheme={setTheme}
+                      onNext={handleStep2Complete}
+                    />
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>
