@@ -15,6 +15,7 @@ import Applications from "./pages/Applications";
 import ApplicationDetail from "./pages/ApplicationDetail";
 import Profile from "./pages/Profile";
 import Goals from "./pages/Goals";
+import Contacts from "./pages/Contacts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,7 +78,7 @@ function AppRoutes() {
         <Route path="/applications" element={<Applications />} />
         <Route path="/applications/:id" element={<ApplicationDetail />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/contacts" element={<div className="text-center py-12"><h1 className="text-3xl font-black">Contacts 📇</h1><p className="text-muted-foreground mt-2">Coming soon...</p></div>} />
+        <Route path="/contacts" element={<Contacts />} />
         <Route path="/goals" element={<Goals />} />
         <Route path="/settings" element={<Navigate to="/profile" replace />} />
         <Route path="*" element={<NotFound />} />

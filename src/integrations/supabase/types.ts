@@ -119,6 +119,115 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_interactions: {
+        Row: {
+          contact_id: string
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          outcome: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          application_id: string | null
+          company: string | null
+          connection_strength: string | null
+          created_at: string
+          email: string | null
+          follow_up_status: string | null
+          id: string
+          last_contacted: string | null
+          linkedin_url: string | null
+          name: string
+          next_follow_up: string | null
+          notes: string | null
+          phone: string | null
+          position: string | null
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          company?: string | null
+          connection_strength?: string | null
+          created_at?: string
+          email?: string | null
+          follow_up_status?: string | null
+          id?: string
+          last_contacted?: string | null
+          linkedin_url?: string | null
+          name: string
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string | null
+          company?: string | null
+          connection_strength?: string | null
+          created_at?: string
+          email?: string | null
+          follow_up_status?: string | null
+          id?: string
+          last_contacted?: string | null
+          linkedin_url?: string | null
+          name?: string
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           application_id: string | null
