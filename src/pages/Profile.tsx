@@ -155,17 +155,18 @@ export default function Profile() {
           </CardRetro>
         </motion.div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        {/* Tabs - Grid layout for better visibility */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
           {tabs.map((tab) => (
             <ButtonRetro
               key={tab.id}
               variant={activeTab === tab.id ? 'default' : 'outline'}
               onClick={() => setActiveTab(tab.id)}
-              className="whitespace-nowrap"
+              className="flex flex-col items-center justify-center py-3 px-2 h-auto text-center"
+              size="sm"
             >
-              <span className="mr-2">{tab.emoji}</span>
-              {tab.label}
+              <span className="text-lg mb-1">{tab.emoji}</span>
+              <span className="text-xs font-bold leading-tight">{tab.label}</span>
             </ButtonRetro>
           ))}
         </div>
