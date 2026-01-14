@@ -305,11 +305,13 @@ export const calculateDreamJobMatch = (
   }
 
   // Role type match (using roleType weight)
-  if (weights.roleType > 0 && (preferences.roleTypes.length > 0 || preferences.customRoleTypes.length > 0)) {
+  const roleTypes = preferences.roleTypes || [];
+  const customRoleTypes = preferences.customRoleTypes || [];
+  if (weights.roleType > 0 && (roleTypes.length > 0 || customRoleTypes.length > 0)) {
     totalWeight += weights.roleType;
     let roleScore = 50;
     
-    const allRoles = [...preferences.roleTypes, ...preferences.customRoleTypes];
+    const allRoles = [...roleTypes, ...customRoleTypes];
     const roleMatch = allRoles.some(role =>
       application.roleTitle.toLowerCase().includes(role.toLowerCase()) ||
       role.toLowerCase().includes(application.roleTitle.toLowerCase().split(' ')[0])
@@ -321,11 +323,13 @@ export const calculateDreamJobMatch = (
   }
 
   // Industry match (using industry weight)
-  if (weights.industry > 0 && (preferences.industries.length > 0 || preferences.customIndustries.length > 0) && application.industryTags) {
+  const industries = preferences.industries || [];
+  const customIndustries = preferences.customIndustries || [];
+  if (weights.industry > 0 && (industries.length > 0 || customIndustries.length > 0) && application.industryTags) {
     totalWeight += weights.industry;
     let industryScore = 50;
     
-    const allIndustries = [...preferences.industries, ...preferences.customIndustries];
+    const allIndustries = [...industries, ...customIndustries];
     const industryMatches = application.industryTags.filter(tag =>
       allIndustries.some(ind => 
         ind.toLowerCase().includes(tag.toLowerCase()) ||

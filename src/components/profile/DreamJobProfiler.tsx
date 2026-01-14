@@ -40,23 +40,36 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
   const [customRoleInput, setCustomRoleInput] = useState('');
   const [customIndustryInput, setCustomIndustryInput] = useState('');
 
-  // Ensure priorityWeights exists with defaults
-  const weights = preferences.priorityWeights || defaultPriorityWeights;
+  // Ensure all array fields exist with defaults
+  const safePreferences = {
+    ...preferences,
+    locations: preferences.locations || [],
+    companySizes: preferences.companySizes || [],
+    roleTypes: preferences.roleTypes || [],
+    customRoleTypes: preferences.customRoleTypes || [],
+    industries: preferences.industries || [],
+    customIndustries: preferences.customIndustries || [],
+    dealbreakers: preferences.dealbreakers || [],
+    additionalNotes: preferences.additionalNotes || '',
+    priorityWeights: preferences.priorityWeights || defaultPriorityWeights,
+  };
+
+  const weights = safePreferences.priorityWeights;
   const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
 
   const toggleArrayItem = (field: keyof JobPreferences, item: string) => {
-    const array = preferences[field] as string[];
+    const array = (safePreferences[field] as string[]) || [];
     const newArray = array.includes(item)
       ? array.filter(i => i !== item)
       : [...array, item];
-    onUpdate({ ...preferences, [field]: newArray });
+    onUpdate({ ...safePreferences, [field]: newArray });
   };
 
   const addCustomRole = () => {
-    if (customRoleInput.trim() && !preferences.customRoleTypes.includes(customRoleInput.trim())) {
+    if (customRoleInput.trim() && !safePreferences.customRoleTypes.includes(customRoleInput.trim())) {
       onUpdate({
-        ...preferences,
-        customRoleTypes: [...preferences.customRoleTypes, customRoleInput.trim()],
+        ...safePreferences,
+        customRoleTypes: [...safePreferences.customRoleTypes, customRoleInput.trim()],
       });
       setCustomRoleInput('');
     }
@@ -64,16 +77,16 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
 
   const removeCustomRole = (role: string) => {
     onUpdate({
-      ...preferences,
-      customRoleTypes: preferences.customRoleTypes.filter(r => r !== role),
+      ...safePreferences,
+      customRoleTypes: safePreferences.customRoleTypes.filter(r => r !== role),
     });
   };
 
   const addCustomIndustry = () => {
-    if (customIndustryInput.trim() && !preferences.customIndustries.includes(customIndustryInput.trim())) {
+    if (customIndustryInput.trim() && !safePreferences.customIndustries.includes(customIndustryInput.trim())) {
       onUpdate({
-        ...preferences,
-        customIndustries: [...preferences.customIndustries, customIndustryInput.trim()],
+        ...safePreferences,
+        customIndustries: [...safePreferences.customIndustries, customIndustryInput.trim()],
       });
       setCustomIndustryInput('');
     }
@@ -81,22 +94,22 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
 
   const removeCustomIndustry = (industry: string) => {
     onUpdate({
-      ...preferences,
-      customIndustries: preferences.customIndustries.filter(i => i !== industry),
+      ...safePreferences,
+      customIndustries: safePreferences.customIndustries.filter(i => i !== industry),
     });
   };
 
   const toggleCompanySize = (size: 'startup' | 'small' | 'medium' | 'large' | 'enterprise') => {
-    const newSizes = preferences.companySizes.includes(size)
-      ? preferences.companySizes.filter(s => s !== size)
-      : [...preferences.companySizes, size];
-    onUpdate({ ...preferences, companySizes: newSizes });
+    const newSizes = safePreferences.companySizes.includes(size)
+      ? safePreferences.companySizes.filter(s => s !== size)
+      : [...safePreferences.companySizes, size];
+    onUpdate({ ...safePreferences, companySizes: newSizes });
   };
 
   const updateWorkStyle = (field: keyof JobPreferences['workStyle'], value: string) => {
     onUpdate({
-      ...preferences,
-      workStyle: { ...preferences.workStyle, [field]: value },
+      ...safePreferences,
+      workStyle: { ...safePreferences.workStyle, [field]: value },
     });
   };
 
@@ -128,11 +141,11 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
       currentWeights[largestKey] = Math.max(0, currentWeights[largestKey] + adjustment);
     }
     
-    onUpdate({ ...preferences, priorityWeights: currentWeights });
+    onUpdate({ ...safePreferences, priorityWeights: currentWeights });
   };
 
   const resetWeights = () => {
-    onUpdate({ ...preferences, priorityWeights: { ...defaultPriorityWeights } });
+    onUpdate({ ...safePreferences, priorityWeights: { ...defaultPriorityWeights } });
   };
 
   const nextStep = () => {
@@ -160,10 +173,10 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                 {['remote', 'hybrid', 'onsite', 'flexible'].map((pref) => (
                   <button
                     key={pref}
-                    onClick={() => onUpdate({ ...preferences, remotePreference: pref as 'remote' | 'hybrid' | 'onsite' | 'flexible' })}
+                    onClick={() => onUpdate({ ...safePreferences, remotePreference: pref as 'remote' | 'hybrid' | 'onsite' | 'flexible' })}
                     className={cn(
                       "px-4 py-2 rounded-full border-2 font-medium transition-all",
-                      preferences.remotePreference === pref
+                      safePreferences.remotePreference === pref
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border hover:border-primary"
                     )}
@@ -187,7 +200,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                     onClick={() => toggleArrayItem('locations', region.value)}
                     className={cn(
                       "p-3 rounded-lg border-2 text-left transition-all",
-                      preferences.locations.includes(region.value)
+                      safePreferences.locations.includes(region.value)
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
@@ -213,7 +226,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                 onClick={() => toggleCompanySize(size.value as 'startup' | 'small' | 'medium' | 'large' | 'enterprise')}
                 className={cn(
                   "p-4 rounded-xl border-2 text-left transition-all",
-                  preferences.companySizes.includes(size.value as 'startup' | 'small' | 'medium' | 'large' | 'enterprise')
+                  safePreferences.companySizes.includes(size.value as 'startup' | 'small' | 'medium' | 'large' | 'enterprise')
                     ? "border-primary bg-primary/10"
                     : "border-border hover:border-primary/50"
                 )}
@@ -229,11 +242,11 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
         return (
           <div className="space-y-6">
             {/* Custom Roles */}
-            {preferences.customRoleTypes.length > 0 && (
+            {safePreferences.customRoleTypes.length > 0 && (
               <div>
                 <p className="text-sm font-bold text-muted-foreground mb-2">Your Custom Roles:</p>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {preferences.customRoleTypes.map((role) => (
+                  {safePreferences.customRoleTypes.map((role) => (
                     <span
                       key={role}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border-2 border-primary bg-primary/10 text-primary text-sm font-medium"
@@ -277,7 +290,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                     onClick={() => toggleArrayItem('roleTypes', role)}
                     className={cn(
                       "px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all",
-                      preferences.roleTypes.includes(role)
+                      safePreferences.roleTypes.includes(role)
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border hover:border-primary/50"
                     )}
@@ -294,11 +307,11 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
         return (
           <div className="space-y-6">
             {/* Custom Industries */}
-            {preferences.customIndustries.length > 0 && (
+            {safePreferences.customIndustries.length > 0 && (
               <div>
                 <p className="text-sm font-bold text-muted-foreground mb-2">Your Custom Industries:</p>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {preferences.customIndustries.map((industry) => (
+                  {safePreferences.customIndustries.map((industry) => (
                     <span
                       key={industry}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border-2 border-primary bg-primary/10 text-primary text-sm font-medium"
@@ -342,7 +355,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                     onClick={() => toggleArrayItem('industries', industry)}
                     className={cn(
                       "px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all",
-                      preferences.industries.includes(industry)
+                      safePreferences.industries.includes(industry)
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border hover:border-primary/50"
                     )}
@@ -372,7 +385,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                     onClick={() => updateWorkStyle('pacePreference', option.value)}
                     className={cn(
                       "px-4 py-2 rounded-lg border-2 font-medium transition-all",
-                      preferences.workStyle.pacePreference === option.value
+                      safePreferences.workStyle.pacePreference === option.value
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
@@ -397,7 +410,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                     onClick={() => updateWorkStyle('collaborationStyle', option.value)}
                     className={cn(
                       "px-4 py-2 rounded-lg border-2 font-medium transition-all",
-                      preferences.workStyle.collaborationStyle === option.value
+                      safePreferences.workStyle.collaborationStyle === option.value
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
@@ -422,7 +435,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                     onClick={() => updateWorkStyle('managementPreference', option.value)}
                     className={cn(
                       "px-4 py-2 rounded-lg border-2 font-medium transition-all",
-                      preferences.workStyle.managementPreference === option.value
+                      safePreferences.workStyle.managementPreference === option.value
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
@@ -448,7 +461,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                     onClick={() => updateWorkStyle('growthPriority', option.value)}
                     className={cn(
                       "px-4 py-2 rounded-lg border-2 font-medium transition-all",
-                      preferences.workStyle.growthPriority === option.value
+                      safePreferences.workStyle.growthPriority === option.value
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
@@ -472,10 +485,10 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                 <InputRetro
                   type="number"
                   placeholder="e.g., 80000"
-                  value={preferences.salaryRange.min || ''}
+                  value={safePreferences.salaryRange.min || ''}
                   onChange={(e) => onUpdate({
-                    ...preferences,
-                    salaryRange: { ...preferences.salaryRange, min: parseInt(e.target.value) || 0 }
+                    ...safePreferences,
+                    salaryRange: { ...safePreferences.salaryRange, min: parseInt(e.target.value) || 0 }
                   })}
                 />
               </div>
@@ -486,10 +499,10 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                 <InputRetro
                   type="number"
                   placeholder="e.g., 150000"
-                  value={preferences.salaryRange.max || ''}
+                  value={safePreferences.salaryRange.max || ''}
                   onChange={(e) => onUpdate({
-                    ...preferences,
-                    salaryRange: { ...preferences.salaryRange, max: parseInt(e.target.value) || 0 }
+                    ...safePreferences,
+                    salaryRange: { ...safePreferences.salaryRange, max: parseInt(e.target.value) || 0 }
                   })}
                 />
               </div>
@@ -528,11 +541,11 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
               ].map((dealbreaker) => (
                 <button
                   key={dealbreaker}
-                  onClick={() => toggleArrayItem('dealbreakers', dealbreaker)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all",
-                    preferences.dealbreakers.includes(dealbreaker)
-                      ? "border-destructive bg-destructive/10 text-destructive"
+                    onClick={() => toggleArrayItem('dealbreakers', dealbreaker)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all",
+                      safePreferences.dealbreakers.includes(dealbreaker)
+                        ? "border-destructive bg-destructive/10 text-destructive"
                       : "border-border hover:border-destructive/50"
                   )}
                 >
@@ -552,8 +565,8 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
             <textarea
               className="w-full min-h-[200px] p-4 rounded-lg border-2 border-border bg-background font-medium focus:outline-none focus:border-primary transition-colors resize-none"
               placeholder="For example:&#10;• I value a company with a strong mission and values&#10;• Looking for opportunities to transition into leadership&#10;• Prefer asynchronous communication&#10;• Want to work on consumer-facing products&#10;• Need flexible hours to accommodate family responsibilities&#10;• Looking for mentorship opportunities..."
-              value={preferences.additionalNotes}
-              onChange={(e) => onUpdate({ ...preferences, additionalNotes: e.target.value })}
+              value={safePreferences.additionalNotes}
+              onChange={(e) => onUpdate({ ...safePreferences, additionalNotes: e.target.value })}
             />
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-sm">
