@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Building2, Briefcase, Factory, Heart, DollarSign, AlertTriangle, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { MapPin, Building2, Briefcase, Factory, Heart, DollarSign, AlertTriangle, ChevronRight, ChevronLeft, Check, Plus, X, MessageSquare } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { InputRetro } from '@/components/ui/input-retro';
-import { JobPreferences, locationOptions, companySizeOptions, industryOptions, roleTypeOptions } from '@/lib/data';
+import { JobPreferences, regionOptions, companySizeOptions, industryOptions, roleTypeOptions } from '@/lib/data';
 import { cn } from '@/lib/utils';
 
 interface DreamJobProfilerProps {
@@ -17,14 +17,17 @@ const surveySteps = [
   { id: 'company', title: 'What size company?', icon: Building2, emoji: '🏢' },
   { id: 'roles', title: 'What type of roles?', icon: Briefcase, emoji: '💼' },
   { id: 'industries', title: 'Which industries interest you?', icon: Factory, emoji: '🏭' },
-  { id: 'workstyle', title: 'What\'s your work style?', icon: Heart, emoji: '💖' },
+  { id: 'workstyle', title: "What's your work style?", icon: Heart, emoji: '💖' },
   { id: 'salary', title: 'Salary expectations?', icon: DollarSign, emoji: '💰' },
   { id: 'dealbreakers', title: 'Any dealbreakers?', icon: AlertTriangle, emoji: '🚫' },
+  { id: 'notes', title: 'Anything else we should know?', icon: MessageSquare, emoji: '📝' },
 ];
 
 export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [customRoleInput, setCustomRoleInput] = useState('');
+  const [customIndustryInput, setCustomIndustryInput] = useState('');
 
   const toggleArrayItem = (field: keyof JobPreferences, item: string) => {
     const array = preferences[field] as string[];
@@ -32,6 +35,40 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
       ? array.filter(i => i !== item)
       : [...array, item];
     onUpdate({ ...preferences, [field]: newArray });
+  };
+
+  const addCustomRole = () => {
+    if (customRoleInput.trim() && !preferences.customRoleTypes.includes(customRoleInput.trim())) {
+      onUpdate({
+        ...preferences,
+        customRoleTypes: [...preferences.customRoleTypes, customRoleInput.trim()],
+      });
+      setCustomRoleInput('');
+    }
+  };
+
+  const removeCustomRole = (role: string) => {
+    onUpdate({
+      ...preferences,
+      customRoleTypes: preferences.customRoleTypes.filter(r => r !== role),
+    });
+  };
+
+  const addCustomIndustry = () => {
+    if (customIndustryInput.trim() && !preferences.customIndustries.includes(customIndustryInput.trim())) {
+      onUpdate({
+        ...preferences,
+        customIndustries: [...preferences.customIndustries, customIndustryInput.trim()],
+      });
+      setCustomIndustryInput('');
+    }
+  };
+
+  const removeCustomIndustry = (industry: string) => {
+    onUpdate({
+      ...preferences,
+      customIndustries: preferences.customIndustries.filter(i => i !== industry),
+    });
   };
 
   const toggleCompanySize = (size: 'startup' | 'small' | 'medium' | 'large' | 'enterprise') => {
@@ -66,42 +103,53 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
     switch (surveySteps[currentStep].id) {
       case 'locations':
         return (
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {['remote', 'hybrid', 'onsite', 'flexible'].map((pref) => (
-                <button
-                  key={pref}
-                  onClick={() => onUpdate({ ...preferences, remotePreference: pref as any })}
-                  className={cn(
-                    "px-4 py-2 rounded-full border-2 font-medium transition-all",
-                    preferences.remotePreference === pref
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border hover:border-primary"
-                  )}
-                >
-                  {pref === 'remote' && '🏠 Remote Only'}
-                  {pref === 'hybrid' && '🔄 Hybrid'}
-                  {pref === 'onsite' && '🏢 On-site'}
-                  {pref === 'flexible' && '✨ Flexible'}
-                </button>
-              ))}
+          <div className="space-y-6">
+            <div>
+              <p className="font-bold mb-3">🏠 Remote Preference</p>
+              <div className="flex flex-wrap gap-2">
+                {['remote', 'hybrid', 'onsite', 'flexible'].map((pref) => (
+                  <button
+                    key={pref}
+                    onClick={() => onUpdate({ ...preferences, remotePreference: pref as any })}
+                    className={cn(
+                      "px-4 py-2 rounded-full border-2 font-medium transition-all",
+                      preferences.remotePreference === pref
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border hover:border-primary"
+                    )}
+                  >
+                    {pref === 'remote' && '🏠 Remote Only'}
+                    {pref === 'hybrid' && '🔄 Hybrid'}
+                    {pref === 'onsite' && '🏢 On-site'}
+                    {pref === 'flexible' && '✨ Flexible'}
+                  </button>
+                ))}
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">Select your preferred locations:</p>
-            <div className="flex flex-wrap gap-2">
-              {locationOptions.map((location) => (
-                <button
-                  key={location}
-                  onClick={() => toggleArrayItem('locations', location)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all",
-                    preferences.locations.includes(location)
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  {location}
-                </button>
-              ))}
+            
+            <div>
+              <p className="font-bold mb-3">🗺️ Select your preferred regions:</p>
+              <p className="text-sm text-muted-foreground mb-4">Choose all regions where you'd be willing to work</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {regionOptions.map((region) => (
+                  <button
+                    key={region.value}
+                    onClick={() => toggleArrayItem('locations', region.value)}
+                    className={cn(
+                      "p-3 rounded-lg border-2 text-left transition-all",
+                      preferences.locations.includes(region.value)
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{region.emoji}</span>
+                      <span className="font-medium">{region.label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 ml-7">{region.description}</p>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         );
@@ -129,41 +177,131 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
 
       case 'roles':
         return (
-          <div className="flex flex-wrap gap-2">
-            {roleTypeOptions.map((role) => (
-              <button
-                key={role}
-                onClick={() => toggleArrayItem('roleTypes', role)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all",
-                  preferences.roleTypes.includes(role)
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                {role}
-              </button>
-            ))}
+          <div className="space-y-6">
+            {/* Custom Roles */}
+            {preferences.customRoleTypes.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-muted-foreground mb-2">Your Custom Roles:</p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {preferences.customRoleTypes.map((role) => (
+                    <span
+                      key={role}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border-2 border-primary bg-primary/10 text-primary text-sm font-medium"
+                    >
+                      {role}
+                      <button
+                        onClick={() => removeCustomRole(role)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add Custom Role */}
+            <div>
+              <p className="text-sm font-bold text-muted-foreground mb-2">Add a custom role:</p>
+              <div className="flex gap-2">
+                <InputRetro
+                  placeholder="e.g., Content Strategist"
+                  value={customRoleInput}
+                  onChange={(e) => setCustomRoleInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addCustomRole()}
+                />
+                <ButtonRetro onClick={addCustomRole} size="sm">
+                  <Plus className="w-4 h-4" />
+                </ButtonRetro>
+              </div>
+            </div>
+
+            {/* Preset Roles */}
+            <div>
+              <p className="text-sm font-bold text-muted-foreground mb-2">Or select from common roles:</p>
+              <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
+                {roleTypeOptions.map((role) => (
+                  <button
+                    key={role}
+                    onClick={() => toggleArrayItem('roleTypes', role)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all",
+                      preferences.roleTypes.includes(role)
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    {role}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         );
 
       case 'industries':
         return (
-          <div className="flex flex-wrap gap-2">
-            {industryOptions.map((industry) => (
-              <button
-                key={industry}
-                onClick={() => toggleArrayItem('industries', industry)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all",
-                  preferences.industries.includes(industry)
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                {industry}
-              </button>
-            ))}
+          <div className="space-y-6">
+            {/* Custom Industries */}
+            {preferences.customIndustries.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-muted-foreground mb-2">Your Custom Industries:</p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {preferences.customIndustries.map((industry) => (
+                    <span
+                      key={industry}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border-2 border-primary bg-primary/10 text-primary text-sm font-medium"
+                    >
+                      {industry}
+                      <button
+                        onClick={() => removeCustomIndustry(industry)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add Custom Industry */}
+            <div>
+              <p className="text-sm font-bold text-muted-foreground mb-2">Add a custom industry:</p>
+              <div className="flex gap-2">
+                <InputRetro
+                  placeholder="e.g., Space Exploration"
+                  value={customIndustryInput}
+                  onChange={(e) => setCustomIndustryInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addCustomIndustry()}
+                />
+                <ButtonRetro onClick={addCustomIndustry} size="sm">
+                  <Plus className="w-4 h-4" />
+                </ButtonRetro>
+              </div>
+            </div>
+
+            {/* Preset Industries */}
+            <div>
+              <p className="text-sm font-bold text-muted-foreground mb-2">Or select from common industries:</p>
+              <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
+                {industryOptions.map((industry) => (
+                  <button
+                    key={industry}
+                    onClick={() => toggleArrayItem('industries', industry)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all",
+                      preferences.industries.includes(industry)
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    {industry}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         );
 
@@ -332,6 +470,11 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                 'Outdated tech stack',
                 'Micromanagement culture',
                 'No benefits/401k',
+                'Limited PTO',
+                'No equity/stock options',
+                'Open office only',
+                'Rigid hours',
+                'High turnover',
               ].map((dealbreaker) => (
                 <button
                   key={dealbreaker}
@@ -346,6 +489,26 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                   {dealbreaker}
                 </button>
               ))}
+            </div>
+          </div>
+        );
+
+      case 'notes':
+        return (
+          <div className="space-y-6">
+            <p className="text-sm text-muted-foreground">
+              Share any additional thoughts about your dream job, work style preferences, or anything else that matters to you:
+            </p>
+            <textarea
+              className="w-full min-h-[200px] p-4 rounded-lg border-2 border-border bg-background font-medium focus:outline-none focus:border-primary transition-colors resize-none"
+              placeholder="For example:&#10;• I value a company with a strong mission and values&#10;• Looking for opportunities to transition into leadership&#10;• Prefer asynchronous communication&#10;• Want to work on consumer-facing products&#10;• Need flexible hours to accommodate family responsibilities&#10;• Looking for mentorship opportunities..."
+              value={preferences.additionalNotes}
+              onChange={(e) => onUpdate({ ...preferences, additionalNotes: e.target.value })}
+            />
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm">
+                💡 <strong>Tip:</strong> The more you share, the better we can help you find your dream job match!
+              </p>
             </div>
           </div>
         );

@@ -35,7 +35,9 @@ const defaultPreferences: JobPreferences = {
   remotePreference: 'flexible',
   companySizes: [],
   roleTypes: [],
+  customRoleTypes: [],
   industries: [],
+  customIndustries: [],
   workStyle: {
     pacePreference: 'moderate',
     collaborationStyle: 'mixed',
@@ -44,6 +46,7 @@ const defaultPreferences: JobPreferences = {
   },
   salaryRange: { min: 0, max: 0 },
   dealbreakers: [],
+  additionalNotes: '',
 };
 
 export default function Profile() {

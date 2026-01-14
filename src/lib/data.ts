@@ -54,7 +54,9 @@ export interface JobPreferences {
   remotePreference: 'remote' | 'hybrid' | 'onsite' | 'flexible';
   companySizes: ('startup' | 'small' | 'medium' | 'large' | 'enterprise')[];
   roleTypes: string[];
+  customRoleTypes: string[];
   industries: string[];
+  customIndustries: string[];
   workStyle: {
     pacePreference: 'fast' | 'moderate' | 'relaxed';
     collaborationStyle: 'independent' | 'collaborative' | 'mixed';
@@ -66,6 +68,7 @@ export interface JobPreferences {
     max: number;
   };
   dealbreakers: string[];
+  additionalNotes: string;
 }
 
 export interface UserProfile {
@@ -289,10 +292,25 @@ export const calculateDreamJobMatch = (
 };
 
 // Preference options for the survey
-export const locationOptions = [
-  'Remote', 'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 
-  'Seattle, WA', 'Austin, TX', 'Boston, MA', 'Chicago, IL', 
-  'Denver, CO', 'Miami, FL', 'Portland, OR', 'Atlanta, GA'
+export const regionOptions = [
+  { value: 'northeast', label: 'The Northeast', emoji: '🗽', description: 'NY, NJ, PA, CT, MA, RI, VT, NH, ME' },
+  { value: 'southeast', label: 'The Southeast', emoji: '🌴', description: 'FL, GA, SC, VA, NC, TN, AL, MS, LA' },
+  { value: 'carolinas', label: 'The Carolinas', emoji: '🌸', description: 'NC, SC' },
+  { value: 'midsouth', label: 'The Mid-South', emoji: '🎸', description: 'TN, KY, AR, MO' },
+  { value: 'midwest', label: 'The Midwest', emoji: '🌾', description: 'IL, OH, MI, IN, WI, MN, IA' },
+  { value: 'texas', label: 'Texas', emoji: '🤠', description: 'TX' },
+  { value: 'southwest', label: 'The Southwest', emoji: '🌵', description: 'AZ, NM, NV' },
+  { value: 'rockies', label: 'The Rockies', emoji: '⛰️', description: 'CO, UT, WY, MT, ID' },
+  { value: 'pacific', label: 'The Pacific Coast', emoji: '🌊', description: 'CA, OR, WA' },
+  { value: 'pacnorthwest', label: 'Pacific Northwest', emoji: '🌲', description: 'OR, WA' },
+  { value: 'hawaii', label: 'Hawaii', emoji: '🌺', description: 'HI' },
+  { value: 'alaska', label: 'Alaska', emoji: '🐻', description: 'AK' },
+  { value: 'canada', label: 'Canada', emoji: '🍁', description: 'All Canadian provinces' },
+  { value: 'uk', label: 'United Kingdom', emoji: '🇬🇧', description: 'England, Scotland, Wales, NI' },
+  { value: 'europe', label: 'Europe', emoji: '🇪🇺', description: 'EU countries' },
+  { value: 'asia', label: 'Asia Pacific', emoji: '🌏', description: 'Japan, Singapore, Australia, etc.' },
+  { value: 'latam', label: 'Latin America', emoji: '🌎', description: 'Mexico, Brazil, Argentina, etc.' },
+  { value: 'anywhere', label: 'Anywhere in the World', emoji: '🌍', description: 'Open to any location' },
 ];
 
 export const companySizeOptions = [
@@ -304,14 +322,78 @@ export const companySizeOptions = [
 ];
 
 export const industryOptions = [
-  'Tech', 'SaaS', 'B2B', 'B2C', 'Fintech', 'Healthcare', 'E-commerce',
-  'Entertainment', 'Education', 'Gaming', 'AI/ML', 'Developer Tools',
-  'Design', 'Marketing', 'Productivity', 'Social Media', 'Climate Tech'
+  // Tech & Software
+  'Tech / Software', 'SaaS', 'AI / Machine Learning', 'Cybersecurity', 'Cloud Computing',
+  'Developer Tools', 'Data & Analytics', 'Web3 / Blockchain', 'IoT / Hardware',
+  // Business & Finance
+  'Fintech', 'Banking & Finance', 'Insurance', 'Real Estate', 'Consulting', 'Legal Tech',
+  'Accounting & Tax', 'Venture Capital / Private Equity',
+  // Healthcare & Life Sciences
+  'Healthcare / Healthtech', 'Biotech / Pharma', 'Mental Health', 'Fitness & Wellness',
+  'Medical Devices', 'Telemedicine',
+  // Consumer & Retail
+  'E-commerce', 'Retail', 'Consumer Goods', 'Fashion & Apparel', 'Food & Beverage',
+  'Beauty & Personal Care', 'Luxury Goods',
+  // Media & Entertainment
+  'Entertainment', 'Gaming', 'Music', 'Film & TV', 'Publishing', 'News & Media',
+  'Sports', 'Social Media', 'Streaming',
+  // Education & Non-Profit
+  'Education / EdTech', 'Non-Profit', 'Government / Public Sector', 'Research',
+  // Industrial & Energy
+  'Manufacturing', 'Automotive', 'Aerospace & Defense', 'Clean Energy / Climate Tech',
+  'Oil & Gas', 'Utilities', 'Construction',
+  // Services
+  'Marketing & Advertising', 'HR Tech', 'Recruiting', 'Travel & Hospitality',
+  'Transportation / Logistics', 'Food Service', 'Professional Services',
+  // Other
+  'Agriculture / AgTech', 'Pet Industry', 'Cannabis', 'Other'
 ];
 
 export const roleTypeOptions = [
-  'Product Designer', 'UX Designer', 'UI Designer', 'Design Lead',
-  'Product Manager', 'Project Manager', 'Program Manager',
-  'Frontend Engineer', 'Backend Engineer', 'Full Stack Engineer',
-  'UX Researcher', 'Data Analyst', 'Marketing Manager', 'Growth Manager'
+  // Design
+  'Product Designer', 'UX Designer', 'UI Designer', 'Visual Designer', 'Design Lead',
+  'Creative Director', 'Brand Designer', 'Motion Designer', 'Graphic Designer',
+  'Interaction Designer', 'Service Designer', 'Design Systems Designer',
+  // Research
+  'UX Researcher', 'User Researcher', 'Research Lead', 'Market Researcher',
+  'Research Operations', 'Insights Analyst',
+  // Product & Strategy
+  'Product Manager', 'Senior Product Manager', 'Product Lead', 'Product Owner',
+  'Technical Product Manager', 'Growth PM', 'Product Analyst', 'Product Ops',
+  'Business Analyst', 'Strategy Consultant',
+  // Engineering - Frontend
+  'Frontend Engineer', 'React Developer', 'Frontend Lead', 'UI Engineer',
+  // Engineering - Backend
+  'Backend Engineer', 'Backend Lead', 'API Engineer', 'Platform Engineer',
+  // Engineering - Full Stack & Other
+  'Full Stack Engineer', 'Software Engineer', 'Senior Engineer', 'Staff Engineer',
+  'Principal Engineer', 'Engineering Manager', 'Tech Lead', 'Architect',
+  // Engineering - Specialized
+  'Mobile Developer', 'iOS Developer', 'Android Developer', 'DevOps Engineer',
+  'Site Reliability Engineer', 'Data Engineer', 'ML Engineer', 'QA Engineer',
+  'Security Engineer', 'Embedded Engineer',
+  // Data & Analytics
+  'Data Analyst', 'Data Scientist', 'Business Intelligence', 'Analytics Manager',
+  'Machine Learning Scientist', 'AI Researcher',
+  // Marketing & Growth
+  'Marketing Manager', 'Growth Manager', 'Content Strategist', 'SEO Specialist',
+  'Social Media Manager', 'Brand Manager', 'Community Manager', 'Marketing Ops',
+  'Demand Generation', 'Product Marketing',
+  // Sales & Customer Success
+  'Account Executive', 'Sales Development Rep', 'Sales Manager', 'Customer Success',
+  'Account Manager', 'Solutions Engineer', 'Sales Operations',
+  // Operations & Project Management
+  'Project Manager', 'Program Manager', 'Operations Manager', 'Chief of Staff',
+  'Business Operations', 'Revenue Operations', 'People Operations',
+  // People & HR
+  'Recruiter', 'HR Manager', 'Talent Acquisition', 'People Partner',
+  'Learning & Development', 'Compensation & Benefits',
+  // Finance & Legal
+  'Financial Analyst', 'Accountant', 'Controller', 'FP&A', 'Legal Counsel',
+  // Executive & Leadership
+  'VP of Product', 'VP of Engineering', 'VP of Design', 'VP of Marketing',
+  'Director', 'Head of Department', 'C-Suite / Executive',
+  // Other
+  'Writer / Editor', 'Copywriter', 'Technical Writer', 'Customer Support',
+  'Office Manager', 'Executive Assistant', 'Consultant', 'Freelance / Contract'
 ];
