@@ -8,7 +8,7 @@ interface SmartStepDialogProps {
   step: {
     title: string;
     description: string;
-    type: 'optimize' | 'followup' | 'network';
+    type: 'optimize' | 'followup' | 'network' | 'prepare' | 'apply';
   };
 }
 
@@ -24,6 +24,10 @@ export function SmartStepDialog({ trigger, step }: SmartStepDialogProps) {
         return <Mail className="h-8 w-8 text-primary" />;
       case 'network':
         return <Users className="h-8 w-8 text-primary" />;
+      case 'prepare':
+        return <Sparkles className="h-8 w-8 text-primary" />;
+      case 'apply':
+        return <FileText className="h-8 w-8 text-primary" />;
     }
   };
 
@@ -110,6 +114,20 @@ export function SmartStepDialog({ trigger, step }: SmartStepDialogProps) {
             </div>
             <ButtonRetro className="w-full" onClick={() => setCompleted(true)}>
               <Users className="h-4 w-4" /> Mark Outreach Done
+            </ButtonRetro>
+          </div>
+        );
+      case 'prepare':
+      case 'apply':
+      default:
+        return (
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg border-2 border-border">
+              <h4 className="font-bold mb-2">Quick Actions</h4>
+              <p className="text-sm text-muted-foreground">{step.description}</p>
+            </div>
+            <ButtonRetro className="w-full" onClick={() => setCompleted(true)}>
+              <Check className="h-4 w-4" /> Mark Complete
             </ButtonRetro>
           </div>
         );

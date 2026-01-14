@@ -31,6 +31,8 @@ export interface Application {
   company_logo_url: string | null;
   latitude: number | null;
   longitude: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Event {
@@ -50,7 +52,7 @@ interface AppContextType {
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   applications: Application[];
   setApplications: React.Dispatch<React.SetStateAction<Application[]>>;
-  addApplication: (app: Omit<Application, 'id' | 'user_id'>) => Promise<void>;
+  addApplication: (app: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateApplication: (id: string, updates: Partial<Application>) => Promise<void>;
   deleteApplication: (id: string) => Promise<void>;
   events: Event[];
@@ -207,7 +209,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addApplication = async (app: Omit<Application, 'id' | 'user_id'>) => {
+  const addApplication = async (app: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) return;
 
     const { data, error } = await supabase

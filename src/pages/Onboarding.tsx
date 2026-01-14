@@ -11,7 +11,7 @@ import { DreamJobProfiler } from '@/components/profile/DreamJobProfiler';
 import { JobPreferences, defaultPriorityWeights } from '@/lib/data';
 import { toast } from 'sonner';
 
-type ThemeColor = 'bubblegum' | 'electric' | 'minty' | 'sunset';
+type ThemeColor = 'bubblegum' | 'electric' | 'minty' | 'sky' | 'coral' | 'lavender' | 'peach' | 'rose';
 
 const defaultPreferences: JobPreferences = {
   locations: [],
