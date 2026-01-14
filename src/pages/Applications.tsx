@@ -5,7 +5,7 @@ import { CardRetro } from '@/components/ui/card-retro';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { InputRetro } from '@/components/ui/input-retro';
-import { getStatusColor, ApplicationStatus } from '@/lib/data';
+import { getStatusColor, ApplicationStatus, calculateDreamJobMatch } from '@/lib/data';
 import { LayoutGrid, List, Map, Search, Plus, MapPin, Building2, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
@@ -13,7 +13,7 @@ import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog'
 type ViewMode = 'card' | 'list' | 'map';
 
 export default function Applications() {
-  const { applications } = useApp();
+  const { applications, user } = useApp();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [search, setSearch] = useState('');
@@ -109,7 +109,7 @@ export default function Applications() {
                 <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {app.location}</p>
                 {app.salaryRange && <p className="text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" /> {app.salaryRange}</p>}
                 <div className="flex gap-4 mt-4 pt-3 border-t-2 border-border">
-                  {app.dreamJobMatchScore && <div><span className="text-xs text-muted-foreground">Match</span><p className="font-bold text-primary">{app.dreamJobMatchScore}%</p></div>}
+                  <div><span className="text-xs text-muted-foreground">Match</span><p className="font-bold text-primary">{calculateDreamJobMatch(app, user?.jobPreferences)}%</p></div>
                   {app.atsScore && <div><span className="text-xs text-muted-foreground">ATS</span><p className="font-bold text-info">{app.atsScore}%</p></div>}
                 </div>
               </CardRetro>
@@ -134,7 +134,7 @@ export default function Applications() {
                   <td className="p-4">{app.roleTitle}</td>
                   <td className="p-4 text-muted-foreground">{app.location}</td>
                   <td className="p-4"><StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge></td>
-                  <td className="p-4 font-bold text-primary">{app.dreamJobMatchScore || '-'}%</td>
+                  <td className="p-4 font-bold text-primary">{calculateDreamJobMatch(app, user?.jobPreferences)}%</td>
                   <td className="p-4 text-muted-foreground">{new Date(app.appliedDate).toLocaleDateString()}</td>
                 </tr>
               ))}
