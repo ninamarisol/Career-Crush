@@ -151,11 +151,16 @@ export const mockEvents: Event[] = [
 ];
 
 export const motivationalQuotes = [
-  "Your career is a marathon, not a sprint. But you look fast. 🏃",
-  "Every application is a step closer to your dream role. ✨",
-  "Rejection is redirection. Keep pushing forward. 💪",
-  "You've got this. Trust the process. 🌟",
-  "The best time to plant a tree was 20 years ago. The second best time is now. 🌱",
+  "Your dream job is out there waiting for you. Keep applying! ✨",
+  "Every 'no' brings you closer to that perfect 'yes.' Stay strong! 💪",
+  "You're not just job hunting—you're building your future. 🚀",
+  "Today's application could be tomorrow's career breakthrough! 🌟",
+  "Interviews are just conversations. You've got this! 🎯",
+  "Your skills are valuable. The right company will see that. 💎",
+  "Persistence beats perfection. Keep showing up! 🔥",
+  "Every rejection is just redirection to something better. 🌈",
+  "You're one application away from changing your life. Go for it! ⚡",
+  "Companies don't just hire resumes—they hire amazing people like you! 💖",
 ];
 
 export const getStatusColor = (status: ApplicationStatus): string => {

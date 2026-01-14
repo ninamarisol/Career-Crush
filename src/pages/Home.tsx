@@ -3,12 +3,15 @@ import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { motivationalQuotes, getStatusColor } from '@/lib/data';
-import { Plus, Phone, Flame, Briefcase, FileText, Trophy, ArrowRight, Calendar } from 'lucide-react';
+import { Plus, Phone, Flame, Briefcase, FileText, Trophy, ArrowRight, Calendar, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
+import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
+import { SmartStepDialog } from '@/components/dialogs/SmartStepDialog';
 
 export default function Home() {
-  const { user, applications, events } = useApp();
+  const { user, applications, events, setEvents } = useApp();
   
   const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
   
@@ -22,6 +25,34 @@ export default function Home() {
   const recentApps = applications.slice(0, 3);
   const upcomingEvents = events.filter(e => !e.completed).slice(0, 3);
 
+  const smartSteps = [
+    {
+      title: 'Optimize Resume for Linear',
+      description: "Your match score is 92%. Adding 'Product Strategy' could bump it to 98%.",
+      type: 'optimize' as const,
+      buttonLabel: 'Optimize',
+      buttonVariant: 'default' as const,
+    },
+    {
+      title: 'Follow up with Vercel',
+      description: "It's been 3 days since your application. A quick note shows initiative.",
+      type: 'followup' as const,
+      buttonLabel: 'Draft Email',
+      buttonVariant: 'outline' as const,
+    },
+    {
+      title: 'Networking Opportunity',
+      description: '3 alumni from your school work at Notion. Reach out for a coffee chat?',
+      type: 'network' as const,
+      buttonLabel: 'View Contacts',
+      buttonVariant: 'outline' as const,
+    },
+  ];
+
+  const handleCompleteEvent = (eventId: string) => {
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, completed: true } : e));
+  };
+
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
@@ -32,8 +63,8 @@ export default function Home() {
 
       {/* Quick Actions */}
       <div className="flex gap-3 flex-wrap">
-        <ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Log Contact</ButtonRetro>
-        <ButtonRetro><Plus className="h-4 w-4" /> Add App</ButtonRetro>
+        <AddEventDialog trigger={<ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Log Contact</ButtonRetro>} />
+        <AddApplicationDialog />
       </div>
 
       {/* Performance Tracker */}
@@ -80,21 +111,20 @@ export default function Home() {
       <CardRetro>
         <CardRetroHeader><CardRetroTitle>Smart Next Steps ✨</CardRetroTitle></CardRetroHeader>
         <CardRetroContent className="grid md:grid-cols-3 gap-4">
-          <div className="p-4 bg-muted rounded-lg border-2 border-border">
-            <h4 className="font-bold">Optimize Resume for Linear</h4>
-            <p className="text-sm text-muted-foreground mt-1">Your match score is 92%. Adding 'Product Strategy' could bump it to 98%.</p>
-            <ButtonRetro size="sm" className="mt-3">Optimize</ButtonRetro>
-          </div>
-          <div className="p-4 bg-muted rounded-lg border-2 border-border">
-            <h4 className="font-bold">Follow up with Vercel</h4>
-            <p className="text-sm text-muted-foreground mt-1">It's been 3 days since your application. A quick note shows initiative.</p>
-            <ButtonRetro size="sm" variant="outline" className="mt-3">Draft Email</ButtonRetro>
-          </div>
-          <div className="p-4 bg-muted rounded-lg border-2 border-border">
-            <h4 className="font-bold">Networking Opportunity</h4>
-            <p className="text-sm text-muted-foreground mt-1">3 alumni from your school work at Notion. Reach out for a coffee chat?</p>
-            <ButtonRetro size="sm" variant="outline" className="mt-3">View Contacts</ButtonRetro>
-          </div>
+          {smartSteps.map((step) => (
+            <div key={step.title} className="p-4 bg-muted rounded-lg border-2 border-border">
+              <h4 className="font-bold">{step.title}</h4>
+              <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
+              <SmartStepDialog
+                step={step}
+                trigger={
+                  <ButtonRetro size="sm" variant={step.buttonVariant} className="mt-3">
+                    {step.buttonLabel}
+                  </ButtonRetro>
+                }
+              />
+            </div>
+          ))}
         </CardRetroContent>
       </CardRetro>
 
@@ -106,36 +136,56 @@ export default function Home() {
             <Link to="/applications"><ButtonRetro size="sm" variant="ghost">View All <ArrowRight className="h-4 w-4" /></ButtonRetro></Link>
           </CardRetroHeader>
           <CardRetroContent className="space-y-3">
-            {recentApps.map(app => (
-              <Link key={app.id} to={`/applications/${app.id}`} className="flex items-center gap-4 p-3 rounded-lg border-2 border-border hover:bg-muted transition-colors">
-                <div className="w-10 h-10 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center font-bold">{app.companyInitial}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold truncate">{app.roleTitle}</p>
-                  <p className="text-sm text-muted-foreground truncate">{app.companyName} • {app.location}</p>
-                </div>
-                <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
-                {app.dreamJobMatchScore && <span className="text-sm font-bold text-primary">{app.dreamJobMatchScore}%</span>}
-              </Link>
-            ))}
+            {recentApps.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <p>No applications yet.</p>
+                <AddApplicationDialog trigger={
+                  <ButtonRetro size="sm" className="mt-2"><Plus className="h-4 w-4" /> Add your first</ButtonRetro>
+                } />
+              </div>
+            ) : (
+              recentApps.map(app => (
+                <Link key={app.id} to={`/applications/${app.id}`} className="flex items-center gap-4 p-3 rounded-lg border-2 border-border hover:bg-muted transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center font-bold">{app.companyInitial}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold truncate">{app.roleTitle}</p>
+                    <p className="text-sm text-muted-foreground truncate">{app.companyName} • {app.location}</p>
+                  </div>
+                  <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
+                  {app.dreamJobMatchScore && <span className="text-sm font-bold text-primary">{app.dreamJobMatchScore}%</span>}
+                </Link>
+              ))
+            )}
           </CardRetroContent>
         </CardRetro>
 
         <CardRetro>
           <CardRetroHeader><CardRetroTitle>Upcoming Schedule 📅</CardRetroTitle></CardRetroHeader>
           <CardRetroContent className="space-y-3">
-            {upcomingEvents.map(event => (
-              <div key={event.id} className="flex items-center gap-4 p-3 rounded-lg border-2 border-border">
-                <div className="text-center">
-                  <p className="text-xs font-bold uppercase text-muted-foreground">{new Date(event.eventDate).toLocaleDateString('en-US', { month: 'short' })}</p>
-                  <p className="text-xl font-black">{new Date(event.eventDate).getDate()}</p>
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold">{event.title}</p>
-                  <p className="text-sm text-muted-foreground">{event.eventType}</p>
-                </div>
+            {upcomingEvents.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <p>No upcoming events.</p>
               </div>
-            ))}
-            <ButtonRetro variant="outline" className="w-full"><Calendar className="h-4 w-4" /> Add Event</ButtonRetro>
+            ) : (
+              upcomingEvents.map(event => (
+                <div key={event.id} className="flex items-center gap-4 p-3 rounded-lg border-2 border-border">
+                  <div className="text-center">
+                    <p className="text-xs font-bold uppercase text-muted-foreground">{new Date(event.eventDate).toLocaleDateString('en-US', { month: 'short' })}</p>
+                    <p className="text-xl font-black">{new Date(event.eventDate).getDate()}</p>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold">{event.title}</p>
+                    <p className="text-sm text-muted-foreground">{event.eventType}</p>
+                  </div>
+                  <ButtonRetro size="icon" variant="ghost" onClick={() => handleCompleteEvent(event.id)}>
+                    <Check className="h-4 w-4" />
+                  </ButtonRetro>
+                </div>
+              ))
+            )}
+            <AddEventDialog trigger={
+              <ButtonRetro variant="outline" className="w-full"><Calendar className="h-4 w-4" /> Add Event</ButtonRetro>
+            } />
           </CardRetroContent>
         </CardRetro>
       </div>
