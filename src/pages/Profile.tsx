@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Target, User, Palette, LogOut, Sun, Moon } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -18,15 +18,17 @@ const tabs = [
   { id: 'account', label: 'Account Settings', icon: User, emoji: '⚙️' },
 ];
 
-const themeOptions = [
-  { value: 'bubblegum', label: 'Bubblegum', color: 'hsl(330, 100%, 70%)' },
-  { value: 'electric', label: 'Electric', color: 'hsl(47, 100%, 55%)' },
-  { value: 'minty', label: 'Minty', color: 'hsl(160, 60%, 45%)' },
-  { value: 'sky', label: 'Sky', color: 'hsl(214, 100%, 60%)' },
-  { value: 'coral', label: 'Coral', color: 'hsl(16, 100%, 65%)' },
-  { value: 'lavender', label: 'Lavender', color: 'hsl(270, 70%, 65%)' },
-  { value: 'peach', label: 'Peach', color: 'hsl(30, 100%, 70%)' },
-  { value: 'rose', label: 'Rose', color: 'hsl(350, 90%, 65%)' },
+type ThemeColorValue = 'bubblegum' | 'electric' | 'minty' | 'sky' | 'coral' | 'lavender' | 'peach' | 'rose';
+
+const themeOptions: { value: ThemeColorValue; label: string; color: string; gradient: string }[] = [
+  { value: 'bubblegum', label: 'Bubblegum', color: 'hsl(330, 100%, 70%)', gradient: 'linear-gradient(135deg, hsl(330, 100%, 97%) 0%, hsl(330, 100%, 85%) 100%)' },
+  { value: 'electric', label: 'Electric', color: 'hsl(47, 100%, 55%)', gradient: 'linear-gradient(135deg, hsl(47, 100%, 97%) 0%, hsl(47, 100%, 80%) 100%)' },
+  { value: 'minty', label: 'Minty', color: 'hsl(160, 60%, 45%)', gradient: 'linear-gradient(135deg, hsl(160, 60%, 97%) 0%, hsl(160, 60%, 80%) 100%)' },
+  { value: 'sky', label: 'Sky', color: 'hsl(214, 100%, 60%)', gradient: 'linear-gradient(135deg, hsl(214, 100%, 97%) 0%, hsl(214, 100%, 85%) 100%)' },
+  { value: 'coral', label: 'Coral', color: 'hsl(16, 100%, 65%)', gradient: 'linear-gradient(135deg, hsl(16, 100%, 97%) 0%, hsl(16, 100%, 85%) 100%)' },
+  { value: 'lavender', label: 'Lavender', color: 'hsl(270, 70%, 65%)', gradient: 'linear-gradient(135deg, hsl(270, 70%, 97%) 0%, hsl(270, 70%, 85%) 100%)' },
+  { value: 'peach', label: 'Peach', color: 'hsl(30, 100%, 70%)', gradient: 'linear-gradient(135deg, hsl(30, 100%, 97%) 0%, hsl(30, 100%, 85%) 100%)' },
+  { value: 'rose', label: 'Rose', color: 'hsl(350, 90%, 65%)', gradient: 'linear-gradient(135deg, hsl(350, 90%, 97%) 0%, hsl(350, 90%, 85%) 100%)' },
 ];
 
 const defaultResume: MasterResume = {
@@ -60,7 +62,7 @@ const defaultPreferences: JobPreferences = {
 export default function Profile() {
   const { profile, updateProfile, jobPreferences, updateJobPreferences } = useApp();
   const { signOut, user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, themeColor, toggleTheme, setThemeColor, previewThemeColor } = useTheme();
   const [activeTab, setActiveTab] = useState('resume');
   const [masterResume, setMasterResume] = useState<MasterResume>(defaultResume);
 
@@ -70,8 +72,11 @@ export default function Profile() {
     await updateJobPreferences(preferences);
   };
 
-  const updateThemeColor = async (themeColor: string) => {
-    await updateProfile({ theme_color: themeColor });
+  const handleThemeColorChange = async (color: ThemeColorValue) => {
+    // Update theme immediately via context
+    setThemeColor(color);
+    // Also persist to database
+    await updateProfile({ theme_color: color });
     toast.success('Theme updated!');
   };
 
@@ -240,7 +245,7 @@ export default function Profile() {
                 </CardRetroContent>
               </CardRetro>
 
-              {/* Theme Selection */}
+              {/* Theme Selection with Live Preview */}
               <CardRetro>
                 <CardRetroHeader>
                   <CardRetroTitle>
@@ -249,23 +254,41 @@ export default function Profile() {
                   </CardRetroTitle>
                 </CardRetroHeader>
                 <CardRetroContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Hover to preview, click to apply
+                  </p>
                   <div className="grid grid-cols-4 gap-3">
                     {themeOptions.map((themeOpt) => (
                       <button
                         key={themeOpt.value}
-                        onClick={() => updateThemeColor(themeOpt.value)}
+                        onClick={() => handleThemeColorChange(themeOpt.value)}
+                        onMouseEnter={() => previewThemeColor(themeOpt.value)}
+                        onMouseLeave={() => previewThemeColor(null)}
                         className={cn(
-                          "p-3 rounded-xl border-2 transition-all text-center",
-                          profile?.theme_color === themeOpt.value
+                          "group p-3 rounded-xl border-2 transition-all text-center relative overflow-hidden",
+                          themeColor === themeOpt.value
                             ? "border-primary shadow-retro scale-105"
-                            : "border-border hover:border-primary/50 hover:scale-102"
+                            : "border-border hover:border-primary/50 hover:scale-105"
                         )}
                       >
+                        {/* Preview gradient background */}
+                        <div 
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity -z-10"
+                          style={{ background: themeOpt.gradient }}
+                        />
                         <div
-                          className="w-8 h-8 rounded-full mx-auto mb-2 border-2 border-border"
-                          style={{ backgroundColor: themeOpt.color }}
+                          className="w-10 h-10 rounded-full mx-auto mb-2 border-2 shadow-sm transition-transform group-hover:scale-110"
+                          style={{ 
+                            backgroundColor: themeOpt.color,
+                            borderColor: themeOpt.color
+                          }}
                         />
                         <span className="font-bold text-xs">{themeOpt.label}</span>
+                        {themeColor === themeOpt.value && (
+                          <div className="absolute top-1 right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                            <span className="text-primary-foreground text-xs">✓</span>
+                          </div>
+                        )}
                       </button>
                     ))}
                   </div>

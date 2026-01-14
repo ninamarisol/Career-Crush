@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AppProvider, useApp } from "@/context/AppContext";
-import { ThemeProvider } from "@/hooks/useTheme";
+import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
@@ -17,6 +18,20 @@ import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+// Component to sync profile theme to ThemeProvider
+function ThemeSync() {
+  const { profile } = useApp();
+  const { syncFromProfile } = useTheme();
+
+  useEffect(() => {
+    if (profile?.theme_color) {
+      syncFromProfile(profile.theme_color);
+    }
+  }, [profile?.theme_color, syncFromProfile]);
+
+  return null;
+}
 
 function AppRoutes() {
   const { user, loading: authLoading } = useAuth();
@@ -54,24 +69,20 @@ function AppRoutes() {
     );
   }
 
-  const themeClass = profile?.theme_color ? `theme-${profile.theme_color}` : 'theme-bubblegum';
-
   return (
-    <div className={themeClass} key={themeClass}>
-      <AppSidebar>
-        <Routes>
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/applications" element={<Applications />} />
-          <Route path="/applications/:id" element={<ApplicationDetail />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/contacts" element={<div className="text-center py-12"><h1 className="text-3xl font-black">Contacts 📇</h1><p className="text-muted-foreground mt-2">Coming soon...</p></div>} />
-          <Route path="/goals" element={<Goals />} />
-          <Route path="/settings" element={<Navigate to="/profile" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AppSidebar>
-    </div>
+    <AppSidebar>
+      <Routes>
+        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/applications" element={<Applications />} />
+        <Route path="/applications/:id" element={<ApplicationDetail />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/contacts" element={<div className="text-center py-12"><h1 className="text-3xl font-black">Contacts 📇</h1><p className="text-muted-foreground mt-2">Coming soon...</p></div>} />
+        <Route path="/goals" element={<Goals />} />
+        <Route path="/settings" element={<Navigate to="/profile" replace />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AppSidebar>
   );
 }
 
@@ -81,6 +92,7 @@ const App = () => (
       <ThemeProvider>
         <AuthProvider>
           <AppProvider>
+            <ThemeSync />
             <Toaster />
             <Sonner />
             <BrowserRouter>
