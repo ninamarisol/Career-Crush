@@ -6,7 +6,7 @@ import { ButtonRetro } from '@/components/ui/button-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { MasterResumeBuilder } from '@/components/profile/MasterResumeBuilder';
 import { DreamJobProfiler } from '@/components/profile/DreamJobProfiler';
-import { MasterResume, JobPreferences } from '@/lib/data';
+import { MasterResume, JobPreferences, defaultPriorityWeights } from '@/lib/data';
 import { cn } from '@/lib/utils';
 
 const tabs = [
@@ -47,6 +47,7 @@ const defaultPreferences: JobPreferences = {
   salaryRange: { min: 0, max: 0 },
   dealbreakers: [],
   additionalNotes: '',
+  priorityWeights: defaultPriorityWeights,
 };
 
 export default function Profile() {
