@@ -1,19 +1,37 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, GraduationCap, Briefcase, Award, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, GraduationCap, Briefcase, Award, FileText, ChevronDown, ChevronUp, FolderKanban, Save, Link as LinkIcon } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { InputRetro } from '@/components/ui/input-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { MasterResume } from '@/lib/data';
+import { toast } from 'sonner';
 
 interface MasterResumeBuilderProps {
   resume: MasterResume;
   onUpdate: (resume: MasterResume) => void;
+  onSave?: (resume: MasterResume) => Promise<void>;
+  isSaving?: boolean;
 }
 
-export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderProps) {
+export function MasterResumeBuilder({ resume, onUpdate, onSave, isSaving }: MasterResumeBuilderProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>(['summary', 'experience']);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const handleUpdate = (newResume: MasterResume) => {
+    onUpdate(newResume);
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    if (onSave) {
+      await onSave(resume);
+      setHasChanges(false);
+      toast.success('Resume saved!');
+    }
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
@@ -22,7 +40,7 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
   };
 
   const addExperience = () => {
-    onUpdate({
+    handleUpdate({
       ...resume,
       experience: [
         ...resume.experience,
@@ -41,7 +59,7 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
   };
 
   const updateExperience = (id: string, field: string, value: any) => {
-    onUpdate({
+    handleUpdate({
       ...resume,
       experience: resume.experience.map(exp =>
         exp.id === id ? { ...exp, [field]: value } : exp
@@ -50,14 +68,70 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
   };
 
   const removeExperience = (id: string) => {
-    onUpdate({
+    handleUpdate({
       ...resume,
       experience: resume.experience.filter(exp => exp.id !== id),
     });
   };
 
+  // Projects
+  const addProject = () => {
+    handleUpdate({
+      ...resume,
+      projects: [
+        ...(resume.projects || []),
+        {
+          id: crypto.randomUUID(),
+          name: '',
+          description: '',
+          technologies: [],
+          url: '',
+        },
+      ],
+    });
+  };
+
+  const updateProject = (id: string, field: string, value: any) => {
+    handleUpdate({
+      ...resume,
+      projects: (resume.projects || []).map(proj =>
+        proj.id === id ? { ...proj, [field]: value } : proj
+      ),
+    });
+  };
+
+  const removeProject = (id: string) => {
+    handleUpdate({
+      ...resume,
+      projects: (resume.projects || []).filter(proj => proj.id !== id),
+    });
+  };
+
+  const addProjectTech = (projectId: string, tech: string) => {
+    if (!tech.trim()) return;
+    handleUpdate({
+      ...resume,
+      projects: (resume.projects || []).map(proj =>
+        proj.id === projectId
+          ? { ...proj, technologies: [...proj.technologies, tech.trim()] }
+          : proj
+      ),
+    });
+  };
+
+  const removeProjectTech = (projectId: string, index: number) => {
+    handleUpdate({
+      ...resume,
+      projects: (resume.projects || []).map(proj =>
+        proj.id === projectId
+          ? { ...proj, technologies: proj.technologies.filter((_, i) => i !== index) }
+          : proj
+      ),
+    });
+  };
+
   const addEducation = () => {
-    onUpdate({
+    handleUpdate({
       ...resume,
       education: [
         ...resume.education,
@@ -72,7 +146,7 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
   };
 
   const updateEducation = (id: string, field: string, value: string) => {
-    onUpdate({
+    handleUpdate({
       ...resume,
       education: resume.education.map(edu =>
         edu.id === id ? { ...edu, [field]: value } : edu
@@ -81,7 +155,7 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
   };
 
   const removeEducation = (id: string) => {
-    onUpdate({
+    handleUpdate({
       ...resume,
       education: resume.education.filter(edu => edu.id !== id),
     });
@@ -90,12 +164,12 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
   const addSkill = () => {
     const skill = prompt('Enter a skill:');
     if (skill) {
-      onUpdate({ ...resume, skills: [...resume.skills, skill] });
+      handleUpdate({ ...resume, skills: [...resume.skills, skill] });
     }
   };
 
   const removeSkill = (index: number) => {
-    onUpdate({
+    handleUpdate({
       ...resume,
       skills: resume.skills.filter((_, i) => i !== index),
     });
@@ -104,12 +178,12 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
   const addCertification = () => {
     const cert = prompt('Enter certification name:');
     if (cert) {
-      onUpdate({ ...resume, certifications: [...resume.certifications, cert] });
+      handleUpdate({ ...resume, certifications: [...resume.certifications, cert] });
     }
   };
 
   const removeCertification = (index: number) => {
-    onUpdate({
+    handleUpdate({
       ...resume,
       certifications: resume.certifications.filter((_, i) => i !== index),
     });
@@ -141,6 +215,20 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
 
   return (
     <div className="space-y-4">
+      {/* Save Button */}
+      {onSave && (
+        <div className="flex justify-end">
+          <ButtonRetro 
+            onClick={handleSave} 
+            disabled={isSaving || !hasChanges}
+            className="gap-2"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : hasChanges ? 'Save Resume' : 'Saved ✓'}
+          </ButtonRetro>
+        </div>
+      )}
+
       {/* Summary Section */}
       <CardRetro>
         <SectionHeader title="Professional Summary" icon={FileText} section="summary" />
@@ -156,7 +244,7 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
                 <Textarea
                   placeholder="Write a compelling summary of your professional background, key achievements, and career goals..."
                   value={resume.summary}
-                  onChange={(e) => onUpdate({ ...resume, summary: e.target.value })}
+                  onChange={(e) => handleUpdate({ ...resume, summary: e.target.value })}
                   className="min-h-[120px] border-2 border-border focus:border-primary"
                 />
                 <p className="text-sm text-muted-foreground mt-2">
@@ -290,6 +378,111 @@ export function MasterResumeBuilder({ resume, onUpdate }: MasterResumeBuilderPro
                 <ButtonRetro variant="outline" onClick={addExperience}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Experience
+                </ButtonRetro>
+              </CardRetroContent>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </CardRetro>
+
+      {/* Projects Section */}
+      <CardRetro>
+        <SectionHeader title="Projects (Optional)" icon={FolderKanban} section="projects" count={(resume.projects || []).length} />
+        <AnimatePresence>
+          {expandedSections.includes('projects') && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <CardRetroContent className="space-y-4">
+                {(resume.projects || []).map((proj, index) => (
+                  <motion.div
+                    key={proj.id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 border-2 border-border rounded-lg space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-muted-foreground">Project {index + 1}</span>
+                      <button
+                        onClick={() => removeProject(proj.id)}
+                        className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <InputRetro
+                      placeholder="Project Name"
+                      value={proj.name}
+                      onChange={(e) => updateProject(proj.id, 'name', e.target.value)}
+                    />
+                    <div className="flex items-center gap-2">
+                      <LinkIcon className="w-4 h-4 text-muted-foreground" />
+                      <InputRetro
+                        placeholder="Project URL (optional)"
+                        value={proj.url || ''}
+                        onChange={(e) => updateProject(proj.id, 'url', e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                    <Textarea
+                      placeholder="Describe the project, your role, and key outcomes..."
+                      value={proj.description}
+                      onChange={(e) => updateProject(proj.id, 'description', e.target.value)}
+                      className="min-h-[80px] border-2 border-border focus:border-primary"
+                    />
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Technologies Used</label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {proj.technologies.map((tech, techIndex) => (
+                          <Badge key={techIndex} variant="secondary" className="gap-1">
+                            {tech}
+                            <button
+                              type="button"
+                              onClick={() => removeProjectTech(proj.id, techIndex)}
+                              className="hover:text-destructive"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <InputRetro
+                          placeholder="Add technology..."
+                          id={`tech-input-${proj.id}`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const input = e.currentTarget;
+                              addProjectTech(proj.id, input.value);
+                              input.value = '';
+                            }
+                          }}
+                        />
+                        <ButtonRetro
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const input = document.getElementById(`tech-input-${proj.id}`) as HTMLInputElement;
+                            if (input) {
+                              addProjectTech(proj.id, input.value);
+                              input.value = '';
+                            }
+                          }}
+                        >
+                          Add
+                        </ButtonRetro>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                <ButtonRetro variant="outline" onClick={addProject}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Project
                 </ButtonRetro>
               </CardRetroContent>
             </motion.div>

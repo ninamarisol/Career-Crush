@@ -5,11 +5,13 @@ import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { InputRetro } from '@/components/ui/input-retro';
-import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon, Sparkles, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MasterResume } from '@/lib/data';
 
 type ApplicationStatus = 'Saved' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted';
 
@@ -33,6 +35,15 @@ const formatSalary = (min: number | null, max: number | null): string => {
   return 'Not specified';
 };
 
+// Minimal master resume for demo - in production this would come from user profile
+const defaultMasterResume: MasterResume = {
+  summary: '',
+  skills: [],
+  experience: [],
+  education: [],
+  certifications: [],
+};
+
 export default function ApplicationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -43,6 +54,9 @@ export default function ApplicationDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showATSDialog, setShowATSDialog] = useState(false);
+  const [generatingResume, setGeneratingResume] = useState(false);
+  const [generatedResume, setGeneratedResume] = useState('');
   const [editForm, setEditForm] = useState({
     position: app?.position || '',
     company: app?.company || '',
@@ -130,6 +144,96 @@ export default function ApplicationDetail() {
     } else {
       toast.error('Could not retrieve resume');
     }
+  };
+
+  const handleGenerateATSResume = async () => {
+    if (!app.job_description) {
+      toast.error('Please add a job description first to generate an ATS-optimized resume');
+      return;
+    }
+
+    setShowATSDialog(true);
+    setGeneratingResume(true);
+    setGeneratedResume('');
+
+    try {
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-resume`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          masterResume: defaultMasterResume, // In production, pass the user's actual master resume
+          jobDescription: app.job_description,
+          jobTitle: app.position,
+          company: app.company,
+        }),
+      });
+
+      if (!resp.ok) {
+        const error = await resp.json();
+        if (resp.status === 429) {
+          toast.error('Rate limit exceeded. Please try again later.');
+        } else if (resp.status === 402) {
+          toast.error('AI credits exhausted. Please add credits to continue.');
+        } else {
+          toast.error(error.error || 'Failed to generate resume');
+        }
+        setGeneratingResume(false);
+        return;
+      }
+
+      const reader = resp.body?.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = '';
+      let resumeContent = '';
+
+      if (!reader) throw new Error('No response body');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              resumeContent += content;
+              setGeneratedResume(resumeContent);
+            }
+          } catch {
+            textBuffer = line + '\n' + textBuffer;
+            break;
+          }
+        }
+      }
+
+      setGeneratingResume(false);
+    } catch (error) {
+      console.error('Error generating resume:', error);
+      toast.error('Failed to generate resume');
+      setGeneratingResume(false);
+    }
+  };
+
+  const handleCopyResume = () => {
+    navigator.clipboard.writeText(generatedResume);
+    toast.success('Resume copied to clipboard!');
   };
 
   const statuses: ApplicationStatus[] = ['Saved', 'Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted'];
@@ -378,7 +482,7 @@ export default function ApplicationDetail() {
             {app.resume_url ? (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">Resume uploaded ✓</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <ButtonRetro size="sm" variant="outline" onClick={handleViewResume}>
                     <FileText className="h-4 w-4" /> View
                   </ButtonRetro>
@@ -388,14 +492,35 @@ export default function ApplicationDetail() {
                 </div>
               </div>
             ) : (
-              <ButtonRetro
-                variant="outline"
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? 'Uploading...' : <><Upload className="h-4 w-4" /> Upload Resume</>}
-              </ButtonRetro>
+              <div className="space-y-3">
+                <ButtonRetro
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Uploading...' : <><Upload className="h-4 w-4" /> Upload Resume</>}
+                </ButtonRetro>
+                
+                {/* ATS Resume Generator */}
+                <div className="pt-3 border-t border-border">
+                  <p className="text-xs text-muted-foreground mb-2">Or generate an optimized resume:</p>
+                  <ButtonRetro
+                    variant="default"
+                    className="w-full gap-2"
+                    onClick={handleGenerateATSResume}
+                    disabled={!app.job_description}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    Generate ATS Resume
+                  </ButtonRetro>
+                  {!app.job_description && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Add a job description first
+                    </p>
+                  )}
+                </div>
+              </div>
             )}
             <p className="text-xs text-muted-foreground mt-2">PDF, DOC, or DOCX files</p>
           </CardRetro>
@@ -440,6 +565,44 @@ export default function ApplicationDetail() {
           </ButtonRetro>
         </div>
       </div>
+
+      {/* ATS Resume Dialog */}
+      <Dialog open={showATSDialog} onOpenChange={setShowATSDialog}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              ATS-Optimized Resume
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {generatingResume && !generatedResume && (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Generating your optimized resume...</p>
+              </div>
+            )}
+            {generatedResume && (
+              <div className="space-y-4">
+                <pre className="whitespace-pre-wrap font-mono text-sm bg-muted p-4 rounded-lg overflow-auto max-h-[50vh]">
+                  {generatedResume}
+                </pre>
+                <div className="flex gap-2">
+                  <ButtonRetro onClick={handleCopyResume}>
+                    Copy to Clipboard
+                  </ButtonRetro>
+                  <ButtonRetro variant="outline" onClick={() => setShowATSDialog(false)}>
+                    Close
+                  </ButtonRetro>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  💡 Tip: Copy this text and paste it into a Word document or resume builder to format and save as PDF.
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -7,9 +7,9 @@ import { ButtonRetro } from '@/components/ui/button-retro';
 const navItems = [
   { to: '/home', icon: Home, label: 'Home' },
   { to: '/applications', icon: Briefcase, label: 'Applications' },
-  { to: '/profile', icon: User, label: 'Profile' },
   { to: '/contacts', icon: Users, label: 'Contacts' },
-  { to: '/goals', icon: Target, label: 'Goals' },
+  { to: '/goals', icon: Target, label: 'Crush It' },
+  { to: '/profile', icon: User, label: 'Profile' },
 ];
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
