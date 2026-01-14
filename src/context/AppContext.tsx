@@ -129,6 +129,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (prefsData) {
+        const rawWeights = prefsData.priority_weights as Record<string, number> | null;
+        const parsedWeights: PriorityWeights = rawWeights ? {
+          location: rawWeights.location ?? 20,
+          salary: rawWeights.salary ?? 25,
+          roleType: rawWeights.roleType ?? 20,
+          industry: rawWeights.industry ?? 15,
+          companySize: rawWeights.companySize ?? 10,
+          workStyle: rawWeights.workStyle ?? 10,
+        } : defaultPriorityWeights;
+        
         const prefs: JobPreferences = {
           locations: prefsData.locations || [],
           remotePreference: 'flexible',
@@ -149,7 +159,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           },
           dealbreakers: [],
           additionalNotes: prefsData.additional_notes || '',
-          priorityWeights: (prefsData.priority_weights as PriorityWeights) || defaultPriorityWeights,
+          priorityWeights: parsedWeights,
         };
         setJobPreferences(prefs);
       } else {
@@ -274,7 +284,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updatedPrefs.workStyle.collaborationStyle,
       ] : [],
       additional_notes: updatedPrefs.additionalNotes,
-      priority_weights: updatedPrefs.priorityWeights,
+      priority_weights: updatedPrefs.priorityWeights as unknown as Record<string, number>,
     };
 
     const { error } = await supabase

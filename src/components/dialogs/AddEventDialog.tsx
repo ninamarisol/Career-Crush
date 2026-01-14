@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { InputRetro } from '@/components/ui/input-retro';
 import { useApp } from '@/context/AppContext';
-import { Event } from '@/lib/data';
 import { Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,39 +11,46 @@ interface AddEventDialogProps {
   applicationId?: string;
 }
 
-type EventType = Event['eventType'];
+type EventType = 'Interview' | 'Follow-Up' | 'Coffee Chat' | 'Career Fair' | 'Deadline';
 
 export function AddEventDialog({ trigger, applicationId }: AddEventDialogProps) {
-  const { setEvents, applications } = useApp();
+  const { addEvent, applications } = useApp();
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
-    eventType: 'Follow-Up' as EventType,
-    eventDate: '',
-    applicationId: applicationId || '',
+    type: 'Follow-Up' as EventType,
+    date: '',
+    time: '',
+    application_id: applicationId || '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.eventDate) return;
+    if (!formData.title || !formData.date) return;
 
-    const newEvent: Event = {
-      id: crypto.randomUUID(),
-      title: formData.title,
-      eventType: formData.eventType,
-      eventDate: formData.eventDate,
-      applicationId: formData.applicationId || undefined,
-      completed: false,
-    };
+    setLoading(true);
+    try {
+      await addEvent({
+        title: formData.title,
+        type: formData.type,
+        date: formData.date,
+        time: formData.time || null,
+        application_id: formData.application_id || null,
+        notes: null,
+      });
 
-    setEvents((prev) => [...prev, newEvent]);
-    setFormData({
-      title: '',
-      eventType: 'Follow-Up',
-      eventDate: '',
-      applicationId: applicationId || '',
-    });
-    setOpen(false);
+      setFormData({
+        title: '',
+        type: 'Follow-Up',
+        date: '',
+        time: '',
+        application_id: applicationId || '',
+      });
+      setOpen(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const eventTypes: EventType[] = ['Interview', 'Follow-Up', 'Coffee Chat', 'Career Fair', 'Deadline'];
@@ -82,10 +88,10 @@ export function AddEventDialog({ trigger, applicationId }: AddEventDialogProps) 
                 <button
                   key={type}
                   type="button"
-                  onClick={() => setFormData({ ...formData, eventType: type })}
+                  onClick={() => setFormData({ ...formData, type })}
                   className={cn(
                     "px-3 py-1 rounded-full border-2 border-border text-sm font-bold transition-all",
-                    formData.eventType === type
+                    formData.type === type
                       ? "bg-primary text-primary-foreground shadow-retro-sm"
                       : "bg-card hover:bg-muted"
                   )}
@@ -96,30 +102,42 @@ export function AddEventDialog({ trigger, applicationId }: AddEventDialogProps) 
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-bold flex items-center gap-2">
-              <Calendar className="h-4 w-4" /> Date *
-            </label>
-            <InputRetro
-              type="date"
-              value={formData.eventDate}
-              onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
-              required
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-sm font-bold flex items-center gap-2">
+                <Calendar className="h-4 w-4" /> Date *
+              </label>
+              <InputRetro
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Time
+              </label>
+              <InputRetro
+                type="time"
+                value={formData.time}
+                onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+              />
+            </div>
           </div>
 
           {applications.length > 0 && (
             <div className="space-y-2">
               <label className="text-sm font-bold">Link to Application (optional)</label>
               <select
-                value={formData.applicationId}
-                onChange={(e) => setFormData({ ...formData, applicationId: e.target.value })}
+                value={formData.application_id}
+                onChange={(e) => setFormData({ ...formData, application_id: e.target.value })}
                 className="w-full p-3 border-2 border-border rounded-xl bg-background focus:ring-2 focus:ring-primary focus:outline-none"
               >
                 <option value="">No application linked</option>
                 {applications.map((app) => (
                   <option key={app.id} value={app.id}>
-                    {app.roleTitle} at {app.companyName}
+                    {app.position} at {app.company}
                   </option>
                 ))}
               </select>
@@ -127,11 +145,11 @@ export function AddEventDialog({ trigger, applicationId }: AddEventDialogProps) 
           )}
 
           <div className="flex gap-3 pt-2">
-            <ButtonRetro type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+            <ButtonRetro type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1" disabled={loading}>
               Cancel
             </ButtonRetro>
-            <ButtonRetro type="submit" className="flex-1">
-              <Calendar className="h-4 w-4" /> Add Event
+            <ButtonRetro type="submit" className="flex-1" disabled={loading}>
+              {loading ? 'Adding...' : <><Calendar className="h-4 w-4" /> Add Event</>}
             </ButtonRetro>
           </div>
         </form>

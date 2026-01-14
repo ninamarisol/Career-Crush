@@ -2,28 +2,40 @@ import { useApp } from '@/context/AppContext';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { motivationalQuotes, getStatusColor } from '@/lib/data';
+import { motivationalQuotes } from '@/lib/data';
 import { Plus, Phone, Flame, Briefcase, FileText, Trophy, ArrowRight, Calendar, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
 import { SmartStepDialog } from '@/components/dialogs/SmartStepDialog';
 
+const getStatusColor = (status: string): string => {
+  const colors: Record<string, string> = {
+    Saved: 'saved',
+    Applied: 'applied',
+    Interview: 'interview',
+    Offer: 'offer',
+    Rejected: 'rejected',
+    Ghosted: 'ghosted',
+  };
+  return colors[status] || 'saved';
+};
+
 export default function Home() {
-  const { user, applications, events, setEvents } = useApp();
+  const { profile, applications, events } = useApp();
   
   const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
   
   const stats = useMemo(() => ({
-    weeklyStreak: user?.weeklyStreak || 12,
+    weeklyStreak: 12, // TODO: Calculate from actual data
     activeJobs: applications.filter(a => !['Rejected', 'Ghosted'].includes(a.status)).length,
     totalApps: applications.length,
     offers: applications.filter(a => a.status === 'Offer').length,
-  }), [applications, user]);
+  }), [applications]);
 
   const recentApps = applications.slice(0, 3);
-  const upcomingEvents = events.filter(e => !e.completed).slice(0, 3);
+  const upcomingEvents = events.slice(0, 3);
 
   const smartSteps = [
     {
@@ -49,15 +61,11 @@ export default function Home() {
     },
   ];
 
-  const handleCompleteEvent = (eventId: string) => {
-    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, completed: true } : e));
-  };
-
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
       <div className="space-y-2">
-        <h1 className="text-4xl font-black">Welcome back, {user?.name || 'Friend'} 👋</h1>
+        <h1 className="text-4xl font-black">Welcome back, {profile?.display_name || 'Friend'} 👋</h1>
         <p className="text-muted-foreground italic">{quote}</p>
       </div>
 
@@ -146,13 +154,14 @@ export default function Home() {
             ) : (
               recentApps.map(app => (
                 <Link key={app.id} to={`/applications/${app.id}`} className="flex items-center gap-4 p-3 rounded-lg border-2 border-border hover:bg-muted transition-colors">
-                  <div className="w-10 h-10 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center font-bold">{app.companyInitial}</div>
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center font-bold">
+                    {app.company.charAt(0).toUpperCase()}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold truncate">{app.roleTitle}</p>
-                    <p className="text-sm text-muted-foreground truncate">{app.companyName} • {app.location}</p>
+                    <p className="font-bold truncate">{app.position}</p>
+                    <p className="text-sm text-muted-foreground truncate">{app.company} • {app.location || 'No location'}</p>
                   </div>
                   <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
-                  {app.dreamJobMatchScore && <span className="text-sm font-bold text-primary">{app.dreamJobMatchScore}%</span>}
                 </Link>
               ))
             )}
@@ -170,16 +179,16 @@ export default function Home() {
               upcomingEvents.map(event => (
                 <div key={event.id} className="flex items-center gap-4 p-3 rounded-lg border-2 border-border">
                   <div className="text-center">
-                    <p className="text-xs font-bold uppercase text-muted-foreground">{new Date(event.eventDate).toLocaleDateString('en-US', { month: 'short' })}</p>
-                    <p className="text-xl font-black">{new Date(event.eventDate).getDate()}</p>
+                    <p className="text-xs font-bold uppercase text-muted-foreground">{new Date(event.date).toLocaleDateString('en-US', { month: 'short' })}</p>
+                    <p className="text-xl font-black">{new Date(event.date).getDate()}</p>
                   </div>
                   <div className="flex-1">
                     <p className="font-bold">{event.title}</p>
-                    <p className="text-sm text-muted-foreground">{event.eventType}</p>
+                    <p className="text-sm text-muted-foreground">{event.type}</p>
                   </div>
-                  <ButtonRetro size="icon" variant="ghost" onClick={() => handleCompleteEvent(event.id)}>
-                    <Check className="h-4 w-4" />
-                  </ButtonRetro>
+                  {event.time && (
+                    <span className="text-sm text-muted-foreground">{event.time}</span>
+                  )}
                 </div>
               ))
             )}
