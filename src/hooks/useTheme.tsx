@@ -41,30 +41,38 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const [previewColor, setPreviewColor] = useState<ThemeColor | null>(null);
 
-  // Apply theme (light/dark) to document
+  // Apply theme (light/dark) to document + body + #root
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+    const rootEl = document.getElementById('root');
+    const targets = [document.documentElement, document.body, rootEl].filter(Boolean) as HTMLElement[];
+
+    targets.forEach((el) => {
+      if (theme === 'dark') {
+        el.classList.add('dark');
+      } else {
+        el.classList.remove('dark');
+      }
+    });
+
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Apply theme color to document
+  // Apply theme color to document + body + #root (so borders/background/buttons update everywhere)
   useEffect(() => {
-    const root = document.documentElement;
+    const rootEl = document.getElementById('root');
+    const targets = [document.documentElement, document.body, rootEl].filter(Boolean) as HTMLElement[];
     const colorToApply = previewColor || themeColor;
-    
-    // Remove all theme color classes
-    THEME_COLORS.forEach(color => {
-      root.classList.remove(`theme-${color}`);
+
+    targets.forEach((el) => {
+      // Remove all theme color classes
+      THEME_COLORS.forEach((color) => {
+        el.classList.remove(`theme-${color}`);
+      });
+
+      // Add the current theme color class
+      el.classList.add(`theme-${colorToApply}`);
     });
-    
-    // Add the current theme color class
-    root.classList.add(`theme-${colorToApply}`);
-    
+
     if (!previewColor) {
       localStorage.setItem('themeColor', themeColor);
     }
