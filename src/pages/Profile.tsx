@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Target, User, Palette, LogOut, Sun, Moon } from 'lucide-react';
+import { FileText, Target, User, Palette, LogOut, Sun, Moon, Compass } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -8,6 +8,7 @@ import { ButtonRetro } from '@/components/ui/button-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { MasterResumeBuilder } from '@/components/profile/MasterResumeBuilder';
 import { DreamJobProfiler } from '@/components/profile/DreamJobProfiler';
+import { CareerPather } from '@/components/profile/CareerPather';
 import { MasterResume, JobPreferences, defaultPriorityWeights } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ import { toast } from 'sonner';
 const tabs = [
   { id: 'resume', label: 'Master Resume', icon: FileText, emoji: '📄' },
   { id: 'preferences', label: 'Dream Job Profiler', icon: Target, emoji: '🎯' },
+  { id: 'career', label: 'Career Pather', icon: Compass, emoji: '🧭' },
   { id: 'account', label: 'Account Settings', icon: User, emoji: '⚙️' },
 ];
 
@@ -186,6 +188,13 @@ export default function Profile() {
             <DreamJobProfiler
               preferences={currentPreferences}
               onUpdate={updatePreferences}
+            />
+          )}
+
+          {activeTab === 'career' && (
+            <CareerPather
+              resume={masterResume}
+              preferences={jobPreferences}
             />
           )}
 
