@@ -1,32 +1,55 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useApp, Application } from '@/context/AppContext';
 import { CardRetro } from '@/components/ui/card-retro';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { InputRetro } from '@/components/ui/input-retro';
-import { getStatusColor, ApplicationStatus, calculateDreamJobMatch } from '@/lib/data';
 import { LayoutGrid, List, Map, Search, Plus, MapPin, Building2, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
+import { ApplicationMap } from '@/components/map/ApplicationMap';
 
 type ViewMode = 'card' | 'list' | 'map';
+type StatusFilter = 'all' | 'Saved' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted';
+
+const getStatusColor = (status: string): string => {
+  const colors: Record<string, string> = {
+    Saved: 'saved',
+    Applied: 'applied',
+    Interview: 'interview',
+    Offer: 'offer',
+    Rejected: 'rejected',
+    Ghosted: 'ghosted',
+  };
+  return colors[status] || 'saved';
+};
+
+const formatSalary = (min: number | null, max: number | null): string => {
+  if (!min && !max) return '';
+  if (min && max) return `$${Math.round(min / 1000)}k - $${Math.round(max / 1000)}k`;
+  if (min) return `$${Math.round(min / 1000)}k+`;
+  if (max) return `Up to $${Math.round(max / 1000)}k`;
+  return '';
+};
 
 export default function Applications() {
-  const { applications, user } = useApp();
+  const { applications, jobPreferences } = useApp();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  const filteredApps = applications.filter(app => {
-    const matchesSearch = app.roleTitle.toLowerCase().includes(search.toLowerCase()) || 
-                          app.companyName.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredApps = useMemo(() => {
+    return applications.filter(app => {
+      const matchesSearch = app.position.toLowerCase().includes(search.toLowerCase()) || 
+                            app.company.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [applications, search, statusFilter]);
 
-  const getStatusCount = (status: ApplicationStatus | 'all') => {
+  const getStatusCount = (status: StatusFilter) => {
     if (status === 'all') return applications.length;
     return applications.filter(a => a.status === status).length;
   };
@@ -101,16 +124,24 @@ export default function Applications() {
             <Link key={app.id} to={`/applications/${app.id}`}>
               <CardRetro hoverable className="p-5 h-full">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="w-12 h-12 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center text-xl font-black">{app.companyInitial}</div>
+                  <div className="w-12 h-12 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center text-xl font-black">
+                    {app.company.charAt(0).toUpperCase()}
+                  </div>
                   <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
                 </div>
-                <h3 className="font-bold text-lg">{app.roleTitle}</h3>
-                <p className="text-muted-foreground flex items-center gap-1 mt-1"><Building2 className="h-3 w-3" /> {app.companyName}</p>
-                <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {app.location}</p>
-                {app.salaryRange && <p className="text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" /> {app.salaryRange}</p>}
+                <h3 className="font-bold text-lg">{app.position}</h3>
+                <p className="text-muted-foreground flex items-center gap-1 mt-1"><Building2 className="h-3 w-3" /> {app.company}</p>
+                {app.location && <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {app.location}</p>}
+                {(app.salary_min || app.salary_max) && (
+                  <p className="text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="h-3 w-3" /> {formatSalary(app.salary_min, app.salary_max)}
+                  </p>
+                )}
                 <div className="flex gap-4 mt-4 pt-3 border-t-2 border-border">
-                  <div><span className="text-xs text-muted-foreground">Match</span><p className="font-bold text-primary">{calculateDreamJobMatch(app, user?.jobPreferences)}%</p></div>
-                  {app.atsScore && <div><span className="text-xs text-muted-foreground">ATS</span><p className="font-bold text-info">{app.atsScore}%</p></div>}
+                  <div>
+                    <span className="text-xs text-muted-foreground">Applied</span>
+                    <p className="font-bold text-sm">{new Date(app.date_applied).toLocaleDateString()}</p>
+                  </div>
                 </div>
               </CardRetro>
             </Link>
@@ -124,18 +155,23 @@ export default function Applications() {
           <table className="w-full">
             <thead className="bg-muted">
               <tr className="text-left text-xs font-bold uppercase tracking-wide">
-                <th className="p-4">Company</th><th className="p-4">Role</th><th className="p-4">Location</th><th className="p-4">Status</th><th className="p-4">Match</th><th className="p-4">Applied</th>
+                <th className="p-4">Company</th>
+                <th className="p-4">Role</th>
+                <th className="p-4">Location</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Salary</th>
+                <th className="p-4">Applied</th>
               </tr>
             </thead>
             <tbody>
               {filteredApps.map(app => (
                 <tr key={app.id} className="border-t-2 border-border hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/applications/${app.id}`)}>
-                  <td className="p-4 font-bold">{app.companyName}</td>
-                  <td className="p-4">{app.roleTitle}</td>
-                  <td className="p-4 text-muted-foreground">{app.location}</td>
+                  <td className="p-4 font-bold">{app.company}</td>
+                  <td className="p-4">{app.position}</td>
+                  <td className="p-4 text-muted-foreground">{app.location || '-'}</td>
                   <td className="p-4"><StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge></td>
-                  <td className="p-4 font-bold text-primary">{calculateDreamJobMatch(app, user?.jobPreferences)}%</td>
-                  <td className="p-4 text-muted-foreground">{new Date(app.appliedDate).toLocaleDateString()}</td>
+                  <td className="p-4 text-muted-foreground">{formatSalary(app.salary_min, app.salary_max) || '-'}</td>
+                  <td className="p-4 text-muted-foreground">{new Date(app.date_applied).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -143,19 +179,9 @@ export default function Applications() {
         </CardRetro>
       )}
 
-      {/* Map View Placeholder */}
+      {/* Map View */}
       {viewMode === 'map' && (
-        <CardRetro className="p-12 text-center border-dashed">
-          <Map className="h-16 w-16 mx-auto text-muted-foreground animate-bounce-gentle" />
-          <h3 className="text-2xl font-bold mt-4">Interactive Map View</h3>
-          <p className="text-muted-foreground">Visualizing {filteredApps.length} opportunities across the globe</p>
-          <div className="flex gap-2 justify-center mt-4 flex-wrap">
-            {Array.from(new Set(filteredApps.map(a => a.location))).slice(0, 4).map(loc => (
-              <span key={loc} className="px-3 py-1 bg-muted rounded-full text-sm border-2 border-border">📍 {loc}</span>
-            ))}
-          </div>
-          <span className="inline-block mt-4 px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm font-bold border-2 border-border">Integration Coming Soon</span>
-        </CardRetro>
+        <ApplicationMap applications={filteredApps} />
       )}
     </div>
   );

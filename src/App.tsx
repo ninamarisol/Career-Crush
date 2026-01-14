@@ -3,8 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Home from "./pages/Home";
 import Applications from "./pages/Applications";
@@ -15,10 +17,33 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { user } = useApp();
-  const themeClass = user?.themeColor ? `theme-${user.themeColor}` : 'theme-bubblegum';
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: appLoading } = useApp();
 
-  if (!user?.onboardingComplete) {
+  // Show loading while checking auth state
+  if (authLoading || (user && appLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground font-bold">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not logged in - show auth page
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/" element={<Auth />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
+
+  // Logged in but hasn't completed onboarding
+  if (!profile?.onboarding_complete) {
     return (
       <Routes>
         <Route path="/" element={<Onboarding />} />
@@ -26,6 +51,8 @@ function AppRoutes() {
       </Routes>
     );
   }
+
+  const themeClass = profile?.theme_color ? `theme-${profile.theme_color}` : 'theme-bubblegum';
 
   return (
     <div className={themeClass}>
@@ -49,13 +76,15 @@ function AppRoutes() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AppProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AppProvider>
+      <AuthProvider>
+        <AppProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AppProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
