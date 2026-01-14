@@ -13,6 +13,7 @@ import Home from "./pages/Home";
 import Applications from "./pages/Applications";
 import ApplicationDetail from "./pages/ApplicationDetail";
 import Profile from "./pages/Profile";
+import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,7 +66,7 @@ function AppRoutes() {
           <Route path="/applications/:id" element={<ApplicationDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/contacts" element={<div className="text-center py-12"><h1 className="text-3xl font-black">Contacts 📇</h1><p className="text-muted-foreground mt-2">Coming soon...</p></div>} />
-          <Route path="/goals" element={<div className="text-center py-12"><h1 className="text-3xl font-black">Goals 🎯</h1><p className="text-muted-foreground mt-2">Coming soon...</p></div>} />
+          <Route path="/goals" element={<Goals />} />
           <Route path="/settings" element={<Profile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
