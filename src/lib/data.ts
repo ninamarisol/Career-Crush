@@ -40,6 +40,15 @@ export interface MasterResume {
     current: boolean;
     description: string;
   }[];
+  projects?: {
+    id: string;
+    name: string;
+    description: string;
+    technologies: string[];
+    url?: string;
+    startDate?: string;
+    endDate?: string;
+  }[];
   education: {
     id: string;
     degree: string;

@@ -84,7 +84,7 @@ export default function Goals() {
         >
           <div>
             <h1 className="text-3xl sm:text-4xl font-black mb-2">
-              Your Goals 🎯
+              Crush It 💪
             </h1>
             <p className="text-muted-foreground">
               Track YOUR progress, at YOUR pace
