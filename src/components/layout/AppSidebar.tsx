@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Briefcase, Users, Target, Settings, Heart, Menu, X, User } from 'lucide-react';
+import { Home, Briefcase, Users, Target, Heart, Menu, X, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { ButtonRetro } from '@/components/ui/button-retro';
@@ -10,7 +10,6 @@ const navItems = [
   { to: '/profile', icon: User, label: 'Profile' },
   { to: '/contacts', icon: Users, label: 'Contacts' },
   { to: '/goals', icon: Target, label: 'Goals' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {

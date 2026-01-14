@@ -57,7 +57,7 @@ function AppRoutes() {
   const themeClass = profile?.theme_color ? `theme-${profile.theme_color}` : 'theme-bubblegum';
 
   return (
-    <div className={themeClass}>
+    <div className={themeClass} key={themeClass}>
       <AppSidebar>
         <Routes>
           <Route path="/" element={<Navigate to="/home" replace />} />
@@ -67,7 +67,7 @@ function AppRoutes() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/contacts" element={<div className="text-center py-12"><h1 className="text-3xl font-black">Contacts 📇</h1><p className="text-muted-foreground mt-2">Coming soon...</p></div>} />
           <Route path="/goals" element={<Goals />} />
-          <Route path="/settings" element={<Profile />} />
+          <Route path="/settings" element={<Navigate to="/profile" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppSidebar>
