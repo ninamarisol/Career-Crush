@@ -1,113 +1,172 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { CardRetro } from '@/components/ui/card-retro';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Application } from '@/context/AppContext';
-import { MapPin, Building2, ExternalLink } from 'lucide-react';
+import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { CardRetro } from "@/components/ui/card-retro";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Application } from "@/context/AppContext";
+import { MapPin, Building2, ExternalLink, Globe } from "lucide-react";
+
+// Fix Leaflet default icon issue in bundlers
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 
 interface ApplicationMapProps {
   applications: Application[];
 }
 
-// US city coordinates for common locations
+// Extended city coordinates for common locations (worldwide)
 const cityCoordinates: Record<string, { lat: number; lng: number }> = {
-  'new york': { lat: 40.7128, lng: -74.0060 },
-  'san francisco': { lat: 37.7749, lng: -122.4194 },
-  'los angeles': { lat: 34.0522, lng: -118.2437 },
-  'seattle': { lat: 47.6062, lng: -122.3321 },
-  'austin': { lat: 30.2672, lng: -97.7431 },
-  'boston': { lat: 42.3601, lng: -71.0589 },
-  'chicago': { lat: 41.8781, lng: -87.6298 },
-  'denver': { lat: 39.7392, lng: -104.9903 },
-  'miami': { lat: 25.7617, lng: -80.1918 },
-  'atlanta': { lat: 33.7490, lng: -84.3880 },
-  'dallas': { lat: 32.7767, lng: -96.7970 },
-  'portland': { lat: 45.5152, lng: -122.6784 },
-  'phoenix': { lat: 33.4484, lng: -112.0740 },
-  'san diego': { lat: 32.7157, lng: -117.1611 },
-  'washington': { lat: 38.9072, lng: -77.0369 },
-  'remote': { lat: 39.8283, lng: -98.5795 }, // Center of US
+  "new york": { lat: 40.7128, lng: -74.006 },
+  nyc: { lat: 40.7128, lng: -74.006 },
+  manhattan: { lat: 40.7831, lng: -73.9712 },
+  brooklyn: { lat: 40.6782, lng: -73.9442 },
+  "san francisco": { lat: 37.7749, lng: -122.4194 },
+  sf: { lat: 37.7749, lng: -122.4194 },
+  "los angeles": { lat: 34.0522, lng: -118.2437 },
+  la: { lat: 34.0522, lng: -118.2437 },
+  seattle: { lat: 47.6062, lng: -122.3321 },
+  austin: { lat: 30.2672, lng: -97.7431 },
+  boston: { lat: 42.3601, lng: -71.0589 },
+  chicago: { lat: 41.8781, lng: -87.6298 },
+  denver: { lat: 39.7392, lng: -104.9903 },
+  miami: { lat: 25.7617, lng: -80.1918 },
+  atlanta: { lat: 33.749, lng: -84.388 },
+  dallas: { lat: 32.7767, lng: -96.797 },
+  houston: { lat: 29.7604, lng: -95.3698 },
+  portland: { lat: 45.5152, lng: -122.6784 },
+  phoenix: { lat: 33.4484, lng: -112.074 },
+  "san diego": { lat: 32.7157, lng: -117.1611 },
+  washington: { lat: 38.9072, lng: -77.0369 },
+  dc: { lat: 38.9072, lng: -77.0369 },
+  "washington dc": { lat: 38.9072, lng: -77.0369 },
+  "palo alto": { lat: 37.4419, lng: -122.143 },
+  "mountain view": { lat: 37.3861, lng: -122.0839 },
+  cupertino: { lat: 37.323, lng: -122.0322 },
+  menlo: { lat: 37.4529, lng: -122.1817 },
+  redwood: { lat: 37.4852, lng: -122.2364 },
+  sunnyvale: { lat: 37.3688, lng: -122.0363 },
+  "san jose": { lat: 37.3382, lng: -121.8863 },
+  oakland: { lat: 37.8044, lng: -122.2712 },
+  raleigh: { lat: 35.7796, lng: -78.6382 },
+  charlotte: { lat: 35.2271, lng: -80.8431 },
+  nashville: { lat: 36.1627, lng: -86.7816 },
+  "salt lake": { lat: 40.7608, lng: -111.891 },
+  minneapolis: { lat: 44.9778, lng: -93.265 },
+  detroit: { lat: 42.3314, lng: -83.0458 },
+  philadelphia: { lat: 39.9526, lng: -75.1652 },
+  // International
+  london: { lat: 51.5074, lng: -0.1278 },
+  berlin: { lat: 52.52, lng: 13.405 },
+  paris: { lat: 48.8566, lng: 2.3522 },
+  amsterdam: { lat: 52.3676, lng: 4.9041 },
+  dublin: { lat: 53.3498, lng: -6.2603 },
+  toronto: { lat: 43.6532, lng: -79.3832 },
+  vancouver: { lat: 49.2827, lng: -123.1207 },
+  sydney: { lat: -33.8688, lng: 151.2093 },
+  singapore: { lat: 1.3521, lng: 103.8198 },
+  tokyo: { lat: 35.6762, lng: 139.6503 },
+  bangalore: { lat: 12.9716, lng: 77.5946 },
+  mumbai: { lat: 19.076, lng: 72.8777 },
+  "tel aviv": { lat: 32.0853, lng: 34.7818 },
 };
 
 const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
-    Saved: 'saved',
-    Applied: 'applied',
-    Interview: 'interview',
-    Offer: 'offer',
-    Rejected: 'rejected',
-    Ghosted: 'ghosted',
+    Saved: "saved",
+    Applied: "applied",
+    Interview: "interview",
+    Offer: "offer",
+    Rejected: "rejected",
+    Ghosted: "ghosted",
   };
-  return colors[status] || 'saved';
+  return colors[status] || "saved";
 };
 
-const getStatusDotColor = (status: string): string => {
+const getStatusHexColor = (status: string): string => {
   const colors: Record<string, string> = {
-    Saved: 'bg-yellow-500',
-    Applied: 'bg-blue-500',
-    Interview: 'bg-purple-500',
-    Offer: 'bg-green-500',
-    Rejected: 'bg-red-500',
-    Ghosted: 'bg-gray-400',
+    Saved: "#9ca3af",
+    Applied: "#3b82f6",
+    Interview: "#f59e0b",
+    Offer: "#22c55e",
+    Rejected: "#ef4444",
+    Ghosted: "#6b7280",
   };
-  return colors[status] || 'bg-gray-400';
+  return colors[status] || "#9ca3af";
 };
 
 interface MapMarker {
   app: Application;
-  coords: { lat: number; lng: number };
-  x: number;
-  y: number;
+  lat: number;
+  lng: number;
+}
+
+// Custom colored marker
+function createColoredIcon(color: string) {
+  return L.divIcon({
+    className: "custom-marker",
+    html: `
+      <div style="
+        background-color: ${color};
+        width: 24px;
+        height: 24px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      "></div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+    popupAnchor: [0, -24],
+  });
+}
+
+// Auto-fit bounds component
+function FitBounds({ markers }: { markers: MapMarker[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (markers.length === 0) return;
+
+    const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng]));
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+  }, [markers, map]);
+
+  return null;
 }
 
 export function ApplicationMap({ applications }: ApplicationMapProps) {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
-  const [hoveredApp, setHoveredApp] = useState<Application | null>(null);
-
-  // Map dimensions (based on US map aspect ratio)
-  const mapWidth = 800;
-  const mapHeight = 500;
-
-  // Mercator projection bounds for continental US
-  const bounds = {
-    north: 49.5,
-    south: 24.5,
-    west: -125,
-    east: -66.5,
-  };
-
-  const projectToMap = (lat: number, lng: number) => {
-    const x = ((lng - bounds.west) / (bounds.east - bounds.west)) * mapWidth;
-    const y = ((bounds.north - lat) / (bounds.north - bounds.south)) * mapHeight;
-    return { x, y };
-  };
 
   const markers: MapMarker[] = useMemo(() => {
     return applications
-      .map(app => {
+      .map((app) => {
+        // Use stored coordinates first
+        if (app.latitude && app.longitude) {
+          return { app, lat: app.latitude, lng: app.longitude };
+        }
+
         if (!app.location) return null;
-        
+
         const locationLower = app.location.toLowerCase();
-        
-        // Check for exact city match
+
+        // Check for city match
         for (const [city, coords] of Object.entries(cityCoordinates)) {
           if (locationLower.includes(city)) {
-            const { x, y } = projectToMap(coords.lat, coords.lng);
-            return { app, coords, x, y };
+            // Add small random offset to prevent exact overlap
+            const offset = () => (Math.random() - 0.5) * 0.02;
+            return {
+              app,
+              lat: coords.lat + offset(),
+              lng: coords.lng + offset(),
+            };
           }
-        }
-
-        // Check if it's marked as remote
-        if (locationLower === 'remote') {
-          const coords = cityCoordinates.remote;
-          const { x, y } = projectToMap(coords.lat, coords.lng);
-          return { app, coords, x, y };
-        }
-
-        // Use stored coordinates if available
-        if (app.latitude && app.longitude) {
-          const { x, y } = projectToMap(app.latitude, app.longitude);
-          return { app, coords: { lat: app.latitude, lng: app.longitude }, x, y };
         }
 
         return null;
@@ -115,95 +174,110 @@ export function ApplicationMap({ applications }: ApplicationMapProps) {
       .filter((m): m is MapMarker => m !== null);
   }, [applications]);
 
-  const remoteApps = applications.filter(app => 
-    app.location?.toLowerCase() === 'remote'
+  const remoteApps = applications.filter(
+    (app) => app.location?.toLowerCase() === "remote"
   );
 
-  const unmappedApps = applications.filter(app => {
+  const unmappedApps = applications.filter((app) => {
     if (!app.location) return true;
+    if (app.latitude && app.longitude) return false;
+
     const locationLower = app.location.toLowerCase();
-    return !Object.keys(cityCoordinates).some(city => locationLower.includes(city)) &&
-           locationLower !== 'remote' &&
-           !app.latitude;
+    return (
+      !Object.keys(cityCoordinates).some((city) =>
+        locationLower.includes(city)
+      ) && locationLower !== "remote"
+    );
   });
+
+  // Default center (US if no markers)
+  const defaultCenter: [number, number] =
+    markers.length > 0 ? [markers[0].lat, markers[0].lng] : [39.8283, -98.5795];
 
   return (
     <div className="space-y-4">
-      <CardRetro className="p-6">
-        <div className="relative w-full" style={{ aspectRatio: '800/500' }}>
-          {/* Simple US outline SVG */}
-          <svg
-            viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-            className="w-full h-full"
-            style={{ background: 'hsl(var(--muted))' }}
-          >
-            {/* Simplified US outline */}
-            <path
-              d="M50,150 L80,120 L120,100 L180,90 L220,85 L280,80 L340,75 L400,70 L460,75 L520,80 L580,90 L620,100 L660,120 L700,150 L720,180 L730,220 L740,260 L750,300 L740,340 L720,380 L680,400 L620,420 L560,430 L500,435 L440,430 L380,420 L320,400 L260,380 L200,360 L140,330 L100,290 L70,240 L50,190 Z"
-              fill="hsl(var(--card))"
-              stroke="hsl(var(--border))"
-              strokeWidth="2"
-            />
-            
-            {/* Application markers */}
-            {markers.map((marker, index) => (
-              <g
-                key={marker.app.id}
-                transform={`translate(${marker.x}, ${marker.y})`}
-                className="cursor-pointer transition-transform hover:scale-125"
-                onClick={() => setSelectedApp(marker.app)}
-                onMouseEnter={() => setHoveredApp(marker.app)}
-                onMouseLeave={() => setHoveredApp(null)}
-              >
-                <circle
-                  r="12"
-                  className={`${getStatusDotColor(marker.app.status)} transition-all`}
-                  opacity={selectedApp?.id === marker.app.id ? 1 : 0.8}
-                  stroke="hsl(var(--background))"
-                  strokeWidth="2"
-                />
-                <circle
-                  r="6"
-                  fill="white"
-                  opacity="0.5"
-                />
-              </g>
-            ))}
-          </svg>
-
-          {/* Hover tooltip */}
-          {hoveredApp && (
-            <div 
-              className="absolute z-10 bg-card border-2 border-border rounded-lg p-3 shadow-retro-lg pointer-events-none"
-              style={{
-                left: '50%',
-                top: '20px',
-                transform: 'translateX(-50%)',
-              }}
+      <CardRetro className="p-0 overflow-hidden">
+        <div className="h-[500px] relative">
+          {markers.length > 0 ? (
+            <MapContainer
+              center={defaultCenter}
+              zoom={4}
+              style={{ height: "100%", width: "100%" }}
+              scrollWheelZoom={true}
             >
-              <p className="font-bold">{hoveredApp.position}</p>
-              <p className="text-sm text-muted-foreground">{hoveredApp.company}</p>
-              <p className="text-xs text-muted-foreground">{hoveredApp.location}</p>
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <FitBounds markers={markers} />
+              {markers.map((marker) => (
+                <Marker
+                  key={marker.app.id}
+                  position={[marker.lat, marker.lng]}
+                  icon={createColoredIcon(getStatusHexColor(marker.app.status))}
+                  eventHandlers={{
+                    click: () => setSelectedApp(marker.app),
+                  }}
+                >
+                  <Popup>
+                    <div className="min-w-[200px]">
+                      <p className="font-bold text-base">{marker.app.position}</p>
+                      <p className="text-sm text-gray-600">{marker.app.company}</p>
+                      <p className="text-xs text-gray-500">{marker.app.location}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span
+                          className="px-2 py-0.5 rounded text-xs font-medium text-white"
+                          style={{
+                            backgroundColor: getStatusHexColor(marker.app.status),
+                          }}
+                        >
+                          {marker.app.status}
+                        </span>
+                        <Link
+                          to={`/applications/${marker.app.id}`}
+                          className="text-blue-600 hover:underline text-xs"
+                        >
+                          View Details →
+                        </Link>
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center bg-muted">
+              <Globe className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-xl font-bold">No mappable locations</h3>
+              <p className="text-muted-foreground text-center max-w-md mt-2">
+                Add location information to your applications to see them on the
+                map. Common city names will be automatically recognized.
+              </p>
             </div>
           )}
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t-2 border-border">
+        <div className="flex flex-wrap gap-4 p-4 border-t-2 border-border bg-card">
           <span className="text-sm font-bold text-muted-foreground">Status:</span>
-          {['Saved', 'Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted'].map(status => (
-            <div key={status} className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${getStatusDotColor(status)}`} />
-              <span className="text-sm">{status}</span>
-            </div>
-          ))}
+          {["Saved", "Applied", "Interview", "Offer", "Rejected", "Ghosted"].map(
+            (status) => (
+              <div key={status} className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: getStatusHexColor(status) }}
+                />
+                <span className="text-sm">{status}</span>
+              </div>
+            )
+          )}
         </div>
       </CardRetro>
 
       {/* Selected application details */}
       {selectedApp && (
         <CardRetro className="p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center text-xl font-black">
                 {selectedApp.company.charAt(0).toUpperCase()}
@@ -236,10 +310,10 @@ export function ApplicationMap({ applications }: ApplicationMapProps) {
       {remoteApps.length > 0 && (
         <CardRetro className="p-4">
           <h3 className="font-bold mb-3 flex items-center gap-2">
-            <MapPin className="h-4 w-4" /> Remote Positions ({remoteApps.length})
+            <Globe className="h-4 w-4" /> Remote Positions ({remoteApps.length})
           </h3>
           <div className="flex flex-wrap gap-2">
-            {remoteApps.map(app => (
+            {remoteApps.map((app) => (
               <Link key={app.id} to={`/applications/${app.id}`}>
                 <div className="px-3 py-2 rounded-lg border-2 border-border hover:bg-muted transition-colors">
                   <span className="font-bold">{app.position}</span>
@@ -257,12 +331,18 @@ export function ApplicationMap({ applications }: ApplicationMapProps) {
           <h3 className="font-bold mb-3 text-muted-foreground">
             Other Locations ({unmappedApps.length})
           </h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            These applications have locations that couldn't be mapped automatically.
+            Add coordinates or use recognized city names.
+          </p>
           <div className="flex flex-wrap gap-2">
-            {unmappedApps.map(app => (
+            {unmappedApps.map((app) => (
               <Link key={app.id} to={`/applications/${app.id}`}>
                 <div className="px-3 py-2 rounded-lg border-2 border-border hover:bg-muted transition-colors text-sm">
                   <span className="font-bold">{app.company}</span>
-                  {app.location && <span className="text-muted-foreground"> • {app.location}</span>}
+                  {app.location && (
+                    <span className="text-muted-foreground"> • {app.location}</span>
+                  )}
                 </div>
               </Link>
             ))}

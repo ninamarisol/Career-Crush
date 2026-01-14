@@ -4,6 +4,12 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
 
+/* Leaflet marker fix */
+.custom-marker {
+  background: transparent;
+  border: none;
+}
+
 @layer base {
   :root {
     /* Career Crush - Retro Modern Design System */
