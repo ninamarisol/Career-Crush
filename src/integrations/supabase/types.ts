@@ -379,6 +379,7 @@ export type Database = {
           theme_color: string | null
           updated_at: string
           user_id: string
+          user_mode: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -390,6 +391,7 @@ export type Database = {
           theme_color?: string | null
           updated_at?: string
           user_id: string
+          user_mode?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -401,6 +403,7 @@ export type Database = {
           theme_color?: string | null
           updated_at?: string
           user_id?: string
+          user_mode?: string | null
         }
         Relationships: []
       }
