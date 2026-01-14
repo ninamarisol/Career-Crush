@@ -11,7 +11,7 @@ const buttonRetroVariants = cva(
         default:
           "bg-primary text-primary-foreground shadow-retro hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-retro-lg active:translate-x-0 active:translate-y-0 active:shadow-retro-sm",
         outline:
-          "bg-card text-foreground shadow-retro hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-retro-lg active:translate-x-0 active:translate-y-0 active:shadow-retro-sm",
+          "bg-card text-foreground border-primary shadow-retro hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-retro-lg active:translate-x-0 active:translate-y-0 active:shadow-retro-sm",
         secondary:
           "bg-secondary text-secondary-foreground shadow-retro hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-retro-lg",
         ghost: "border-transparent shadow-none hover:bg-muted",
