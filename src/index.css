@@ -111,29 +111,41 @@
     --sidebar-ring: 330 100% 70%;
   }
 
-  /* Theme variants */
+  /* Theme variants - borders use theme color */
   .theme-bubblegum {
     --primary: 330 100% 70%;
     --ring: 330 100% 70%;
     --sidebar-primary: 330 100% 70%;
+    --border: 330 100% 70%;
+    --input: 330 100% 70%;
+    --sidebar-border: 330 100% 70%;
   }
 
   .theme-electric {
     --primary: 47 100% 62%;
     --ring: 47 100% 62%;
     --sidebar-primary: 47 100% 62%;
+    --border: 47 100% 62%;
+    --input: 47 100% 62%;
+    --sidebar-border: 47 100% 62%;
   }
 
   .theme-minty {
     --primary: 134 52% 61%;
     --ring: 134 52% 61%;
     --sidebar-primary: 134 52% 61%;
+    --border: 134 52% 61%;
+    --input: 134 52% 61%;
+    --sidebar-border: 134 52% 61%;
   }
 
   .theme-sky {
     --primary: 214 100% 65%;
     --ring: 214 100% 65%;
     --sidebar-primary: 214 100% 65%;
+    --border: 214 100% 65%;
+    --input: 214 100% 65%;
+    --sidebar-border: 214 100% 65%;
   }
 }
 
