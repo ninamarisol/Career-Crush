@@ -272,33 +272,6 @@ export default function Profile() {
                 </CardRetroContent>
               </CardRetro>
 
-              {/* Statistics */}
-              <CardRetro>
-                <CardRetroHeader>
-                  <CardRetroTitle>📊 Your Stats</CardRetroTitle>
-                </CardRetroHeader>
-                <CardRetroContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-muted/50 rounded-lg text-center">
-                      <p className="text-3xl font-black text-primary">{masterResume.skills.length}</p>
-                      <p className="text-sm text-muted-foreground">Skills Listed</p>
-                    </div>
-                    <div className="p-4 bg-muted/50 rounded-lg text-center">
-                      <p className="text-3xl font-black text-primary">{masterResume.experience.length}</p>
-                      <p className="text-sm text-muted-foreground">Experiences</p>
-                    </div>
-                    <div className="p-4 bg-muted/50 rounded-lg text-center">
-                      <p className="text-3xl font-black text-primary">{currentPreferences.roleTypes.length}</p>
-                      <p className="text-sm text-muted-foreground">Target Roles</p>
-                    </div>
-                    <div className="p-4 bg-muted/50 rounded-lg text-center">
-                      <p className="text-3xl font-black text-primary">{currentPreferences.industries.length}</p>
-                      <p className="text-sm text-muted-foreground">Industries</p>
-                    </div>
-                  </div>
-                </CardRetroContent>
-              </CardRetro>
-
               {/* Sign Out */}
               <CardRetro>
                 <CardRetroHeader>

@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          achievement_id: string
+          created_at: string
+          current_progress: number | null
+          id: string
+          target: number
+          tier: string
+          unlocked: boolean | null
+          unlocked_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          created_at?: string
+          current_progress?: number | null
+          id?: string
+          target: number
+          tier?: string
+          unlocked?: boolean | null
+          unlocked_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          created_at?: string
+          current_progress?: number | null
+          id?: string
+          target?: number
+          tier?: string
+          unlocked?: boolean | null
+          unlocked_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           company: string
@@ -214,6 +253,150 @@ export type Database = {
           theme_color?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      quests: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string
+          current_progress: number | null
+          description: string | null
+          expires_at: string
+          id: string
+          is_completed: boolean | null
+          starts_at: string
+          target: number
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+          xp_reward: number
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string
+          current_progress?: number | null
+          description?: string | null
+          expires_at: string
+          id?: string
+          is_completed?: boolean | null
+          starts_at?: string
+          target?: number
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string
+          current_progress?: number | null
+          description?: string | null
+          expires_at?: string
+          id?: string
+          is_completed?: boolean | null
+          starts_at?: string
+          target?: number
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      user_goals: {
+        Row: {
+          active_achievement_paths: string[] | null
+          active_hours_per_week: number | null
+          avg_applications_per_week: number | null
+          avg_match_score_target: number | null
+          calibration_complete: boolean | null
+          calibration_start_date: string | null
+          celebration_style: string | null
+          created_at: string
+          current_level: number | null
+          current_streak: number | null
+          focus: string | null
+          id: string
+          last_activity_date: string | null
+          longest_streak: number | null
+          match_score_target: number | null
+          motivation_style: string | null
+          preferred_search_days: string[] | null
+          situation: string | null
+          streak_freeze_until: string | null
+          streak_grace_days_remaining: number | null
+          streak_style: string | null
+          total_xp: number | null
+          updated_at: string
+          user_id: string
+          weekly_application_target: number | null
+          weekly_hours: number | null
+          weekly_networking_target: number | null
+        }
+        Insert: {
+          active_achievement_paths?: string[] | null
+          active_hours_per_week?: number | null
+          avg_applications_per_week?: number | null
+          avg_match_score_target?: number | null
+          calibration_complete?: boolean | null
+          calibration_start_date?: string | null
+          celebration_style?: string | null
+          created_at?: string
+          current_level?: number | null
+          current_streak?: number | null
+          focus?: string | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          match_score_target?: number | null
+          motivation_style?: string | null
+          preferred_search_days?: string[] | null
+          situation?: string | null
+          streak_freeze_until?: string | null
+          streak_grace_days_remaining?: number | null
+          streak_style?: string | null
+          total_xp?: number | null
+          updated_at?: string
+          user_id: string
+          weekly_application_target?: number | null
+          weekly_hours?: number | null
+          weekly_networking_target?: number | null
+        }
+        Update: {
+          active_achievement_paths?: string[] | null
+          active_hours_per_week?: number | null
+          avg_applications_per_week?: number | null
+          avg_match_score_target?: number | null
+          calibration_complete?: boolean | null
+          calibration_start_date?: string | null
+          celebration_style?: string | null
+          created_at?: string
+          current_level?: number | null
+          current_streak?: number | null
+          focus?: string | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          match_score_target?: number | null
+          motivation_style?: string | null
+          preferred_search_days?: string[] | null
+          situation?: string | null
+          streak_freeze_until?: string | null
+          streak_grace_days_remaining?: number | null
+          streak_style?: string | null
+          total_xp?: number | null
+          updated_at?: string
+          user_id?: string
+          weekly_application_target?: number | null
+          weekly_hours?: number | null
+          weekly_networking_target?: number | null
         }
         Relationships: []
       }
