@@ -49,6 +49,15 @@ export interface MasterResume {
   certifications: string[];
 }
 
+export interface PriorityWeights {
+  location: number;
+  salary: number;
+  roleType: number;
+  industry: number;
+  companySize: number;
+  workStyle: number;
+}
+
 export interface JobPreferences {
   locations: string[];
   remotePreference: 'remote' | 'hybrid' | 'onsite' | 'flexible';
@@ -69,6 +78,7 @@ export interface JobPreferences {
   };
   dealbreakers: string[];
   additionalNotes: string;
+  priorityWeights: PriorityWeights;
 }
 
 export interface UserProfile {
@@ -221,6 +231,16 @@ export const getStatusColor = (status: ApplicationStatus): string => {
   return colors[status] || 'saved';
 };
 
+// Default priority weights (total = 100)
+export const defaultPriorityWeights: PriorityWeights = {
+  location: 20,
+  salary: 25,
+  roleType: 20,
+  industry: 15,
+  companySize: 10,
+  workStyle: 10,
+};
+
 // Calculate Dream Job Match Score based on user preferences and application
 export const calculateDreamJobMatch = (
   application: Application,
@@ -228,67 +248,116 @@ export const calculateDreamJobMatch = (
 ): number => {
   if (!preferences) return application.dreamJobMatchScore || 75;
 
-  let score = 0;
-  let factors = 0;
+  const weights = preferences.priorityWeights || defaultPriorityWeights;
+  let totalScore = 0;
+  let totalWeight = 0;
 
-  // Location match (25 points)
-  if (preferences.locations.length > 0) {
-    factors++;
-    const locationMatch = preferences.locations.some(loc => 
-      application.location.toLowerCase().includes(loc.toLowerCase()) ||
-      loc.toLowerCase() === 'remote' && application.location.toLowerCase() === 'remote'
-    );
-    if (locationMatch) score += 25;
-    else if (preferences.remotePreference === 'flexible') score += 15;
+  // Location match (using location weight)
+  if (weights.location > 0) {
+    totalWeight += weights.location;
+    let locationScore = 0;
+    
+    const isRemote = application.location.toLowerCase() === 'remote';
+    const locationLower = application.location.toLowerCase();
+    
+    // Check region match
+    if (preferences.locations.length > 0) {
+      const hasLocationMatch = preferences.locations.some(loc => {
+        if (loc === 'anywhere') return true;
+        if (loc === 'remote' && isRemote) return true;
+        return locationLower.includes(loc.toLowerCase());
+      });
+      if (hasLocationMatch) locationScore = 100;
+      else if (preferences.remotePreference === 'flexible') locationScore = 60;
+    } else if (preferences.remotePreference !== 'flexible') {
+      // Check remote preference only
+      if (preferences.remotePreference === 'remote' && isRemote) locationScore = 100;
+      else if (preferences.remotePreference === 'onsite' && !isRemote) locationScore = 100;
+      else if (preferences.remotePreference === 'hybrid') locationScore = 80;
+      else locationScore = 50;
+    } else {
+      locationScore = 75; // Neutral
+    }
+    
+    totalScore += (locationScore * weights.location) / 100;
   }
 
-  // Remote preference match (15 points)
-  factors++;
-  const isRemote = application.location.toLowerCase() === 'remote';
-  if (preferences.remotePreference === 'remote' && isRemote) score += 15;
-  else if (preferences.remotePreference === 'onsite' && !isRemote) score += 15;
-  else if (preferences.remotePreference === 'hybrid' || preferences.remotePreference === 'flexible') score += 10;
-
-  // Industry match (25 points)
-  if (preferences.industries.length > 0 && application.industryTags) {
-    factors++;
-    const industryMatches = application.industryTags.filter(tag =>
-      preferences.industries.some(ind => 
-        ind.toLowerCase() === tag.toLowerCase()
-      )
-    );
-    score += Math.min(25, (industryMatches.length / preferences.industries.length) * 25);
-  }
-
-  // Role type match (20 points)
-  if (preferences.roleTypes.length > 0) {
-    factors++;
-    const roleMatch = preferences.roleTypes.some(role =>
-      application.roleTitle.toLowerCase().includes(role.toLowerCase()) ||
-      role.toLowerCase().includes(application.roleTitle.toLowerCase().split(' ')[0])
-    );
-    if (roleMatch) score += 20;
-  }
-
-  // Salary range match (15 points)
-  if (preferences.salaryRange.min > 0 && application.salaryRange) {
-    factors++;
+  // Salary match (using salary weight)
+  if (weights.salary > 0 && preferences.salaryRange.min > 0 && application.salaryRange) {
+    totalWeight += weights.salary;
+    let salaryScore = 50;
+    
     const salaryMatch = application.salaryRange.match(/\$(\d+)k/);
     if (salaryMatch) {
       const jobSalary = parseInt(salaryMatch[1]) * 1000;
       if (jobSalary >= preferences.salaryRange.min && jobSalary <= preferences.salaryRange.max) {
-        score += 15;
+        salaryScore = 100;
       } else if (jobSalary >= preferences.salaryRange.min * 0.9) {
-        score += 10;
+        salaryScore = 80;
+      } else if (jobSalary >= preferences.salaryRange.min * 0.8) {
+        salaryScore = 60;
+      } else {
+        salaryScore = 40;
       }
     }
+    
+    totalScore += (salaryScore * weights.salary) / 100;
+  }
+
+  // Role type match (using roleType weight)
+  if (weights.roleType > 0 && (preferences.roleTypes.length > 0 || preferences.customRoleTypes.length > 0)) {
+    totalWeight += weights.roleType;
+    let roleScore = 50;
+    
+    const allRoles = [...preferences.roleTypes, ...preferences.customRoleTypes];
+    const roleMatch = allRoles.some(role =>
+      application.roleTitle.toLowerCase().includes(role.toLowerCase()) ||
+      role.toLowerCase().includes(application.roleTitle.toLowerCase().split(' ')[0])
+    );
+    
+    if (roleMatch) roleScore = 100;
+    
+    totalScore += (roleScore * weights.roleType) / 100;
+  }
+
+  // Industry match (using industry weight)
+  if (weights.industry > 0 && (preferences.industries.length > 0 || preferences.customIndustries.length > 0) && application.industryTags) {
+    totalWeight += weights.industry;
+    let industryScore = 50;
+    
+    const allIndustries = [...preferences.industries, ...preferences.customIndustries];
+    const industryMatches = application.industryTags.filter(tag =>
+      allIndustries.some(ind => 
+        ind.toLowerCase().includes(tag.toLowerCase()) ||
+        tag.toLowerCase().includes(ind.toLowerCase())
+      )
+    );
+    
+    if (industryMatches.length > 0) {
+      industryScore = Math.min(100, 60 + (industryMatches.length * 20));
+    }
+    
+    totalScore += (industryScore * weights.industry) / 100;
+  }
+
+  // Company size match (using companySize weight)
+  if (weights.companySize > 0 && preferences.companySizes.length > 0) {
+    totalWeight += weights.companySize;
+    // Since we don't have company size data on applications, give neutral score
+    totalScore += (75 * weights.companySize) / 100;
+  }
+
+  // Work style match (using workStyle weight)
+  if (weights.workStyle > 0) {
+    totalWeight += weights.workStyle;
+    // Since we don't have detailed work style data on applications, give neutral score
+    totalScore += (75 * weights.workStyle) / 100;
   }
 
   // Calculate final percentage
-  const maxScore = factors * 20; // Average weight per factor
-  const percentage = factors > 0 ? Math.round((score / maxScore) * 100) : 75;
+  const percentage = totalWeight > 0 ? Math.round((totalScore / totalWeight) * 100) : 75;
   
-  return Math.min(100, Math.max(50, percentage)); // Keep between 50-100
+  return Math.min(100, Math.max(40, percentage)); // Keep between 40-100
 };
 
 // Preference options for the survey

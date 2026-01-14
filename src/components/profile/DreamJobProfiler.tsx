@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Building2, Briefcase, Factory, Heart, DollarSign, AlertTriangle, ChevronRight, ChevronLeft, Check, Plus, X, MessageSquare } from 'lucide-react';
+import { MapPin, Building2, Briefcase, Factory, Heart, DollarSign, AlertTriangle, ChevronRight, ChevronLeft, Check, Plus, X, MessageSquare, SlidersHorizontal } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { InputRetro } from '@/components/ui/input-retro';
-import { JobPreferences, regionOptions, companySizeOptions, industryOptions, roleTypeOptions } from '@/lib/data';
+import { Slider } from '@/components/ui/slider';
+import { JobPreferences, PriorityWeights, regionOptions, companySizeOptions, industryOptions, roleTypeOptions, defaultPriorityWeights } from '@/lib/data';
 import { cn } from '@/lib/utils';
 
 interface DreamJobProfilerProps {
@@ -21,6 +22,16 @@ const surveySteps = [
   { id: 'salary', title: 'Salary expectations?', icon: DollarSign, emoji: '💰' },
   { id: 'dealbreakers', title: 'Any dealbreakers?', icon: AlertTriangle, emoji: '🚫' },
   { id: 'notes', title: 'Anything else we should know?', icon: MessageSquare, emoji: '📝' },
+  { id: 'priorities', title: 'Set your priorities', icon: SlidersHorizontal, emoji: '⚖️' },
+];
+
+const priorityLabels: { key: keyof PriorityWeights; label: string; emoji: string; description: string }[] = [
+  { key: 'location', label: 'Location', emoji: '📍', description: 'How important is working in your preferred region?' },
+  { key: 'salary', label: 'Salary', emoji: '💰', description: 'How much does compensation matter?' },
+  { key: 'roleType', label: 'Role Type', emoji: '💼', description: 'How important is matching your target role?' },
+  { key: 'industry', label: 'Industry', emoji: '🏭', description: 'How much does the industry sector matter?' },
+  { key: 'companySize', label: 'Company Size', emoji: '🏢', description: 'How important is company size preference?' },
+  { key: 'workStyle', label: 'Work Style', emoji: '💖', description: 'How much does work culture/style matter?' },
 ];
 
 export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProps) {
@@ -28,6 +39,10 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
   const [isCompleted, setIsCompleted] = useState(false);
   const [customRoleInput, setCustomRoleInput] = useState('');
   const [customIndustryInput, setCustomIndustryInput] = useState('');
+
+  // Ensure priorityWeights exists with defaults
+  const weights = preferences.priorityWeights || defaultPriorityWeights;
+  const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
 
   const toggleArrayItem = (field: keyof JobPreferences, item: string) => {
     const array = preferences[field] as string[];
@@ -78,11 +93,46 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
     onUpdate({ ...preferences, companySizes: newSizes });
   };
 
-  const updateWorkStyle = (field: keyof JobPreferences['workStyle'], value: any) => {
+  const updateWorkStyle = (field: keyof JobPreferences['workStyle'], value: string) => {
     onUpdate({
       ...preferences,
       workStyle: { ...preferences.workStyle, [field]: value },
     });
+  };
+
+  const updatePriorityWeight = (key: keyof PriorityWeights, newValue: number) => {
+    const currentWeights = { ...weights };
+    const oldValue = currentWeights[key];
+    const diff = newValue - oldValue;
+    
+    // Calculate adjustment needed for other weights
+    const otherKeys = Object.keys(currentWeights).filter(k => k !== key) as (keyof PriorityWeights)[];
+    const otherTotal = otherKeys.reduce((sum, k) => sum + currentWeights[k], 0);
+    
+    if (otherTotal > 0 && diff !== 0) {
+      // Proportionally adjust other weights
+      otherKeys.forEach(k => {
+        const proportion = currentWeights[k] / otherTotal;
+        currentWeights[k] = Math.max(0, Math.round(currentWeights[k] - (diff * proportion)));
+      });
+    }
+    
+    currentWeights[key] = newValue;
+    
+    // Ensure total is exactly 100
+    const newTotal = Object.values(currentWeights).reduce((sum, w) => sum + w, 0);
+    if (newTotal !== 100 && otherKeys.length > 0) {
+      const adjustment = 100 - newTotal;
+      // Add adjustment to largest other weight
+      const largestKey = otherKeys.reduce((a, b) => currentWeights[a] >= currentWeights[b] ? a : b);
+      currentWeights[largestKey] = Math.max(0, currentWeights[largestKey] + adjustment);
+    }
+    
+    onUpdate({ ...preferences, priorityWeights: currentWeights });
+  };
+
+  const resetWeights = () => {
+    onUpdate({ ...preferences, priorityWeights: { ...defaultPriorityWeights } });
   };
 
   const nextStep = () => {
@@ -110,7 +160,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
                 {['remote', 'hybrid', 'onsite', 'flexible'].map((pref) => (
                   <button
                     key={pref}
-                    onClick={() => onUpdate({ ...preferences, remotePreference: pref as any })}
+                    onClick={() => onUpdate({ ...preferences, remotePreference: pref as 'remote' | 'hybrid' | 'onsite' | 'flexible' })}
                     className={cn(
                       "px-4 py-2 rounded-full border-2 font-medium transition-all",
                       preferences.remotePreference === pref
@@ -130,7 +180,7 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
             <div>
               <p className="font-bold mb-3">🗺️ Select your preferred regions:</p>
               <p className="text-sm text-muted-foreground mb-4">Choose all regions where you'd be willing to work</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
                 {regionOptions.map((region) => (
                   <button
                     key={region.value}
@@ -160,10 +210,10 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
             {companySizeOptions.map((size) => (
               <button
                 key={size.value}
-                onClick={() => toggleCompanySize(size.value as any)}
+                onClick={() => toggleCompanySize(size.value as 'startup' | 'small' | 'medium' | 'large' | 'enterprise')}
                 className={cn(
                   "p-4 rounded-xl border-2 text-left transition-all",
-                  preferences.companySizes.includes(size.value as any)
+                  preferences.companySizes.includes(size.value as 'startup' | 'small' | 'medium' | 'large' | 'enterprise')
                     ? "border-primary bg-primary/10"
                     : "border-border hover:border-primary/50"
                 )}
@@ -509,6 +559,59 @@ export function DreamJobProfiler({ preferences, onUpdate }: DreamJobProfilerProp
               <p className="text-sm">
                 💡 <strong>Tip:</strong> The more you share, the better we can help you find your dream job match!
               </p>
+            </div>
+          </div>
+        );
+
+      case 'priorities':
+        return (
+          <div className="space-y-6">
+            <div className="p-4 bg-muted/50 rounded-lg mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-bold">
+                  Adjust how much each factor impacts your match score
+                </p>
+                <span className={cn(
+                  "text-lg font-black px-3 py-1 rounded-full",
+                  totalWeight === 100 ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"
+                )}>
+                  {totalWeight}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Total must equal 100%. Sliders will auto-adjust to maintain the total.
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              {priorityLabels.map((priority) => (
+                <div key={priority.key} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{priority.emoji}</span>
+                      <span className="font-bold">{priority.label}</span>
+                    </div>
+                    <span className="text-lg font-black text-primary min-w-[3rem] text-right">
+                      {weights[priority.key]}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">{priority.description}</p>
+                  <Slider
+                    value={[weights[priority.key]]}
+                    onValueChange={(value) => updatePriorityWeight(priority.key, value[0])}
+                    max={100}
+                    min={0}
+                    step={5}
+                    className="w-full"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-center pt-4">
+              <ButtonRetro variant="outline" size="sm" onClick={resetWeights}>
+                Reset to Defaults
+              </ButtonRetro>
             </div>
           </div>
         );
