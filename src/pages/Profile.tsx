@@ -67,6 +67,18 @@ export default function Profile() {
   const { theme, themeColor, toggleTheme, setThemeColor, previewThemeColor } = useTheme();
   const [activeTab, setActiveTab] = useState('resume');
   const [masterResume, setMasterResume] = useState<MasterResume>(defaultResume);
+  const [isSavingResume, setIsSavingResume] = useState(false);
+
+  const handleSaveResume = async (resume: MasterResume) => {
+    setIsSavingResume(true);
+    try {
+      // TODO: Save to database when master_resumes table is created
+      // For now, just simulate a save
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } finally {
+      setIsSavingResume(false);
+    }
+  };
 
   const currentPreferences = jobPreferences || defaultPreferences;
 
@@ -182,6 +194,8 @@ export default function Profile() {
             <MasterResumeBuilder
               resume={masterResume}
               onUpdate={setMasterResume}
+              onSave={handleSaveResume}
+              isSaving={isSavingResume}
             />
           )}
 
