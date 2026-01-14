@@ -329,6 +329,45 @@ export type Database = {
         }
         Relationships: []
       }
+      master_resumes: {
+        Row: {
+          certifications: Json
+          created_at: string
+          education: Json
+          id: string
+          personal_info: Json
+          projects: Json
+          skills: Json
+          updated_at: string
+          user_id: string
+          work_experience: Json
+        }
+        Insert: {
+          certifications?: Json
+          created_at?: string
+          education?: Json
+          id?: string
+          personal_info?: Json
+          projects?: Json
+          skills?: Json
+          updated_at?: string
+          user_id: string
+          work_experience?: Json
+        }
+        Update: {
+          certifications?: Json
+          created_at?: string
+          education?: Json
+          id?: string
+          personal_info?: Json
+          projects?: Json
+          skills?: Json
+          updated_at?: string
+          user_id?: string
+          work_experience?: Json
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
