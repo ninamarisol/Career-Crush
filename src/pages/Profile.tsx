@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Target, User, Palette, LogOut, Sun, Moon, Compass } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -12,6 +12,7 @@ import { CareerPather } from '@/components/profile/CareerPather';
 import { MasterResume, JobPreferences, defaultPriorityWeights } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const tabs = [
   { id: 'resume', label: 'Master Resume', icon: FileText, emoji: '📄' },
@@ -39,6 +40,7 @@ const defaultResume: MasterResume = {
   experience: [],
   education: [],
   certifications: [],
+  projects: [],
 };
 
 const defaultPreferences: JobPreferences = {
@@ -68,13 +70,73 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('resume');
   const [masterResume, setMasterResume] = useState<MasterResume>(defaultResume);
   const [isSavingResume, setIsSavingResume] = useState(false);
+  const [isLoadingResume, setIsLoadingResume] = useState(true);
+
+  // Load master resume from database on mount
+  useEffect(() => {
+    const loadResume = async () => {
+      if (!user) {
+        setIsLoadingResume(false);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('master_resumes')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setMasterResume({
+            summary: (data.personal_info as { summary?: string })?.summary || '',
+            skills: (data.skills as string[]) || [],
+            experience: (data.work_experience as MasterResume['experience']) || [],
+            education: (data.education as MasterResume['education']) || [],
+            certifications: (data.certifications as string[]) || [],
+            projects: (data.projects as MasterResume['projects']) || [],
+          });
+        }
+      } catch (error) {
+        console.error('Error loading resume:', error);
+      } finally {
+        setIsLoadingResume(false);
+      }
+    };
+
+    loadResume();
+  }, [user]);
 
   const handleSaveResume = async (resume: MasterResume) => {
+    if (!user) {
+      toast.error('Please sign in to save your resume');
+      return;
+    }
+
     setIsSavingResume(true);
     try {
-      // TODO: Save to database when master_resumes table is created
-      // For now, just simulate a save
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const resumeData = {
+        user_id: user.id,
+        personal_info: { summary: resume.summary },
+        work_experience: resume.experience,
+        education: resume.education,
+        skills: resume.skills,
+        certifications: resume.certifications,
+        projects: resume.projects || [],
+      };
+
+      const { error } = await supabase
+        .from('master_resumes')
+        .upsert(resumeData, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      
+      toast.success('Resume saved successfully!');
+    } catch (error) {
+      console.error('Error saving resume:', error);
+      toast.error('Failed to save resume');
     } finally {
       setIsSavingResume(false);
     }
