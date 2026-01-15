@@ -5,7 +5,6 @@ import { Plus, Phone } from 'lucide-react';
 import { useMemo } from 'react';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
-import { QuickCheckInDialog } from '@/components/dialogs/QuickCheckInDialog';
 import { useSmartSteps } from '@/hooks/useSmartSteps';
 import { useContacts } from '@/hooks/useContacts';
 import { ModeWelcome } from '@/components/home/ModeWelcome';
@@ -67,28 +66,12 @@ export default function Home() {
       discreteApplications: applications.length,
       trustedContacts,
       pendingResponses: applications.filter(a => a.status === 'Applied').length,
-      skillsInProgress: 3,
-      completedGoals: 7,
-      learningStreak: 14,
-      nextMilestone: 'Sr. Engineer',
     };
   }, [applications, contacts]);
 
   const recentApps = applications.slice(0, 3);
   const upcomingEvents = events.slice(0, 3);
   const smartSteps = useSmartSteps(applications, events);
-
-  const skillsProgress = [
-    { name: 'Leadership', current: 12, target: 20, category: 'Soft Skills' },
-    { name: 'System Design', current: 8, target: 15, category: 'Technical' },
-    { name: 'Public Speaking', current: 5, target: 10, category: 'Soft Skills' },
-  ];
-
-  const growthGoals = [
-    { id: '1', title: 'Complete AWS Certification', progress: 65, deadline: 'Mar 2026' },
-    { id: '2', title: 'Lead a cross-team project', progress: 30, deadline: 'Jun 2026' },
-    { id: '3', title: 'Mentor a junior developer', progress: 80, deadline: 'Feb 2026' },
-  ];
 
   const getQuickActions = () => {
     if (userMode === 'climb') {
@@ -110,13 +93,7 @@ export default function Home() {
 
   const renderModeWidgets = () => {
     if (userMode === 'climb') {
-      return (
-        <ClimbWidgets 
-          stats={stats} 
-          skillsProgress={skillsProgress}
-          growthGoals={growthGoals}
-        />
-      );
+      return <ClimbWidgets />;
     }
     // Crush mode (default)
     return (
