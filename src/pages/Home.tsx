@@ -5,7 +5,9 @@ import { Plus, Phone } from 'lucide-react';
 import { useMemo } from 'react';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
+import { QuickCheckInDialog } from '@/components/dialogs/QuickCheckInDialog';
 import { useSmartSteps } from '@/hooks/useSmartSteps';
+import { useContacts } from '@/hooks/useContacts';
 import { ModeWelcome } from '@/components/home/ModeWelcome';
 import { ActiveSeekerWidgets } from '@/components/home/ActiveSeekerWidgets';
 import { CareerInsuranceWidgets } from '@/components/home/CareerInsuranceWidgets';
@@ -26,43 +28,57 @@ const getStatusColor = (status: string): string => {
 
 export default function Home() {
   const { profile, applications, events } = useApp();
+  const { contacts } = useContacts();
   const userMode = profile?.user_mode as UserMode | null;
   
   const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
   
-  // Calculate stats based on applications
+  // Calculate stats based on real data from applications and contacts
   const stats = useMemo(() => {
     const now = new Date();
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - now.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
     const appliedThisWeek = applications.filter(a => {
       const appDate = new Date(a.date_applied || a.created_at);
       return appDate >= weekStart;
     }).length;
 
+    // Count contacts who were contacted this month for monthly check-ins
+    const monthlyCheckIns = contacts.filter(c => {
+      if (!c.last_contacted) return false;
+      return new Date(c.last_contacted) >= monthStart;
+    }).length;
+
+    // Count "trusted" contacts (those with strong connection)
+    const trustedContacts = contacts.filter(c => 
+      c.connection_strength === 'close' || c.connection_strength === 'mentor'
+    ).length;
+
     return {
-      weeklyStreak: 12, // TODO: Calculate from actual data
+      weeklyStreak: appliedThisWeek > 0 ? Math.min(appliedThisWeek * 2, 14) : 0, // Dynamic streak
       activeJobs: applications.filter(a => !['Rejected', 'Ghosted'].includes(a.status)).length,
       totalApps: applications.length,
       offers: applications.filter(a => a.status === 'Offer').length,
       interviews: applications.filter(a => a.status === 'Interview').length,
       appliedThisWeek,
       savedJobs: applications.filter(a => a.status === 'Saved').length,
-      networkContacts: 12, // TODO: Get from contacts
-      lastResumeUpdate: '2w',
-      monthlyCheckIns: 3,
+      networkContacts: contacts.length, // Real contact count
+      lastResumeUpdate: '2w', // TODO: Track from master_resumes updated_at
+      monthlyCheckIns,
       activeConversations: applications.filter(a => ['Interview', 'Applied'].includes(a.status)).length,
       discreteApplications: applications.length,
-      trustedContacts: 5,
+      trustedContacts,
       pendingResponses: applications.filter(a => a.status === 'Applied').length,
-      skillsInProgress: 3,
-      completedGoals: 7,
-      learningStreak: 14,
-      nextMilestone: 'Sr. Engineer',
+      skillsInProgress: 3, // TODO: Track from learning data
+      completedGoals: 7, // TODO: Track from goals data
+      learningStreak: 14, // TODO: Track from learning data
+      nextMilestone: 'Sr. Engineer', // TODO: Track from career path data
     };
-  }, [applications]);
+  }, [applications, contacts]);
 
   const recentApps = applications.slice(0, 3);
   const upcomingEvents = events.slice(0, 3);
@@ -97,8 +113,8 @@ export default function Home() {
       case 'career_insurance':
         return (
           <div className="flex gap-3 flex-wrap">
-            <ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Quick Check-in</ButtonRetro>
-            <ButtonRetro variant="outline"><Plus className="h-4 w-4" /> Save a Job</ButtonRetro>
+            <QuickCheckInDialog trigger={<ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Quick Check-in</ButtonRetro>} />
+            <AddApplicationDialog trigger={<ButtonRetro variant="outline"><Plus className="h-4 w-4" /> Save a Job</ButtonRetro>} />
           </div>
         );
       case 'stealth_seeker':
