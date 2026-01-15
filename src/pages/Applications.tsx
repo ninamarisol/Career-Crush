@@ -5,10 +5,11 @@ import { CardRetro } from '@/components/ui/card-retro';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { InputRetro } from '@/components/ui/input-retro';
-import { LayoutGrid, List, Map, Search, Plus, MapPin, Building2, DollarSign } from 'lucide-react';
+import { LayoutGrid, List, Map, Search, Plus, MapPin, Building2, DollarSign, Target, FileCheck, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
 import { ApplicationMap } from '@/components/map/ApplicationMap';
+import { calculateMatchScore, getScoreColor, getScoreBgColor } from '@/lib/matchScore';
 
 type ViewMode = 'card' | 'list' | 'map';
 type StatusFilter = 'all' | 'Saved' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted';
@@ -120,32 +121,61 @@ export default function Applications() {
       {/* Card View */}
       {viewMode === 'card' && filteredApps.length > 0 && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredApps.map(app => (
-            <Link key={app.id} to={`/applications/${app.id}`}>
-              <CardRetro hoverable className="p-5 h-full">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="w-12 h-12 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center text-xl font-black">
-                    {app.company.charAt(0).toUpperCase()}
+          {filteredApps.map(app => {
+            const matchBreakdown = calculateMatchScore(app, jobPreferences);
+            const matchScore = matchBreakdown.totalScore;
+            
+            return (
+              <Link key={app.id} to={`/applications/${app.id}`}>
+                <CardRetro hoverable className="p-5 h-full">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="w-12 h-12 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center text-xl font-black">
+                      {app.company.charAt(0).toUpperCase()}
+                    </div>
+                    <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
                   </div>
-                  <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
-                </div>
-                <h3 className="font-bold text-lg">{app.position}</h3>
-                <p className="text-muted-foreground flex items-center gap-1 mt-1"><Building2 className="h-3 w-3" /> {app.company}</p>
-                {app.location && <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {app.location}</p>}
-                {(app.salary_min || app.salary_max) && (
-                  <p className="text-muted-foreground flex items-center gap-1">
-                    <DollarSign className="h-3 w-3" /> {formatSalary(app.salary_min, app.salary_max)}
-                  </p>
-                )}
-                <div className="flex gap-4 mt-4 pt-3 border-t-2 border-border">
-                  <div>
-                    <span className="text-xs text-muted-foreground">Applied</span>
-                    <p className="font-bold text-sm">{new Date(app.date_applied).toLocaleDateString()}</p>
+                  <h3 className="font-bold text-lg">{app.position}</h3>
+                  <p className="text-muted-foreground flex items-center gap-1 mt-1"><Building2 className="h-3 w-3" /> {app.company}</p>
+                  {app.location && <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {app.location}</p>}
+                  {(app.salary_min || app.salary_max) && (
+                    <p className="text-muted-foreground flex items-center gap-1">
+                      <DollarSign className="h-3 w-3" /> {formatSalary(app.salary_min, app.salary_max)}
+                    </p>
+                  )}
+                  
+                  {/* Tags */}
+                  {(app.industry || app.role_type) && (
+                    <div className="flex gap-1 flex-wrap mt-2">
+                      {app.industry && (
+                        <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium flex items-center gap-1">
+                          <Tag className="h-2.5 w-2.5" /> {app.industry}
+                        </span>
+                      )}
+                      {app.role_type && (
+                        <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium">
+                          {app.role_type}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Scores */}
+                  <div className="flex gap-4 mt-4 pt-3 border-t-2 border-border">
+                    <div className="flex-1">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Target className="h-3 w-3" /> Match
+                      </span>
+                      <p className={cn("font-bold text-sm", getScoreColor(matchScore))}>{matchScore}%</p>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-xs text-muted-foreground">Applied</span>
+                      <p className="font-bold text-sm">{new Date(app.date_applied).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                </div>
-              </CardRetro>
-            </Link>
-          ))}
+                </CardRetro>
+              </Link>
+            );
+          })}
         </div>
       )}
 
@@ -159,21 +189,28 @@ export default function Applications() {
                 <th className="p-4">Role</th>
                 <th className="p-4">Location</th>
                 <th className="p-4">Status</th>
+                <th className="p-4">Match</th>
                 <th className="p-4">Salary</th>
                 <th className="p-4">Applied</th>
               </tr>
             </thead>
             <tbody>
-              {filteredApps.map(app => (
-                <tr key={app.id} className="border-t-2 border-border hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/applications/${app.id}`)}>
-                  <td className="p-4 font-bold">{app.company}</td>
-                  <td className="p-4">{app.position}</td>
-                  <td className="p-4 text-muted-foreground">{app.location || '-'}</td>
-                  <td className="p-4"><StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge></td>
-                  <td className="p-4 text-muted-foreground">{formatSalary(app.salary_min, app.salary_max) || '-'}</td>
-                  <td className="p-4 text-muted-foreground">{new Date(app.date_applied).toLocaleDateString()}</td>
-                </tr>
-              ))}
+              {filteredApps.map(app => {
+                const matchBreakdown = calculateMatchScore(app, jobPreferences);
+                const matchScore = matchBreakdown.totalScore;
+                
+                return (
+                  <tr key={app.id} className="border-t-2 border-border hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/applications/${app.id}`)}>
+                    <td className="p-4 font-bold">{app.company}</td>
+                    <td className="p-4">{app.position}</td>
+                    <td className="p-4 text-muted-foreground">{app.location || '-'}</td>
+                    <td className="p-4"><StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge></td>
+                    <td className={cn("p-4 font-bold", getScoreColor(matchScore))}>{matchScore}%</td>
+                    <td className="p-4 text-muted-foreground">{formatSalary(app.salary_min, app.salary_max) || '-'}</td>
+                    <td className="p-4 text-muted-foreground">{new Date(app.date_applied).toLocaleDateString()}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </CardRetro>

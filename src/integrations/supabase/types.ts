@@ -60,6 +60,7 @@ export type Database = {
           created_at: string
           date_applied: string | null
           id: string
+          industry: string | null
           job_description: string | null
           job_posting_url: string | null
           latitude: number | null
@@ -68,6 +69,7 @@ export type Database = {
           notes: string | null
           position: string
           resume_url: string | null
+          role_type: string | null
           salary_max: number | null
           salary_min: number | null
           status: string
@@ -81,6 +83,7 @@ export type Database = {
           created_at?: string
           date_applied?: string | null
           id?: string
+          industry?: string | null
           job_description?: string | null
           job_posting_url?: string | null
           latitude?: number | null
@@ -89,6 +92,7 @@ export type Database = {
           notes?: string | null
           position: string
           resume_url?: string | null
+          role_type?: string | null
           salary_max?: number | null
           salary_min?: number | null
           status?: string
@@ -102,6 +106,7 @@ export type Database = {
           created_at?: string
           date_applied?: string | null
           id?: string
+          industry?: string | null
           job_description?: string | null
           job_posting_url?: string | null
           latitude?: number | null
@@ -110,6 +115,7 @@ export type Database = {
           notes?: string | null
           position?: string
           resume_url?: string | null
+          role_type?: string | null
           salary_max?: number | null
           salary_min?: number | null
           status?: string

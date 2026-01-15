@@ -1,17 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { InputRetro } from '@/components/ui/input-retro';
-import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon, Sparkles, Wand2, Target, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MasterResume } from '@/lib/data';
+import { MasterResume, industryOptions, roleTypeOptions } from '@/lib/data';
+import { calculateMatchScore, getScoreColor, getScoreBgColor } from '@/lib/matchScore';
+import { Progress } from '@/components/ui/progress';
 
 type ApplicationStatus = 'Saved' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted';
 
@@ -47,7 +49,7 @@ const defaultMasterResume: MasterResume = {
 export default function ApplicationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { applications, updateApplication, deleteApplication, events, uploadResume } = useApp();
+  const { applications, updateApplication, deleteApplication, events, uploadResume, jobPreferences } = useApp();
   const app = applications.find(a => a.id === id);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,6 +59,7 @@ export default function ApplicationDetail() {
   const [showATSDialog, setShowATSDialog] = useState(false);
   const [generatingResume, setGeneratingResume] = useState(false);
   const [generatedResume, setGeneratedResume] = useState('');
+  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
   const [editForm, setEditForm] = useState({
     position: app?.position || '',
     company: app?.company || '',
@@ -67,7 +70,15 @@ export default function ApplicationDetail() {
     job_description: app?.job_description || '',
     notes: app?.notes || '',
     work_style: app?.work_style || '',
+    date_applied: app?.date_applied || new Date().toISOString().split('T')[0],
+    industry: app?.industry || '',
+    role_type: app?.role_type || '',
   });
+
+  const matchBreakdown = useMemo(() => {
+    if (!app) return null;
+    return calculateMatchScore(app, jobPreferences);
+  }, [app, jobPreferences]);
 
   const relatedEvents = events.filter(e => e.application_id === id);
 
@@ -99,6 +110,9 @@ export default function ApplicationDetail() {
       job_description: editForm.job_description || null,
       notes: editForm.notes || null,
       work_style: editForm.work_style || null,
+      date_applied: editForm.date_applied,
+      industry: editForm.industry || null,
+      role_type: editForm.role_type || null,
     });
     setIsEditing(false);
     toast.success('Application updated');
@@ -276,6 +290,21 @@ export default function ApplicationDetail() {
                   <>
                     <h1 className="text-3xl font-black">{app.position}</h1>
                     <p className="text-lg text-muted-foreground">{app.company} • {app.location || 'No location'}</p>
+                    {/* Tags */}
+                    {(app.industry || app.role_type) && (
+                      <div className="flex gap-2 flex-wrap mt-2">
+                        {app.industry && (
+                          <span className="px-2 py-1 rounded-full bg-primary/10 text-sm font-medium flex items-center gap-1 border border-border">
+                            <Tag className="h-3 w-3" /> {app.industry}
+                          </span>
+                        )}
+                        {app.role_type && (
+                          <span className="px-2 py-1 rounded-full bg-muted text-sm font-medium border border-border">
+                            {app.role_type}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
                 <div className="flex gap-2 mt-3 flex-wrap items-center">
@@ -332,6 +361,56 @@ export default function ApplicationDetail() {
             )}
           </CardRetro>
 
+          {/* Dream Job Match Score Card */}
+          {matchBreakdown && (
+            <CardRetro className="p-6">
+              <div 
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setShowScoreBreakdown(!showScoreBreakdown)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center font-black text-xl", getScoreBgColor(matchBreakdown.totalScore))}>
+                    <span className={getScoreColor(matchBreakdown.totalScore)}>{matchBreakdown.totalScore}%</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Target className="h-5 w-5" /> Dream Job Match
+                    </h3>
+                    <p className="text-sm text-muted-foreground">Based on your job preferences</p>
+                  </div>
+                </div>
+                <ButtonRetro size="sm" variant="ghost">
+                  {showScoreBreakdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </ButtonRetro>
+              </div>
+              
+              {showScoreBreakdown && (
+                <div className="mt-4 pt-4 border-t-2 border-border space-y-4">
+                  {[
+                    { key: 'location', label: 'Location', icon: MapPin, data: matchBreakdown.location },
+                    { key: 'salary', label: 'Salary', icon: DollarSign, data: matchBreakdown.salary },
+                    { key: 'roleType', label: 'Role Type', icon: Building2, data: matchBreakdown.roleType },
+                    { key: 'industry', label: 'Industry', icon: Tag, data: matchBreakdown.industry },
+                    { key: 'workStyle', label: 'Work Style', icon: Clock, data: matchBreakdown.workStyle },
+                  ].map(({ key, label, icon: Icon, data }) => (
+                    <div key={key} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2 font-medium">
+                          <Icon className="h-4 w-4 text-muted-foreground" />
+                          {label}
+                          <span className="text-xs text-muted-foreground">({data.weight}% weight)</span>
+                        </span>
+                        <span className={cn("font-bold", getScoreColor(data.score))}>{data.score}%</span>
+                      </div>
+                      <Progress value={data.score} className="h-2" />
+                      <p className="text-xs text-muted-foreground">{data.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardRetro>
+          )}
+
           <CardRetro className="p-6">
             <h3 className="font-bold text-lg mb-4">Details</h3>
             <div className="grid sm:grid-cols-2 gap-4">
@@ -367,7 +446,16 @@ export default function ApplicationDetail() {
                 <Calendar className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">Applied</p>
-                  <p className="font-bold">{new Date(app.date_applied).toLocaleDateString()}</p>
+                  {isEditing ? (
+                    <InputRetro
+                      type="date"
+                      value={editForm.date_applied}
+                      onChange={(e) => setEditForm({ ...editForm, date_applied: e.target.value })}
+                      className="w-40"
+                    />
+                  ) : (
+                    <p className="font-bold">{new Date(app.date_applied).toLocaleDateString()}</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -403,6 +491,54 @@ export default function ApplicationDetail() {
                 </div>
               </div>
             </div>
+          </CardRetro>
+
+          {/* Industry & Role Type */}
+          <CardRetro className="p-6">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <Tag className="h-5 w-5" /> Industry & Role Type
+            </h3>
+            {isEditing ? (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Industry</label>
+                  <select
+                    value={editForm.industry}
+                    onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })}
+                    className="w-full p-2 border-2 border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+                  >
+                    <option value="">Select industry...</option>
+                    {industryOptions.map((ind) => (
+                      <option key={ind} value={ind}>{ind}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Role Type</label>
+                  <select
+                    value={editForm.role_type}
+                    onChange={(e) => setEditForm({ ...editForm, role_type: e.target.value })}
+                    className="w-full p-2 border-2 border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
+                  >
+                    <option value="">Select role type...</option>
+                    {roleTypeOptions.map((role) => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Industry</p>
+                  <p className="font-bold">{app.industry || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Role Type</p>
+                  <p className="font-bold">{app.role_type || 'Not specified'}</p>
+                </div>
+              </div>
+            )}
           </CardRetro>
 
           {/* Job Posting URL */}
