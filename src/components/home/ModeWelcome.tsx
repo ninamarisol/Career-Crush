@@ -23,7 +23,8 @@ const modeConfig = {
 };
 
 export function ModeWelcome({ displayName, mode, quote }: ModeWelcomeProps) {
-  const config = modeConfig[mode || 'crush'];
+  const validMode = mode && (mode === 'crush' || mode === 'climb') ? mode : 'crush';
+  const config = modeConfig[validMode];
   const Icon = config.icon;
 
   return (

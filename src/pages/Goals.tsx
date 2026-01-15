@@ -6,7 +6,7 @@ import { ButtonRetro } from '@/components/ui/button-retro';
 import { useGoals } from '@/hooks/useGoals';
 import { GoalsSetup } from '@/components/goals/GoalsSetup';
 import { ActiveSeekerGoals } from '@/components/goals/ActiveSeekerGoals';
-import { CareerGrowthGoals } from '@/components/goals/CareerGrowthGoals';
+import { ClimbGoals } from '@/components/goals/ClimbGoals';
 import { useApp } from '@/context/AppContext';
 
 const achievementLabels: Record<string, { name: string; emoji: string }> = {
@@ -73,7 +73,7 @@ export default function Goals() {
   const renderModeContent = () => {
     if (userMode === 'climb') {
       return (
-        <CareerGrowthGoals
+        <ClimbGoals
           userGoals={userGoals}
           quests={quests}
           weeklyStats={weeklyStats}
@@ -94,8 +94,8 @@ export default function Goals() {
         levelProgress={levelProgress}
         getLevelTitle={getLevelTitle}
         updateQuestProgress={updateQuestProgress}
-        achievementLabels={achievementLabels}
-        tierColors={tierColors}
+        achievementLabels={{}}
+        tierColors={{}}
       />
     );
   };
