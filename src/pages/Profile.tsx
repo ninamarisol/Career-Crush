@@ -113,8 +113,8 @@ export default function Profile() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   
-  // User mode state
-  const [userMode, setUserMode] = useState<UserMode>('crush');
+  // User mode - derive from profile directly instead of local state
+  const userMode = (profile?.user_mode as UserMode) || 'crush';
 
   // Load master resume from database on mount
   useEffect(() => {
@@ -153,12 +153,6 @@ export default function Profile() {
     loadResume();
   }, [user]);
 
-  // Load user mode from profile
-  useEffect(() => {
-    if (profile?.user_mode) {
-      setUserMode(profile.user_mode as UserMode);
-    }
-  }, [profile]);
 
   const handleSaveResume = async (resume: MasterResume) => {
     if (!user) {
@@ -249,7 +243,6 @@ export default function Profile() {
   };
 
   const handleModeChange = async (mode: UserMode) => {
-    setUserMode(mode);
     await updateProfile({ user_mode: mode });
     
     // Regenerate quests for the new mode
