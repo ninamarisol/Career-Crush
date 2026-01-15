@@ -115,33 +115,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      // Fetch profile (create one if missing)
-      const { data: profileData, error: profileError } = await supabase
+      // Fetch profile
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (profileError) throw profileError;
-
       if (profileData) {
         setProfile(profileData as Profile);
-      } else {
-        const { data: createdProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: user.id,
-            email: user.email ?? null,
-            display_name: (user.user_metadata as any)?.full_name ?? null,
-            theme_color: 'bubblegum',
-            onboarding_complete: false,
-            user_mode: 'crush',
-          })
-          .select('*')
-          .single();
-
-        if (createError) throw createError;
-        setProfile(createdProfile as Profile);
       }
 
       // Fetch job preferences
@@ -218,25 +200,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return;
+    if (!user || !profile) return;
 
-    const payload = {
-      user_id: user.id,
-      ...updates,
-    };
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('profiles')
-      .upsert(payload, { onConflict: 'user_id' })
-      .select('*')
-      .single();
+      .update(updates)
+      .eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error updating profile:', error);
-      return;
+    if (!error) {
+      setProfile({ ...profile, ...updates });
     }
-
-    setProfile(data as Profile);
   };
 
   const addApplication = async (app: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
