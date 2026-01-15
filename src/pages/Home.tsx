@@ -6,11 +6,13 @@ import { useMemo } from 'react';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
 import { useSmartSteps } from '@/hooks/useSmartSteps';
+import { useWidgetPreferences } from '@/hooks/useWidgetPreferences';
 import { ModeWelcome } from '@/components/home/ModeWelcome';
 import { ActiveSeekerWidgets } from '@/components/home/ActiveSeekerWidgets';
 import { CareerInsuranceWidgets } from '@/components/home/CareerInsuranceWidgets';
 import { StealthSeekerWidgets } from '@/components/home/StealthSeekerWidgets';
 import { CareerGrowthWidgets } from '@/components/home/CareerGrowthWidgets';
+import { WidgetCustomizer } from '@/components/widgets';
 
 const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
@@ -29,6 +31,16 @@ export default function Home() {
   const userMode = profile?.user_mode as UserMode | null;
   
   const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
+  
+  // Widget preferences hook
+  const {
+    widgetInstances,
+    toggleWidget,
+    moveWidgetUp,
+    moveWidgetDown,
+    setWidgetSize,
+    resetToDefaults,
+  } = useWidgetPreferences(userMode);
   
   // Calculate stats based on applications
   const stats = useMemo(() => {
@@ -172,8 +184,22 @@ export default function Home() {
         quote={quote}
       />
 
-      {/* Mode-specific Quick Actions */}
-      {getQuickActions()}
+      {/* Quick Actions Bar with Customizer */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        {getQuickActions()}
+        
+        {/* Widget Customizer */}
+        {widgetInstances.length > 0 && (
+          <WidgetCustomizer
+            widgets={widgetInstances}
+            onToggle={toggleWidget}
+            onMoveUp={moveWidgetUp}
+            onMoveDown={moveWidgetDown}
+            onSetSize={setWidgetSize}
+            onReset={resetToDefaults}
+          />
+        )}
+      </div>
 
       {/* Mode-specific Widgets */}
       {renderModeWidgets()}
