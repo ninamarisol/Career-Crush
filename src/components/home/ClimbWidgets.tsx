@@ -1,41 +1,48 @@
 import { 
-  GrowthGoalsWidget,
   WidgetGrid,
   TwoColumn,
 } from '@/components/widgets';
-import { SkillProgress, GrowthGoal } from '@/components/widgets/types';
 import { WidgetContainer } from '@/components/widgets/WidgetContainer';
-import { Zap, Users, Award, TrendingUp, Target, BookOpen } from 'lucide-react';
+import { Users, Award, TrendingUp, Target, BookOpen, Plus } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { useContacts } from '@/hooks/useContacts';
 import { useMemo, useState } from 'react';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
 import { CardRetro } from '@/components/ui/card-retro';
 import { Progress } from '@/components/ui/progress';
+import { useCareerData, CareerGoal, SkillTracking } from '@/hooks/useCareerData';
+import { LogSkillHoursDialog } from '@/components/dialogs/LogSkillHoursDialog';
+import { AddSkillDialog } from '@/components/dialogs/AddSkillDialog';
+import { AddCareerGoalDialog } from '@/components/dialogs/AddCareerGoalDialog';
+import { Slider } from '@/components/ui/slider';
 
-interface ClimbWidgetsProps {
-  stats: {
-    skillsInProgress: number;
-    completedGoals: number;
-    learningStreak: number;
-    nextMilestone: string;
-    networkContacts: number;
-    monthlyCheckIns: number;
-  };
-  skillsProgress: SkillProgress[];
-  growthGoals: GrowthGoal[];
-}
-
-export function ClimbWidgets({ 
-  stats, 
-  skillsProgress, 
-  growthGoals 
-}: ClimbWidgetsProps) {
+export function ClimbWidgets() {
   const { contacts } = useContacts();
+  const { wins, skills, goals, addWin, addSkill, logSkillHours, addGoal, updateGoalProgress } = useCareerData();
   const [showWinLogger, setShowWinLogger] = useState(false);
   const [winText, setWinText] = useState('');
+
+  // Calculate stats from real data
+  const stats = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const monthlyCheckIns = contacts.filter(c => {
+      if (!c.last_contacted) return false;
+      return new Date(c.last_contacted) >= monthStart;
+    }).length;
+
+    const topGoal = goals.length > 0 ? goals[0] : null;
+
+    return {
+      nextMilestone: topGoal?.title || 'Set a goal',
+      winsLogged: wins.length,
+      skillsInProgress: skills.length,
+      networkContacts: contacts.length,
+      monthlyCheckIns,
+    };
+  }, [contacts, wins, skills, goals]);
 
   // Calculate contacts that need attention (not contacted in 60+ days)
   const contactsNeedingAttention = useMemo(() => {
@@ -48,11 +55,25 @@ export function ClimbWidgets({
 
   const handleLogWin = () => {
     if (!winText.trim()) return;
-    toast.success('Win logged! 🎉', {
-      description: 'Your accomplishment has been saved.'
-    });
+    addWin.mutate({ description: winText });
     setWinText('');
     setShowWinLogger(false);
+  };
+
+  const handleLogSkillHours = (skillId: string, hours: number) => {
+    logSkillHours.mutate({ skillId, hours });
+  };
+
+  const handleAddSkill = (data: { skill_name: string; category: string; target_hours: number }) => {
+    addSkill.mutate(data);
+  };
+
+  const handleAddGoal = (data: { title: string; description?: string; deadline?: string }) => {
+    addGoal.mutate(data);
+  };
+
+  const handleUpdateProgress = (goalId: string, progress: number) => {
+    updateGoalProgress.mutate({ goalId, progress });
   };
 
   return (
@@ -64,9 +85,9 @@ export function ClimbWidgets({
             <div className="p-2 rounded-lg bg-primary/20 border-2 border-border">
               <Target className="h-5 w-5 text-primary" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-muted-foreground">Next Goal</p>
-              <p className="text-base font-bold truncate">{stats.nextMilestone}</p>
+              <p className="text-sm font-bold truncate">{stats.nextMilestone}</p>
             </div>
           </div>
         </CardRetro>
@@ -78,7 +99,7 @@ export function ClimbWidgets({
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground">Wins Logged</p>
-              <p className="text-2xl font-bold">{stats.completedGoals}</p>
+              <p className="text-2xl font-bold">{stats.winsLogged}</p>
             </div>
           </div>
         </CardRetro>
@@ -117,21 +138,41 @@ export function ClimbWidgets({
           size="medium"
         >
           <div className="space-y-4">
-            {growthGoals.map((goal) => (
-              <div key={goal.id} className="space-y-2">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{goal.title}</p>
-                    <p className="text-xs text-muted-foreground">Due {goal.deadline}</p>
-                  </div>
-                  <span className="text-sm font-bold text-primary">{goal.progress}%</span>
-                </div>
-                <Progress value={goal.progress} className="h-2" />
+            {goals.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <Target className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No goals yet. Add one to track your progress!</p>
               </div>
-            ))}
-            <ButtonRetro variant="outline" size="sm" className="w-full mt-2">
-              + Add Goal
-            </ButtonRetro>
+            ) : (
+              goals.slice(0, 3).map((goal) => (
+                <div key={goal.id} className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{goal.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {goal.deadline ? `Due ${format(new Date(goal.deadline), 'MMM yyyy')}` : 'No deadline'}
+                      </p>
+                    </div>
+                    <span className="text-sm font-bold text-primary">{goal.progress}%</span>
+                  </div>
+                  <Slider
+                    value={[goal.progress]}
+                    max={100}
+                    step={5}
+                    onValueCommit={(value) => handleUpdateProgress(goal.id, value[0])}
+                    className="cursor-pointer"
+                  />
+                </div>
+              ))
+            )}
+            <AddCareerGoalDialog 
+              onAddGoal={handleAddGoal}
+              trigger={
+                <ButtonRetro variant="outline" size="sm" className="w-full">
+                  <Plus className="h-4 w-4 mr-1" /> Add Goal
+                </ButtonRetro>
+              }
+            />
           </div>
         </WidgetContainer>
 
@@ -155,6 +196,11 @@ export function ClimbWidgets({
               <ButtonRetro onClick={() => setShowWinLogger(true)} className="w-full">
                 Log This Week's Win
               </ButtonRetro>
+              {wins.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {wins.length} win{wins.length !== 1 ? 's' : ''} logged total
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -176,7 +222,7 @@ export function ClimbWidgets({
                   size="sm" 
                   onClick={handleLogWin} 
                   className="flex-1"
-                  disabled={!winText.trim()}
+                  disabled={!winText.trim() || addWin.isPending}
                 >
                   Save Win 🎉
                 </ButtonRetro>
@@ -195,23 +241,48 @@ export function ClimbWidgets({
           size="medium"
         >
           <div className="space-y-4">
-            {skillsProgress.map((skill, idx) => (
-              <div key={idx} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium">{skill.name}</p>
-                    <p className="text-xs text-muted-foreground">{skill.category}</p>
-                  </div>
-                  <span className="text-xs font-medium">
-                    {skill.current}/{skill.target}h
-                  </span>
-                </div>
-                <Progress value={(skill.current / skill.target) * 100} className="h-2" />
+            {skills.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No skills being tracked yet.</p>
               </div>
-            ))}
-            <ButtonRetro variant="outline" size="sm" className="w-full">
-              + Log Learning Time
-            </ButtonRetro>
+            ) : (
+              skills.slice(0, 3).map((skill) => (
+                <div key={skill.id} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-medium">{skill.skill_name}</p>
+                      <p className="text-xs text-muted-foreground">{skill.category}</p>
+                    </div>
+                    <span className="text-xs font-medium">
+                      {skill.logged_hours}/{skill.target_hours}h
+                    </span>
+                  </div>
+                  <Progress value={(skill.logged_hours / skill.target_hours) * 100} className="h-2" />
+                </div>
+              ))
+            )}
+            <div className="flex gap-2">
+              {skills.length > 0 && (
+                <LogSkillHoursDialog 
+                  skills={skills}
+                  onLogHours={handleLogSkillHours}
+                  trigger={
+                    <ButtonRetro variant="outline" size="sm" className="flex-1">
+                      + Log Time
+                    </ButtonRetro>
+                  }
+                />
+              )}
+              <AddSkillDialog 
+                onAddSkill={handleAddSkill}
+                trigger={
+                  <ButtonRetro variant="outline" size="sm" className={skills.length > 0 ? "" : "w-full"}>
+                    + Add Skill
+                  </ButtonRetro>
+                }
+              />
+            </div>
           </div>
         </WidgetContainer>
 

@@ -119,6 +119,75 @@ export type Database = {
         }
         Relationships: []
       }
+      career_goals: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          description: string | null
+          id: string
+          progress: number
+          status: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          progress?: number
+          status?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          progress?: number
+          status?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      career_wins: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string
+          id: string
+          impact: string | null
+          updated_at: string
+          user_id: string
+          win_date: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          impact?: string | null
+          updated_at?: string
+          user_id: string
+          win_date?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          impact?: string | null
+          updated_at?: string
+          user_id?: string
+          win_date?: string
+        }
+        Relationships: []
+      }
       contact_interactions: {
         Row: {
           contact_id: string
@@ -458,6 +527,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           xp_reward?: number
+        }
+        Relationships: []
+      }
+      skill_tracking: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          logged_hours: number
+          skill_name: string
+          target_hours: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          logged_hours?: number
+          skill_name: string
+          target_hours?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          logged_hours?: number
+          skill_name?: string
+          target_hours?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
