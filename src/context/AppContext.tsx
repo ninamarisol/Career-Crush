@@ -57,7 +57,7 @@ interface AppContextType {
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   applications: Application[];
   setApplications: React.Dispatch<React.SetStateAction<Application[]>>;
-  addApplication: (app: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  addApplication: (app: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<Application | null>;
   updateApplication: (id: string, updates: Partial<Application>) => Promise<void>;
   deleteApplication: (id: string) => Promise<void>;
   events: Event[];
@@ -214,8 +214,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addApplication = async (app: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    if (!user) return;
+  const addApplication = async (app: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Application | null> => {
+    if (!user) return null;
 
     const { data, error } = await supabase
       .from('applications')
@@ -225,7 +225,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (!error && data) {
       setApplications((prev) => [data as Application, ...prev]);
+      return data as Application;
     }
+    return null;
   };
 
   const updateApplication = async (id: string, updates: Partial<Application>) => {
