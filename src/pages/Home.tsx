@@ -1,7 +1,7 @@
 import { useApp, UserMode } from '@/context/AppContext';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { motivationalQuotes } from '@/lib/data';
-import { Plus, Phone } from 'lucide-react';
+import { Plus, Phone, Rocket, TrendingUp } from 'lucide-react';
 import { useMemo } from 'react';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
@@ -11,6 +11,8 @@ import { useContacts } from '@/hooks/useContacts';
 import { ModeWelcome } from '@/components/home/ModeWelcome';
 import { CrushWidgets } from '@/components/home/CrushWidgets';
 import { ClimbWidgets } from '@/components/home/ClimbWidgets';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
@@ -25,9 +27,14 @@ const getStatusColor = (status: string): string => {
 };
 
 export default function Home() {
-  const { profile, applications, events } = useApp();
+  const { profile, applications, events, updateProfile } = useApp();
   const { contacts } = useContacts();
-  const userMode = profile?.user_mode as UserMode | null;
+  const userMode = (profile?.user_mode as UserMode) || 'crush';
+
+  const handleModeSwitch = async (mode: UserMode) => {
+    await updateProfile({ user_mode: mode });
+    toast.success(`Switched to ${mode === 'crush' ? 'Crush' : 'Climb'} Mode!`);
+  };
   
   const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
   
@@ -132,6 +139,34 @@ export default function Home() {
 
   return (
     <div className="space-y-8">
+      {/* Mode Switcher */}
+      <div className="flex gap-2 p-1 bg-muted rounded-xl border-2 border-border w-fit">
+        <button
+          onClick={() => handleModeSwitch('crush')}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all",
+            userMode === 'crush'
+              ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-retro -translate-x-0.5 -translate-y-0.5"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Rocket className="w-4 h-4" />
+          Crush Mode
+        </button>
+        <button
+          onClick={() => handleModeSwitch('climb')}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all",
+            userMode === 'climb'
+              ? "bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-retro -translate-x-0.5 -translate-y-0.5"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <TrendingUp className="w-4 h-4" />
+          Climb Mode
+        </button>
+      </div>
+
       <ModeWelcome 
         displayName={profile?.display_name || 'Friend'}
         mode={userMode}
