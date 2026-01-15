@@ -11,6 +11,11 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useGoals } from '@/hooks/useGoals';
 import { GoalsSetup } from '@/components/goals/GoalsSetup';
+import { ActiveSeekerGoals } from '@/components/goals/ActiveSeekerGoals';
+import { CareerInsuranceGoals } from '@/components/goals/CareerInsuranceGoals';
+import { StealthSeekerGoals } from '@/components/goals/StealthSeekerGoals';
+import { CareerGrowthGoals } from '@/components/goals/CareerGrowthGoals';
+import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 
@@ -44,7 +49,9 @@ export default function Goals() {
     updateQuestProgress,
   } = useGoals();
 
+  const { profile } = useApp();
   const [showSetup, setShowSetup] = useState(false);
+  const userMode = profile?.user_mode || 'active_seeker';
 
   if (loading) {
     return (
@@ -62,16 +69,78 @@ export default function Goals() {
     return <GoalsSetup onComplete={completeSetup} />;
   }
 
-  const dailyQuests = quests.filter(q => q.type === 'daily' && !q.is_completed);
-  const weeklyQuests = quests.filter(q => q.type === 'weekly' && !q.is_completed);
-  const completedQuests = quests.filter(q => q.is_completed);
+  // Get mode-specific title and subtitle
+  const getModeInfo = () => {
+    switch (userMode) {
+      case 'career_insurance':
+        return { title: 'Build Your Network 🤝', subtitle: 'Growing your career safety net' };
+      case 'stealth_seeker':
+        return { title: 'Stealth Progress 🔒', subtitle: 'Discrete job search while employed' };
+      case 'career_growth':
+        return { title: 'Level Up 📈', subtitle: 'Building skills for long-term success' };
+      default:
+        return { title: 'Crush It 💪', subtitle: 'Track YOUR progress, at YOUR pace' };
+    }
+  };
 
-  const weekChange = weeklyStats.applicationsLastWeek > 0
-    ? ((weeklyStats.applicationsThisWeek - weeklyStats.applicationsLastWeek) / weeklyStats.applicationsLastWeek) * 100
-    : weeklyStats.applicationsThisWeek > 0 ? 100 : 0;
+  const modeInfo = getModeInfo();
 
-  const activeAchievements = achievements.filter(a => !a.unlocked).slice(0, 4);
-  const unlockedAchievements = achievements.filter(a => a.unlocked);
+  // Render mode-specific content
+  const renderModeContent = () => {
+    switch (userMode) {
+      case 'career_insurance':
+        return (
+          <CareerInsuranceGoals
+            userGoals={userGoals}
+            quests={quests}
+            weeklyStats={weeklyStats}
+            personalBests={personalBests}
+            levelProgress={levelProgress}
+            getLevelTitle={getLevelTitle}
+            updateQuestProgress={updateQuestProgress}
+          />
+        );
+      case 'stealth_seeker':
+        return (
+          <StealthSeekerGoals
+            userGoals={userGoals}
+            quests={quests}
+            weeklyStats={weeklyStats}
+            personalBests={personalBests}
+            levelProgress={levelProgress}
+            getLevelTitle={getLevelTitle}
+            updateQuestProgress={updateQuestProgress}
+          />
+        );
+      case 'career_growth':
+        return (
+          <CareerGrowthGoals
+            userGoals={userGoals}
+            quests={quests}
+            weeklyStats={weeklyStats}
+            personalBests={personalBests}
+            levelProgress={levelProgress}
+            getLevelTitle={getLevelTitle}
+            updateQuestProgress={updateQuestProgress}
+          />
+        );
+      default:
+        return (
+          <ActiveSeekerGoals
+            userGoals={userGoals}
+            quests={quests}
+            achievements={achievements}
+            weeklyStats={weeklyStats}
+            personalBests={personalBests}
+            levelProgress={levelProgress}
+            getLevelTitle={getLevelTitle}
+            updateQuestProgress={updateQuestProgress}
+            achievementLabels={achievementLabels}
+            tierColors={tierColors}
+          />
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -84,10 +153,10 @@ export default function Goals() {
         >
           <div>
             <h1 className="text-3xl sm:text-4xl font-black mb-2">
-              Crush It 💪
+              {modeInfo.title}
             </h1>
             <p className="text-muted-foreground">
-              Track YOUR progress, at YOUR pace
+              {modeInfo.subtitle}
             </p>
           </div>
           <ButtonRetro
@@ -100,276 +169,24 @@ export default function Goals() {
           </ButtonRetro>
         </motion.div>
 
-        {/* Level & XP Card */}
+        {/* Mode-specific content */}
+        {renderModeContent()}
+
+        {/* Pace Check - Show for all modes */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-6"
-        >
-          <CardRetro className="bg-gradient-to-r from-primary/10 to-primary/5">
-            <CardRetroContent className="p-6">
-              <div className="flex items-center gap-6">
-                {/* Level Circle */}
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground shadow-retro">
-                    <span className="text-3xl font-black">{userGoals.current_level}</span>
-                  </div>
-                  <Sparkles className="absolute -top-1 -right-1 w-6 h-6 text-primary" />
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-black text-xl">Level {userGoals.current_level}</span>
-                    <span className="text-muted-foreground">-</span>
-                    <span className="font-bold text-primary">{getLevelTitle(userGoals.current_level)}</span>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">
-                        {levelProgress?.currentXP.toLocaleString()} XP
-                      </span>
-                      <span className="font-bold">
-                        {levelProgress?.xpForNextLevel.toLocaleString()} XP
-                      </span>
-                    </div>
-                    <Progress value={levelProgress?.progressPercent || 0} className="h-3" />
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground">
-                    {Math.round((levelProgress?.xpForNextLevel || 0) - (levelProgress?.currentXP || 0))} XP to next level
-                  </p>
-                </div>
-              </div>
-            </CardRetroContent>
-          </CardRetro>
-        </motion.div>
-
-        {/* This Week vs Last Week */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-6"
-        >
-          <CardRetro>
-            <CardRetroHeader>
-              <CardRetroTitle>📊 This Week vs. Last Week</CardRetroTitle>
-            </CardRetroHeader>
-            <CardRetroContent>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-muted/30 rounded-lg">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <span className="text-3xl font-black">{weeklyStats.applicationsThisWeek}</span>
-                    {weekChange > 0 && <TrendingUp className="w-5 h-5 text-green-500" />}
-                    {weekChange < 0 && <TrendingDown className="w-5 h-5 text-red-500" />}
-                    {weekChange === 0 && <Minus className="w-5 h-5 text-muted-foreground" />}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Applications</p>
-                  {weekChange !== 0 && (
-                    <Badge variant={weekChange > 0 ? "default" : "secondary"} className="mt-1">
-                      {weekChange > 0 ? '+' : ''}{Math.round(weekChange)}%
-                    </Badge>
-                  )}
-                </div>
-                
-                <div className="text-center p-4 bg-muted/30 rounded-lg">
-                  <div className="text-3xl font-black mb-1">{weeklyStats.interviewsThisWeek}</div>
-                  <p className="text-sm text-muted-foreground">Interviews</p>
-                </div>
-                
-                <div className="text-center p-4 bg-muted/30 rounded-lg">
-                  <div className="text-3xl font-black mb-1">{weeklyStats.followUpsThisWeek}</div>
-                  <p className="text-sm text-muted-foreground">Follow-ups</p>
-                </div>
-              </div>
-            </CardRetroContent>
-          </CardRetro>
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Quests Card */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <CardRetro className="h-full">
-              <CardRetroHeader>
-                <CardRetroTitle>⚡ Your Quests</CardRetroTitle>
-              </CardRetroHeader>
-              <CardRetroContent className="space-y-4">
-                {dailyQuests.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-sm text-muted-foreground mb-2 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Daily
-                    </h4>
-                    <div className="space-y-2">
-                      {dailyQuests.map(quest => (
-                        <QuestItem key={quest.id} quest={quest} onComplete={() => updateQuestProgress(quest.id, quest.target)} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {weeklyQuests.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-sm text-muted-foreground mb-2 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Weekly
-                    </h4>
-                    <div className="space-y-2">
-                      {weeklyQuests.map(quest => (
-                        <QuestItem key={quest.id} quest={quest} onComplete={() => updateQuestProgress(quest.id, quest.target)} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {dailyQuests.length === 0 && weeklyQuests.length === 0 && (
-                  <div className="text-center py-6">
-                    <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                    <p className="font-bold text-green-600">All quests complete! 🎉</p>
-                    <p className="text-sm text-muted-foreground">Check back tomorrow for new quests</p>
-                  </div>
-                )}
-
-                {completedQuests.length > 0 && (
-                  <div className="pt-2 border-t border-border">
-                    <p className="text-sm text-muted-foreground">
-                      ✓ {completedQuests.length} quest{completedQuests.length !== 1 ? 's' : ''} completed today
-                    </p>
-                  </div>
-                )}
-              </CardRetroContent>
-            </CardRetro>
-          </motion.div>
-
-          {/* Stats & Streaks Card */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.25 }}
-          >
-            <CardRetro className="h-full">
-              <CardRetroHeader>
-                <CardRetroTitle>🔥 Your Stats</CardRetroTitle>
-              </CardRetroHeader>
-              <CardRetroContent className="space-y-4">
-                {/* Streak */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Flame className="w-8 h-8 text-orange-500" />
-                    <div>
-                      <p className="font-black text-2xl">{userGoals.current_streak} days</p>
-                      <p className="text-sm text-muted-foreground">Current Streak</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">{userGoals.longest_streak} days</p>
-                    <p className="text-xs text-muted-foreground">Personal Best</p>
-                  </div>
-                </div>
-
-                {/* Personal Bests */}
-                <div className="space-y-3">
-                  <h4 className="font-bold text-sm text-muted-foreground flex items-center gap-2">
-                    <Trophy className="w-4 h-4" />
-                    Personal Records
-                  </h4>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <p className="text-2xl font-black text-primary">{personalBests.totalApplications}</p>
-                      <p className="text-xs text-muted-foreground">Total Applications</p>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <p className="text-2xl font-black text-primary">{personalBests.mostAppsInWeek}</p>
-                      <p className="text-xs text-muted-foreground">Best Week</p>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <p className="text-2xl font-black text-primary">{personalBests.totalInterviews}</p>
-                      <p className="text-xs text-muted-foreground">Total Interviews</p>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <p className="text-2xl font-black text-primary">{userGoals.total_xp.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Total XP</p>
-                    </div>
-                  </div>
-                </div>
-              </CardRetroContent>
-            </CardRetro>
-          </motion.div>
-        </div>
-
-        {/* Achievements Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <CardRetro>
-            <CardRetroHeader className="flex items-center justify-between">
-              <CardRetroTitle>🏆 Your Achievements</CardRetroTitle>
-              {unlockedAchievements.length > 0 && (
-                <Badge variant="secondary">
-                  {unlockedAchievements.length} unlocked
-                </Badge>
-              )}
-            </CardRetroHeader>
-            <CardRetroContent>
-              {activeAchievements.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {activeAchievements.map(achievement => (
-                    <AchievementCard key={achievement.id} achievement={achievement} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="font-bold">Complete quests to unlock achievements!</p>
-                </div>
-              )}
-
-              {unlockedAchievements.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-border">
-                  <h4 className="font-bold text-sm text-muted-foreground mb-3">Unlocked</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {unlockedAchievements.map(a => (
-                      <Badge 
-                        key={a.id}
-                        className={cn(
-                          "bg-gradient-to-r text-white",
-                          tierColors[a.tier]
-                        )}
-                      >
-                        {achievementLabels[a.achievement_id]?.emoji} {achievementLabels[a.achievement_id]?.name || a.achievement_id} ({a.tier})
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardRetroContent>
-          </CardRetro>
-        </motion.div>
-
-        {/* Pace Check */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
+          transition={{ delay: 0.4 }}
           className="mt-6"
         >
           <CardRetro className="bg-muted/30">
             <CardRetroContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h4 className="font-bold">How's this pace feeling?</h4>
                   <p className="text-sm text-muted-foreground">Your goals adapt to YOU</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <ButtonRetro variant="outline" size="sm" onClick={() => updateGoals({ weekly_application_target: Math.max(1, (userGoals?.weekly_application_target || 3) - 1) })}>
                     Too hard
                   </ButtonRetro>
