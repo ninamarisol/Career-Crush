@@ -59,7 +59,7 @@ export function ActiveSeekerGoals({
     : 0;
 
   // Get achievement labels from the templates
-  const modeAchievements = achievementsByMode.active_seeker;
+  const modeAchievements = achievementsByMode.crush;
   const achievementLabels = Object.fromEntries(
     modeAchievements.map(a => [a.id, { name: a.name, emoji: a.emoji }])
   );

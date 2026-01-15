@@ -1,5 +1,5 @@
 import { UserMode } from '@/context/AppContext';
-import { Shield, Rocket, Eye, TrendingUp } from 'lucide-react';
+import { Rocket, TrendingUp } from 'lucide-react';
 
 interface ModeWelcomeProps {
   displayName: string;
@@ -8,25 +8,13 @@ interface ModeWelcomeProps {
 }
 
 const modeConfig = {
-  active_seeker: {
+  crush: {
     icon: Rocket,
     greeting: "Let's land that dream job",
     emoji: "🚀",
     description: "Full speed ahead on your job search",
   },
-  career_insurance: {
-    icon: Shield,
-    greeting: "Keeping your options open",
-    emoji: "🛡️",
-    description: "Stay prepared for unexpected opportunities",
-  },
-  stealth_seeker: {
-    icon: Eye,
-    greeting: "Under the radar",
-    emoji: "🕵️",
-    description: "Quietly exploring new opportunities",
-  },
-  career_growth: {
+  climb: {
     icon: TrendingUp,
     greeting: "Growing in your role",
     emoji: "📈",
@@ -35,7 +23,7 @@ const modeConfig = {
 };
 
 export function ModeWelcome({ displayName, mode, quote }: ModeWelcomeProps) {
-  const config = modeConfig[mode || 'active_seeker'];
+  const config = modeConfig[mode || 'crush'];
   const Icon = config.icon;
 
   return (
