@@ -5,9 +5,9 @@ import { cn } from '@/lib/utils';
 import { UserMode } from '@/context/AppContext';
 
 interface OnboardingModeSelectProps {
-  selectedMode: UserMode | null;
-  setSelectedMode: (mode: UserMode) => void;
-  onNext: () => void;
+  selectedMode: UserMode;
+  onModeSelect: (mode: UserMode) => void;
+  onComplete: () => void;
 }
 
 const modes = [
@@ -39,7 +39,7 @@ const modes = [
   },
 ];
 
-export function OnboardingModeSelect({ selectedMode, setSelectedMode, onNext }: OnboardingModeSelectProps) {
+export function OnboardingModeSelect({ selectedMode, onModeSelect, onComplete }: OnboardingModeSelectProps) {
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -63,7 +63,7 @@ export function OnboardingModeSelect({ selectedMode, setSelectedMode, onNext }: 
           return (
             <motion.button
               key={mode.id}
-              onClick={() => setSelectedMode(mode.id)}
+              onClick={() => onModeSelect(mode.id)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={cn(
@@ -112,14 +112,10 @@ export function OnboardingModeSelect({ selectedMode, setSelectedMode, onNext }: 
       </div>
 
       <ButtonRetro 
-        onClick={onNext} 
+        onClick={onComplete} 
         className="w-full"
-        disabled={!selectedMode}
       >
-        {selectedMode 
-          ? modes.find(m => m.id === selectedMode)?.cta || 'Continue'
-          : 'Select a mode to continue'
-        }
+        {modes.find(m => m.id === selectedMode)?.cta || 'Continue'}
         <ArrowRight className="h-4 w-4" />
       </ButtonRetro>
       

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { OnboardingStep1 } from '@/components/onboarding/OnboardingStep1';
 import { OnboardingStep2 } from '@/components/onboarding/OnboardingStep2';
+import { OnboardingModeSelect } from '@/components/onboarding/OnboardingModeSelect';
 import { ProgressBar } from '@/components/onboarding/ProgressBar';
 import { CardRetro } from '@/components/ui/card-retro';
-import { useApp } from '@/context/AppContext';
+import { useApp, UserMode } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Briefcase, Heart } from 'lucide-react';
 import { DreamJobProfiler } from '@/components/profile/DreamJobProfiler';
@@ -39,6 +40,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState(profile?.display_name || user?.user_metadata?.full_name || '');
   const [theme, setTheme] = useState<ThemeColor>('bubblegum');
+  const [selectedMode, setSelectedMode] = useState<UserMode>('crush');
   const [showDreamJobProfiler, setShowDreamJobProfiler] = useState(false);
   const [localPreferences, setLocalPreferences] = useState<JobPreferences>(jobPreferences || defaultPreferences);
 
@@ -46,14 +48,24 @@ export default function Onboarding() {
     setStep(2);
   };
 
-  const handleStep2Complete = async () => {
-    // Save name and theme
+  const handleStep2Complete = () => {
+    setStep(3);
+  };
+
+  const handleModeComplete = async () => {
+    // Save name, theme, and mode
     await updateProfile({
       display_name: name,
       theme_color: theme,
+      user_mode: selectedMode,
     });
-    // Move to dream job profiler
-    setShowDreamJobProfiler(true);
+    // Move to dream job profiler for crush mode, or complete for climb mode
+    if (selectedMode === 'crush') {
+      setShowDreamJobProfiler(true);
+    } else {
+      await updateProfile({ onboarding_complete: true });
+      toast.success('Welcome to Career Crush! 🎉');
+    }
   };
 
   const handlePreferencesUpdate = (preferences: JobPreferences) => {
@@ -115,7 +127,7 @@ export default function Onboarding() {
               <h1 className="text-2xl font-black">Career Crush 💼</h1>
             </div>
             
-            <ProgressBar currentStep={step} totalSteps={2} />
+            <ProgressBar currentStep={step} totalSteps={3} />
 
             <div className="mt-8">
               <AnimatePresence mode="wait">
@@ -144,6 +156,20 @@ export default function Onboarding() {
                       theme={theme}
                       setTheme={setTheme}
                       onNext={handleStep2Complete}
+                    />
+                  </motion.div>
+                )}
+                {step === 3 && (
+                  <motion.div
+                    key="step3"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                  >
+                    <OnboardingModeSelect
+                      selectedMode={selectedMode}
+                      onModeSelect={setSelectedMode}
+                      onComplete={handleModeComplete}
                     />
                   </motion.div>
                 )}
