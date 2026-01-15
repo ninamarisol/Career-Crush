@@ -29,6 +29,8 @@ export function AddApplicationDialog({ trigger }: AddApplicationDialogProps) {
     job_description: '',
     notes: '',
     work_style: '',
+    industry: '',
+    role_type: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,6 +55,8 @@ export function AddApplicationDialog({ trigger }: AddApplicationDialogProps) {
         company_logo_url: null,
         latitude: null,
         longitude: null,
+        industry: formData.industry || null,
+        role_type: formData.role_type || null,
       });
 
       toast.success('Application added! 🎯');
@@ -68,6 +72,8 @@ export function AddApplicationDialog({ trigger }: AddApplicationDialogProps) {
         job_description: '',
         notes: '',
         work_style: '',
+        industry: '',
+        role_type: '',
       });
       setResumeFile(null);
       setOpen(false);
