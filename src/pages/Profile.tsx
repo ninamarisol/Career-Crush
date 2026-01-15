@@ -4,6 +4,7 @@ import { FileText, Target, User, Palette, LogOut, Sun, Moon, Compass, Mail, Lock
 import { useApp, UserMode } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { useGoals } from '@/hooks/useGoals';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { MasterResumeBuilder } from '@/components/profile/MasterResumeBuilder';
@@ -114,6 +115,7 @@ export default function Profile() {
   const { profile, updateProfile, jobPreferences, updateJobPreferences } = useApp();
   const { signOut, user } = useAuth();
   const { theme, themeColor, toggleTheme, setThemeColor, previewThemeColor } = useTheme();
+  const { regenerateQuestsForMode } = useGoals();
   const [activeTab, setActiveTab] = useState('resume');
   const [masterResume, setMasterResume] = useState<MasterResume>(defaultResume);
   const [isSavingResume, setIsSavingResume] = useState(false);
@@ -265,7 +267,11 @@ export default function Profile() {
   const handleModeChange = async (mode: UserMode) => {
     setUserMode(mode);
     await updateProfile({ user_mode: mode });
-    toast.success(`Switched to ${userModeOptions.find(m => m.value === mode)?.label} mode!`);
+    
+    // Regenerate quests for the new mode
+    await regenerateQuestsForMode(mode);
+    
+    toast.success(`Switched to ${userModeOptions.find(m => m.value === mode)?.label} mode! Your goals have been updated.`);
   };
 
   const currentPreferences = jobPreferences || defaultPreferences;

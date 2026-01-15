@@ -1,8 +1,238 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useApp } from '@/context/AppContext';
+import { useApp, UserMode } from '@/context/AppContext';
 import { startOfWeek, endOfWeek, differenceInDays, format, subWeeks } from 'date-fns';
+
+// Mode-specific quest templates
+interface QuestTemplate {
+  title: string;
+  description: string;
+  type: 'daily' | 'weekly';
+  category: string;
+  target: number;
+  xp_reward: number;
+}
+
+const getActiveSeekerQuests = (weeklyTarget: number): QuestTemplate[] => [
+  // Daily quests - focused on application volume
+  {
+    title: `Apply to ${Math.max(1, Math.ceil(weeklyTarget / 5))} role${weeklyTarget > 5 ? 's' : ''}`,
+    description: 'Submit quality applications today',
+    type: 'daily',
+    category: 'applications',
+    target: Math.max(1, Math.ceil(weeklyTarget / 5)),
+    xp_reward: 30,
+  },
+  {
+    title: 'Update an application status',
+    description: 'Keep your tracker current',
+    type: 'daily',
+    category: 'applications',
+    target: 1,
+    xp_reward: 15,
+  },
+  {
+    title: 'Review a job posting thoroughly',
+    description: 'Research before you apply',
+    type: 'daily',
+    category: 'research',
+    target: 1,
+    xp_reward: 20,
+  },
+  // Weekly quests
+  {
+    title: `Submit ${weeklyTarget} applications`,
+    description: 'Your weekly application goal',
+    type: 'weekly',
+    category: 'applications',
+    target: weeklyTarget,
+    xp_reward: 100,
+  },
+  {
+    title: 'Follow up on 2 applications',
+    description: 'Stay engaged with your applications',
+    type: 'weekly',
+    category: 'networking',
+    target: 2,
+    xp_reward: 60,
+  },
+  {
+    title: 'Customize 3 resumes for specific roles',
+    description: 'Tailor your resume for better matches',
+    type: 'weekly',
+    category: 'applications',
+    target: 3,
+    xp_reward: 75,
+  },
+];
+
+const getCareerInsuranceQuests = (networkingTarget: number): QuestTemplate[] => [
+  // Daily quests - focused on small networking actions
+  {
+    title: 'Engage with 2 LinkedIn posts',
+    description: 'Stay visible in your network',
+    type: 'daily',
+    category: 'networking',
+    target: 2,
+    xp_reward: 15,
+  },
+  {
+    title: 'Read 1 industry article',
+    description: 'Stay current with trends',
+    type: 'daily',
+    category: 'learning',
+    target: 1,
+    xp_reward: 10,
+  },
+  // Weekly quests - relationship building
+  {
+    title: `Connect with ${networkingTarget} new professional${networkingTarget > 1 ? 's' : ''}`,
+    description: 'Grow your network gradually',
+    type: 'weekly',
+    category: 'networking',
+    target: networkingTarget,
+    xp_reward: 80,
+  },
+  {
+    title: 'Schedule a coffee chat',
+    description: 'Nurture an existing relationship',
+    type: 'weekly',
+    category: 'networking',
+    target: 1,
+    xp_reward: 100,
+  },
+  {
+    title: 'Update your LinkedIn profile',
+    description: 'Keep your professional brand fresh',
+    type: 'weekly',
+    category: 'profile',
+    target: 1,
+    xp_reward: 40,
+  },
+  {
+    title: 'Attend 1 industry event or webinar',
+    description: 'Stay connected to your field',
+    type: 'weekly',
+    category: 'networking',
+    target: 1,
+    xp_reward: 75,
+  },
+];
+
+const getStealthSeekerQuests = (weeklyTarget: number): QuestTemplate[] => [
+  // Daily quests - discrete actions
+  {
+    title: 'Research 1 target company',
+    description: 'Build your target list quietly',
+    type: 'daily',
+    category: 'research',
+    target: 1,
+    xp_reward: 20,
+  },
+  {
+    title: 'Save 2 interesting job postings',
+    description: 'Curate opportunities for later',
+    type: 'daily',
+    category: 'research',
+    target: 2,
+    xp_reward: 15,
+  },
+  // Weekly quests - targeted search
+  {
+    title: `Submit ${weeklyTarget} quality application${weeklyTarget > 1 ? 's' : ''}`,
+    description: 'Quality over quantity',
+    type: 'weekly',
+    category: 'applications',
+    target: weeklyTarget,
+    xp_reward: 100,
+  },
+  {
+    title: 'Prepare 1 custom cover letter',
+    description: 'Craft a compelling narrative',
+    type: 'weekly',
+    category: 'applications',
+    target: 1,
+    xp_reward: 50,
+  },
+  {
+    title: 'Update your resume for a target role',
+    description: 'Tailor your experience',
+    type: 'weekly',
+    category: 'applications',
+    target: 1,
+    xp_reward: 60,
+  },
+  {
+    title: 'Practice 1 interview question',
+    description: 'Stay interview-ready',
+    type: 'weekly',
+    category: 'interview_prep',
+    target: 1,
+    xp_reward: 40,
+  },
+];
+
+const getCareerGrowthQuests = (learningHours: number): QuestTemplate[] => [
+  // Daily quests - learning focused
+  {
+    title: 'Learn something new for 30 mins',
+    description: 'Invest in your skills daily',
+    type: 'daily',
+    category: 'learning',
+    target: 1,
+    xp_reward: 25,
+  },
+  {
+    title: 'Read 1 industry article',
+    description: 'Stay current with trends',
+    type: 'daily',
+    category: 'learning',
+    target: 1,
+    xp_reward: 15,
+  },
+  {
+    title: 'Practice a skill for 15 mins',
+    description: 'Consistent practice builds mastery',
+    type: 'daily',
+    category: 'learning',
+    target: 1,
+    xp_reward: 20,
+  },
+  // Weekly quests - skill development
+  {
+    title: `Complete ${Math.max(1, Math.ceil(learningHours / 2))} hours of learning`,
+    description: 'Your weekly learning goal',
+    type: 'weekly',
+    category: 'learning',
+    target: Math.max(1, Math.ceil(learningHours / 2)),
+    xp_reward: 100,
+  },
+  {
+    title: 'Complete 1 course module or chapter',
+    description: 'Make progress on your courses',
+    type: 'weekly',
+    category: 'learning',
+    target: 1,
+    xp_reward: 75,
+  },
+  {
+    title: 'Build or contribute to a project',
+    description: 'Apply what you\'re learning',
+    type: 'weekly',
+    category: 'projects',
+    target: 1,
+    xp_reward: 80,
+  },
+  {
+    title: 'Connect with a mentor or peer',
+    description: 'Learn from others',
+    type: 'weekly',
+    category: 'networking',
+    target: 1,
+    xp_reward: 60,
+  },
+];
 
 export interface UserGoals {
   id: string;
@@ -79,7 +309,7 @@ const XP_PER_LEVEL = 500;
 
 export function useGoals() {
   const { user } = useAuth();
-  const { applications, events } = useApp();
+  const { applications, events, profile } = useApp();
   const [userGoals, setUserGoals] = useState<UserGoals | null>(null);
   const [quests, setQuests] = useState<Quest[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -247,8 +477,9 @@ export function useGoals() {
       weekly_application_target: weeklyTarget,
     });
 
-    // Generate initial quests
-    await generateQuests(setup.focus, weeklyTarget);
+    // Generate initial quests based on user mode
+    const userMode = profile?.user_mode || 'active_seeker';
+    await generateQuests(setup.focus, weeklyTarget, userMode);
     
     // Initialize achievements
     await initializeAchievements(setup.focus, weeklyTarget);
@@ -268,8 +499,8 @@ export function useGoals() {
     return Math.max(1, Math.round((baseTargets[focus] || 3) * hourMultiplier));
   };
 
-  // Generate quests
-  const generateQuests = async (focus: string, weeklyTarget: number) => {
+  // Generate quests based on user mode
+  const generateQuests = async (focus: string, weeklyTarget: number, userMode?: UserMode | null) => {
     if (!user) return;
 
     const now = new Date();
@@ -278,62 +509,32 @@ export function useGoals() {
 
     const weeklyExpiry = endOfWeek(now, { weekStartsOn: 1 });
 
-    const questTemplates = [
-      // Daily quests
-      {
-        title: `Apply to ${Math.max(1, Math.ceil(weeklyTarget / 5))} role${weeklyTarget > 5 ? 's' : ''}`,
-        description: 'Submit quality applications today',
-        type: 'daily',
-        category: 'applications',
-        target: Math.max(1, Math.ceil(weeklyTarget / 5)),
-        xp_reward: 30,
-        expires_at: dailyExpiry.toISOString(),
-      },
-      {
-        title: 'Update an application status',
-        description: 'Keep your tracker current',
-        type: 'daily',
-        category: 'applications',
-        target: 1,
-        xp_reward: 15,
-        expires_at: dailyExpiry.toISOString(),
-      },
-      // Weekly quests
-      {
-        title: `Submit ${weeklyTarget} applications`,
-        description: 'Your weekly application goal',
-        type: 'weekly',
-        category: 'applications',
-        target: weeklyTarget,
-        xp_reward: 100,
-        expires_at: weeklyExpiry.toISOString(),
-      },
-      {
-        title: 'Follow up on 2 applications',
-        description: 'Stay engaged with your applications',
-        type: 'weekly',
-        category: 'networking',
-        target: 2,
-        xp_reward: 60,
-        expires_at: weeklyExpiry.toISOString(),
-      },
-    ];
-
-    // Add focus-specific quests
-    if (focus === 'networking') {
-      questTemplates.push({
-        title: 'Connect with 1 new contact',
-        description: 'Grow your professional network',
-        type: 'weekly',
-        category: 'networking',
-        target: 1,
-        xp_reward: 75,
-        expires_at: weeklyExpiry.toISOString(),
-      });
+    // Get mode-specific quest templates
+    let questTemplates: QuestTemplate[];
+    
+    switch (userMode) {
+      case 'career_insurance':
+        questTemplates = getCareerInsuranceQuests(userGoals?.weekly_networking_target || 2);
+        break;
+      case 'stealth_seeker':
+        questTemplates = getStealthSeekerQuests(Math.max(1, Math.ceil(weeklyTarget / 2))); // Lower target for stealth
+        break;
+      case 'career_growth':
+        questTemplates = getCareerGrowthQuests(userGoals?.weekly_hours || 10);
+        break;
+      default: // active_seeker
+        questTemplates = getActiveSeekerQuests(weeklyTarget);
+        break;
     }
 
+    // Add expiry dates to quests
+    const questsWithExpiry = questTemplates.map(quest => ({
+      ...quest,
+      expires_at: quest.type === 'daily' ? dailyExpiry.toISOString() : weeklyExpiry.toISOString(),
+    }));
+
     // Insert quests
-    for (const quest of questTemplates) {
+    for (const quest of questsWithExpiry) {
       await supabase.from('quests').insert({
         user_id: user.id,
         ...quest,
@@ -342,6 +543,25 @@ export function useGoals() {
     }
 
     await fetchGoals();
+  };
+
+  // Regenerate quests when user mode changes
+  const regenerateQuestsForMode = async (newMode: UserMode) => {
+    if (!user) return;
+
+    // Delete existing incomplete quests
+    await supabase
+      .from('quests')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('is_completed', false);
+
+    // Generate new quests for the mode
+    await generateQuests(
+      userGoals?.focus || 'balanced',
+      userGoals?.weekly_application_target || 3,
+      newMode
+    );
   };
 
   // Initialize achievements
@@ -448,5 +668,6 @@ export function useGoals() {
     updateQuestProgress,
     awardXP,
     refreshGoals: fetchGoals,
+    regenerateQuestsForMode,
   };
 }
