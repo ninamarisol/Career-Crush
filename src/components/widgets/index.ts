@@ -3,7 +3,6 @@ export * from './types';
 export * from './widgetRegistry';
 export * from './WidgetContainer';
 export * from './WidgetGrid';
-export * from './WidgetCustomizer';
 
 // Application & Job Search Widgets
 export * from './TodaysMomentumWidget';
