@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, forwardRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -7,7 +7,6 @@ import { CardRetro } from "@/components/ui/card-retro";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Application } from "@/context/AppContext";
 import { MapPin, Building2, ExternalLink, Globe, Loader2 } from "lucide-react";
-
 // Fix Leaflet default icon issue in bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -155,12 +154,11 @@ function FitBounds({ markers }: { markers: MapMarker[] }) {
   return null;
 }
 
-export const ApplicationMap = forwardRef<HTMLDivElement, ApplicationMapProps>(
-  function ApplicationMap({ applications }, ref) {
-    const [selectedApp, setSelectedApp] = useState<Application | null>(null);
-    const [markers, setMarkers] = useState<MapMarker[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [geocodedCount, setGeocodedCount] = useState(0);
+export function ApplicationMap({ applications }: ApplicationMapProps) {
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [markers, setMarkers] = useState<MapMarker[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [geocodedCount, setGeocodedCount] = useState(0);
 
     // Applications that need geocoding
     const appsToGeocode = useMemo(() => {
@@ -263,7 +261,7 @@ export const ApplicationMap = forwardRef<HTMLDivElement, ApplicationMapProps>(
     const totalToGeocode = appsToGeocode.length;
 
     return (
-      <div className="space-y-4" ref={ref}>
+      <div className="space-y-4">
         <CardRetro className="p-0 overflow-hidden">
           <div className="h-[500px] relative">
             {isLoading && totalToGeocode > 0 && (
@@ -425,7 +423,6 @@ export const ApplicationMap = forwardRef<HTMLDivElement, ApplicationMapProps>(
             </div>
           </CardRetro>
         )}
-      </div>
-    );
-  }
-);
+    </div>
+  );
+}
