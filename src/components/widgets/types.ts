@@ -4,16 +4,16 @@ import { LucideIcon } from 'lucide-react';
 // Widget size determines how it renders in the grid
 export type WidgetSize = 'small' | 'medium' | 'large' | 'full';
 
-// Widget categories for organization
+// Widget categories for organization - updated for Crush/Climb modes
 export type WidgetCategory = 
-  | 'application'
-  | 'interview'
-  | 'networking'
-  | 'career_health'
-  | 'learning'
-  | 'stealth'
-  | 'gamification'
-  | 'quick_actions';
+  | 'application'        // Crush: application tracking
+  | 'interview'          // Crush: interview prep
+  | 'resume'             // Crush: resume tools
+  | 'networking'         // Both: contacts/network
+  | 'promotion'          // Climb: promotion readiness
+  | 'skills'             // Climb: skill development
+  | 'brand'              // Climb: personal branding
+  | 'quick_actions';     // Both: quick actions
 
 // Base widget configuration
 export interface WidgetConfig {

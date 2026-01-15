@@ -93,7 +93,7 @@ export function useGoals() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const userMode: UserMode = (profile?.user_mode as UserMode) || 'active_seeker';
+  const userMode: UserMode = (profile?.user_mode as UserMode) || 'crush';
 
   // Calculate weekly stats from applications
   const weeklyStats: WeeklyStats = (() => {
@@ -291,8 +291,8 @@ export function useGoals() {
 
     // Filter quests based on mode - different modes have different quest types
     const questsToCreate = questTemplates.filter(q => {
-      // Career Insurance doesn't use daily quests (too much pressure)
-      if (mode === 'career_insurance' && q.type === 'daily') {
+      // Climb mode doesn't use daily quests (lower pressure)
+      if (mode === 'climb' && q.type === 'daily') {
         return false;
       }
       return true;
@@ -345,7 +345,7 @@ export function useGoals() {
   const initializeAchievements = async (mode: UserMode) => {
     if (!user) return;
 
-    const modeAchievements = achievementsByMode[mode] || achievementsByMode.active_seeker;
+    const modeAchievements = achievementsByMode[mode] || achievementsByMode.crush;
 
     for (const achievement of modeAchievements) {
       for (const tierDef of achievement.tiers) {
@@ -377,7 +377,7 @@ export function useGoals() {
 
   // Award XP for specific action based on mode
   const awardXPForAction = async (action: string) => {
-    const modeXpValues = xpValuesByMode[userMode] || xpValuesByMode.active_seeker;
+    const modeXpValues = xpValuesByMode[userMode] || xpValuesByMode.crush;
     const xpAmount = modeXpValues[action] || 0;
     
     if (xpAmount > 0) {

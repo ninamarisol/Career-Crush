@@ -47,40 +47,22 @@ const userModeOptions: {
   color: string;
 }[] = [
   { 
-    value: 'active_seeker', 
-    label: 'Active Job Seeker', 
+    value: 'crush', 
+    label: 'Crush Mode', 
     icon: <Rocket className="w-5 h-5" />, 
-    emoji: '🎯',
+    emoji: '🚀',
     description: "I'm actively searching for a new job",
     frequency: 'Daily use',
-    color: 'hsl(330, 100%, 70%)'
+    color: 'hsl(16, 100%, 65%)'
   },
   { 
-    value: 'career_insurance', 
-    label: 'Career Insurance', 
-    icon: <Shield className="w-5 h-5" />, 
-    emoji: '🛡️',
-    description: "I'm employed but staying market-aware",
-    frequency: 'Monthly check-ins',
-    color: 'hsl(160, 60%, 50%)'
-  },
-  { 
-    value: 'stealth_seeker', 
-    label: 'Stealth Seeker', 
-    icon: <Eye className="w-5 h-5" />, 
-    emoji: '🕵️',
-    description: "I'm quietly looking for better opportunities",
-    frequency: '3-4x per week',
-    color: 'hsl(270, 70%, 60%)'
-  },
-  { 
-    value: 'career_growth', 
-    label: 'Career Growth', 
+    value: 'climb', 
+    label: 'Climb Mode', 
     icon: <TrendingUp className="w-5 h-5" />, 
     emoji: '📈',
     description: "I'm focused on growing at my current company",
     frequency: 'Weekly',
-    color: 'hsl(140, 70%, 45%)'
+    color: 'hsl(200, 80%, 50%)'
   },
 ];
 
@@ -132,7 +114,7 @@ export default function Profile() {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   
   // User mode state
-  const [userMode, setUserMode] = useState<UserMode>('active_seeker');
+  const [userMode, setUserMode] = useState<UserMode>('crush');
 
   // Load master resume from database on mount
   useEffect(() => {

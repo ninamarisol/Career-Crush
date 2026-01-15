@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { JobPreferences, PriorityWeights, defaultPriorityWeights } from '@/lib/data';
 
-export type UserMode = 'active_seeker' | 'career_insurance' | 'stealth_seeker' | 'career_growth';
+export type UserMode = 'crush' | 'climb';
 
 export interface Profile {
   id: string;
