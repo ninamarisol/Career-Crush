@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Target, User, Palette, LogOut, Sun, Moon, Compass, Mail, Lock, Shield, Rocket, TrendingUp, Eye } from 'lucide-react';
+import { FileText, Target, User, Palette, LogOut, Sun, Moon, Compass, Mail, Lock, Shield, Rocket, TrendingUp, Eye, LayoutGrid } from 'lucide-react';
 import { useApp, UserMode } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -10,6 +10,7 @@ import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/
 import { MasterResumeBuilder } from '@/components/profile/MasterResumeBuilder';
 import { DreamJobProfiler } from '@/components/profile/DreamJobProfiler';
 import { CareerPather } from '@/components/profile/CareerPather';
+import { WidgetCustomizer } from '@/components/settings/WidgetCustomizer';
 import { MasterResume, JobPreferences, defaultPriorityWeights } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -19,6 +20,7 @@ const tabs = [
   { id: 'resume', label: 'Master Resume', icon: FileText, emoji: '📄' },
   { id: 'preferences', label: 'Dream Job Profiler', icon: Target, emoji: '🎯' },
   { id: 'career', label: 'Career Pather', icon: Compass, emoji: '🧭' },
+  { id: 'widgets', label: 'Dashboard Widgets', icon: LayoutGrid, emoji: '🎛️' },
   { id: 'account', label: 'Account Settings', icon: User, emoji: '⚙️' },
 ];
 
@@ -360,7 +362,7 @@ export default function Profile() {
         </motion.div>
 
         {/* Tabs - Grid layout for better visibility */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-6">
           {tabs.map((tab) => (
             <ButtonRetro
               key={tab.id}
@@ -403,6 +405,10 @@ export default function Profile() {
               resume={masterResume}
               preferences={jobPreferences}
             />
+          )}
+
+          {activeTab === 'widgets' && (
+            <WidgetCustomizer />
           )}
 
           {activeTab === 'account' && (
