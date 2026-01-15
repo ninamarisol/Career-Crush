@@ -3,13 +3,14 @@ import { motion } from 'framer-motion';
 import { 
   Target, Trophy, Flame, Zap, TrendingUp, TrendingDown, 
   Minus, CheckCircle2, Circle, Clock, Calendar, 
-  Star, Sparkles, Rocket, Send
+  Star, Sparkles, Rocket, Send, Award
 } from 'lucide-react';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { UserGoals, Quest, Achievement, WeeklyStats, PersonalBests } from '@/hooks/useGoals';
+import { achievementsByMode } from '@/lib/questTemplates';
 
 interface ActiveSeekerGoalsProps {
   userGoals: UserGoals;
@@ -20,9 +21,16 @@ interface ActiveSeekerGoalsProps {
   levelProgress: { currentXP: number; xpForNextLevel: number; progressPercent: number } | null;
   getLevelTitle: (level: number) => string;
   updateQuestProgress: (questId: string, progress: number) => Promise<void>;
-  achievementLabels: Record<string, { name: string; emoji: string }>;
-  tierColors: Record<string, string>;
+  achievementLabels?: Record<string, { name: string; emoji: string }>;
+  tierColors?: Record<string, string>;
 }
+
+const defaultTierColors: Record<string, string> = {
+  bronze: 'from-amber-600 to-amber-800',
+  silver: 'from-gray-400 to-gray-600',
+  gold: 'from-yellow-400 to-yellow-600',
+  platinum: 'from-cyan-300 to-blue-500',
+};
 
 export function ActiveSeekerGoals({
   userGoals,
@@ -33,12 +41,11 @@ export function ActiveSeekerGoals({
   getLevelTitle,
   updateQuestProgress,
   achievements,
-  achievementLabels,
-  tierColors,
 }: ActiveSeekerGoalsProps) {
   const dailyQuests = quests.filter(q => q.type === 'daily' && !q.is_completed);
   const weeklyQuests = quests.filter(q => q.type === 'weekly' && !q.is_completed);
-  const completedQuests = quests.filter(q => q.is_completed);
+  const epicQuests = quests.filter(q => q.type === 'epic');
+  const completedQuests = quests.filter(q => q.is_completed && q.type !== 'epic');
 
   const weekChange = weeklyStats.applicationsLastWeek > 0
     ? ((weeklyStats.applicationsThisWeek - weeklyStats.applicationsLastWeek) / weeklyStats.applicationsLastWeek) * 100
@@ -51,6 +58,14 @@ export function ActiveSeekerGoals({
     ? (weeklyStats.applicationsThisWeek / userGoals.weekly_application_target) * 100
     : 0;
 
+  // Get achievement labels from the templates
+  const modeAchievements = achievementsByMode.active_seeker;
+  const achievementLabels = Object.fromEntries(
+    modeAchievements.map(a => [a.id, { name: a.name, emoji: a.emoji }])
+  );
+
+  const allDailyComplete = dailyQuests.length === 0 && completedQuests.some(q => q.type === 'daily');
+
   return (
     <div className="space-y-6">
       {/* Level & XP Card - Prominent for Active Seekers */}
@@ -59,7 +74,7 @@ export function ActiveSeekerGoals({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <CardRetro className="bg-gradient-to-r from-primary/10 to-primary/5">
+        <CardRetro className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/30">
           <CardRetroContent className="p-6">
             <div className="flex items-center gap-6">
               <div className="relative">
@@ -97,6 +112,29 @@ export function ActiveSeekerGoals({
         </CardRetro>
       </motion.div>
 
+      {/* Streak Bonus - Prominent for Active Seekers */}
+      {allDailyComplete && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.15 }}
+        >
+          <CardRetro className="bg-gradient-to-r from-orange-500/20 to-red-500/20 border-orange-500/30">
+            <CardRetroContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                  <Flame className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="font-black text-lg">🔥 STREAK BONUS! +50 XP</p>
+                  <p className="text-sm text-muted-foreground">All daily quests complete! Current streak: {userGoals.current_streak} days</p>
+                </div>
+              </div>
+            </CardRetroContent>
+          </CardRetro>
+        </motion.div>
+      )}
+
       {/* Weekly Application Target - Key Metric */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -107,7 +145,7 @@ export function ActiveSeekerGoals({
           <CardRetroHeader>
             <CardRetroTitle className="flex items-center gap-2">
               <Rocket className="w-5 h-5 text-primary" />
-              Weekly Application Goal
+              Weekly Application Sprint
             </CardRetroTitle>
           </CardRetroHeader>
           <CardRetroContent>
@@ -127,6 +165,9 @@ export function ActiveSeekerGoals({
                 Weekly goal achieved! Keep the momentum! 🎉
               </p>
             )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              Deadline: Sunday 11:59pm • +200 XP on completion
+            </p>
           </CardRetroContent>
         </CardRetro>
       </motion.div>
@@ -173,22 +214,30 @@ export function ActiveSeekerGoals({
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quests */}
+        {/* Quest Board - Prominent for Active Seekers */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.25 }}
         >
-          <CardRetro className="h-full">
-            <CardRetroHeader>
-              <CardRetroTitle>⚡ Your Quests</CardRetroTitle>
+          <CardRetro className="h-full border-primary/20">
+            <CardRetroHeader className="flex items-center justify-between">
+              <CardRetroTitle className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-primary" />
+                🎯 QUEST BOARD
+              </CardRetroTitle>
+              <div className="flex gap-1">
+                <Badge variant={dailyQuests.length > 0 ? "default" : "secondary"} className="text-xs">Daily</Badge>
+                <Badge variant={weeklyQuests.length > 0 ? "default" : "secondary"} className="text-xs">Weekly</Badge>
+                <Badge variant="outline" className="text-xs">Epic</Badge>
+              </div>
             </CardRetroHeader>
             <CardRetroContent className="space-y-4">
               {dailyQuests.length > 0 && (
                 <div>
                   <h4 className="font-bold text-sm text-muted-foreground mb-2 flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    Daily
+                    TODAY'S QUESTS
                   </h4>
                   <div className="space-y-2">
                     {dailyQuests.map(quest => (
@@ -202,7 +251,7 @@ export function ActiveSeekerGoals({
                 <div>
                   <h4 className="font-bold text-sm text-muted-foreground mb-2 flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    Weekly
+                    WEEKLY GOALS
                   </h4>
                   <div className="space-y-2">
                     {weeklyQuests.map(quest => (
@@ -288,15 +337,40 @@ export function ActiveSeekerGoals({
         </motion.div>
       </div>
 
+      {/* Epic Quests - Major Milestones */}
+      {epicQuests.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <CardRetro className="border-amber-500/30 bg-gradient-to-r from-amber-500/5 to-orange-500/5">
+            <CardRetroHeader>
+              <CardRetroTitle className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-500" />
+                🏆 EPIC QUESTS
+              </CardRetroTitle>
+            </CardRetroHeader>
+            <CardRetroContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {epicQuests.map(quest => (
+                  <EpicQuestCard key={quest.id} quest={quest} />
+                ))}
+              </div>
+            </CardRetroContent>
+          </CardRetro>
+        </motion.div>
+      )}
+
       {/* Achievements */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
+        transition={{ delay: 0.4 }}
       >
         <CardRetro>
           <CardRetroHeader className="flex items-center justify-between">
-            <CardRetroTitle>🏆 Your Achievements</CardRetroTitle>
+            <CardRetroTitle>🏆 Achievement Badges</CardRetroTitle>
             {unlockedAchievements.length > 0 && (
               <Badge variant="secondary">
                 {unlockedAchievements.length} unlocked
@@ -307,7 +381,7 @@ export function ActiveSeekerGoals({
             {activeAchievements.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {activeAchievements.map(achievement => (
-                  <AchievementCard key={achievement.id} achievement={achievement} labels={achievementLabels} colors={tierColors} />
+                  <AchievementCard key={achievement.id} achievement={achievement} labels={achievementLabels} colors={defaultTierColors} />
                 ))}
               </div>
             ) : (
@@ -326,7 +400,7 @@ export function ActiveSeekerGoals({
                       key={a.id}
                       className={cn(
                         "bg-gradient-to-r text-white",
-                        tierColors[a.tier]
+                        defaultTierColors[a.tier]
                       )}
                     >
                       {achievementLabels[a.achievement_id]?.emoji} {achievementLabels[a.achievement_id]?.name || a.achievement_id} ({a.tier})
@@ -346,7 +420,7 @@ function QuestItem({ quest, onComplete }: { quest: Quest; onComplete: () => void
   const progress = (quest.current_progress / quest.target) * 100;
   
   return (
-    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg group hover:bg-muted/50 transition-colors">
+    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg group hover:bg-muted/50 transition-colors border border-transparent hover:border-primary/20">
       <button 
         onClick={onComplete}
         className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -362,9 +436,31 @@ function QuestItem({ quest, onComplete }: { quest: Quest; onComplete: () => void
           </span>
         </div>
       </div>
-      <Badge variant="outline" className="shrink-0">
+      <Badge variant="outline" className="shrink-0 bg-primary/10">
         +{quest.xp_reward} XP
       </Badge>
+    </div>
+  );
+}
+
+function EpicQuestCard({ quest }: { quest: Quest }) {
+  const progress = (quest.current_progress / quest.target) * 100;
+  
+  return (
+    <div className="p-4 bg-muted/30 rounded-lg border border-amber-500/20">
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-black">{quest.title}</p>
+        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+          +{quest.xp_reward} XP
+        </Badge>
+      </div>
+      <p className="text-sm text-muted-foreground mb-3">{quest.description}</p>
+      <div className="flex items-center gap-2">
+        <Progress value={progress} className="h-2 flex-1" />
+        <span className="text-sm font-bold">
+          {quest.current_progress}/{quest.target}
+        </span>
+      </div>
     </div>
   );
 }
