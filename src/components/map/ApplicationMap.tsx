@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import { CardRetro } from "@/components/ui/card-retro";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Application } from "@/context/AppContext";
-import { MapPin, Building2, ExternalLink, Globe } from "lucide-react";
+import { MapPin, Building2, ExternalLink, Globe, Loader2 } from "lucide-react";
 
 // Fix Leaflet default icon issue in bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -19,62 +19,6 @@ L.Icon.Default.mergeOptions({
 interface ApplicationMapProps {
   applications: Application[];
 }
-
-// Extended city coordinates for common locations (worldwide)
-const cityCoordinates: Record<string, { lat: number; lng: number }> = {
-  "new york": { lat: 40.7128, lng: -74.006 },
-  nyc: { lat: 40.7128, lng: -74.006 },
-  manhattan: { lat: 40.7831, lng: -73.9712 },
-  brooklyn: { lat: 40.6782, lng: -73.9442 },
-  "san francisco": { lat: 37.7749, lng: -122.4194 },
-  sf: { lat: 37.7749, lng: -122.4194 },
-  "los angeles": { lat: 34.0522, lng: -118.2437 },
-  la: { lat: 34.0522, lng: -118.2437 },
-  seattle: { lat: 47.6062, lng: -122.3321 },
-  austin: { lat: 30.2672, lng: -97.7431 },
-  boston: { lat: 42.3601, lng: -71.0589 },
-  chicago: { lat: 41.8781, lng: -87.6298 },
-  denver: { lat: 39.7392, lng: -104.9903 },
-  miami: { lat: 25.7617, lng: -80.1918 },
-  atlanta: { lat: 33.749, lng: -84.388 },
-  dallas: { lat: 32.7767, lng: -96.797 },
-  houston: { lat: 29.7604, lng: -95.3698 },
-  portland: { lat: 45.5152, lng: -122.6784 },
-  phoenix: { lat: 33.4484, lng: -112.074 },
-  "san diego": { lat: 32.7157, lng: -117.1611 },
-  washington: { lat: 38.9072, lng: -77.0369 },
-  dc: { lat: 38.9072, lng: -77.0369 },
-  "washington dc": { lat: 38.9072, lng: -77.0369 },
-  "palo alto": { lat: 37.4419, lng: -122.143 },
-  "mountain view": { lat: 37.3861, lng: -122.0839 },
-  cupertino: { lat: 37.323, lng: -122.0322 },
-  menlo: { lat: 37.4529, lng: -122.1817 },
-  redwood: { lat: 37.4852, lng: -122.2364 },
-  sunnyvale: { lat: 37.3688, lng: -122.0363 },
-  "san jose": { lat: 37.3382, lng: -121.8863 },
-  oakland: { lat: 37.8044, lng: -122.2712 },
-  raleigh: { lat: 35.7796, lng: -78.6382 },
-  charlotte: { lat: 35.2271, lng: -80.8431 },
-  nashville: { lat: 36.1627, lng: -86.7816 },
-  "salt lake": { lat: 40.7608, lng: -111.891 },
-  minneapolis: { lat: 44.9778, lng: -93.265 },
-  detroit: { lat: 42.3314, lng: -83.0458 },
-  philadelphia: { lat: 39.9526, lng: -75.1652 },
-  // International
-  london: { lat: 51.5074, lng: -0.1278 },
-  berlin: { lat: 52.52, lng: 13.405 },
-  paris: { lat: 48.8566, lng: 2.3522 },
-  amsterdam: { lat: 52.3676, lng: 4.9041 },
-  dublin: { lat: 53.3498, lng: -6.2603 },
-  toronto: { lat: 43.6532, lng: -79.3832 },
-  vancouver: { lat: 49.2827, lng: -123.1207 },
-  sydney: { lat: -33.8688, lng: 151.2093 },
-  singapore: { lat: 1.3521, lng: 103.8198 },
-  tokyo: { lat: 35.6762, lng: 139.6503 },
-  bangalore: { lat: 12.9716, lng: 77.5946 },
-  mumbai: { lat: 19.076, lng: 72.8777 },
-  "tel aviv": { lat: 32.0853, lng: 34.7818 },
-};
 
 const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
@@ -104,6 +48,76 @@ interface MapMarker {
   app: Application;
   lat: number;
   lng: number;
+}
+
+interface GeocodedLocation {
+  lat: number;
+  lng: number;
+}
+
+// Cache for geocoded locations (persisted in localStorage)
+const GEOCODE_CACHE_KEY = "geocode_cache";
+
+function getGeocodeCache(): Record<string, GeocodedLocation> {
+  try {
+    const cached = localStorage.getItem(GEOCODE_CACHE_KEY);
+    return cached ? JSON.parse(cached) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setGeocodeCache(cache: Record<string, GeocodedLocation>) {
+  try {
+    localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // localStorage might be full or unavailable
+  }
+}
+
+// Geocode a location string using OpenStreetMap Nominatim API
+async function geocodeLocation(location: string): Promise<GeocodedLocation | null> {
+  const cache = getGeocodeCache();
+  const cacheKey = location.toLowerCase().trim();
+  
+  // Check cache first
+  if (cache[cacheKey]) {
+    return cache[cacheKey];
+  }
+
+  try {
+    // Use Nominatim API (free, no API key required)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=1`,
+      {
+        headers: {
+          'User-Agent': 'CareerCrushApp/1.0'
+        }
+      }
+    );
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    
+    if (data && data.length > 0) {
+      const result = {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+      };
+      
+      // Cache the result
+      cache[cacheKey] = result;
+      setGeocodeCache(cache);
+      
+      return result;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Geocoding error:", error);
+    return null;
+  }
 }
 
 // Custom colored marker
@@ -141,214 +155,277 @@ function FitBounds({ markers }: { markers: MapMarker[] }) {
   return null;
 }
 
-export function ApplicationMap({ applications }: ApplicationMapProps) {
-  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+export const ApplicationMap = forwardRef<HTMLDivElement, ApplicationMapProps>(
+  function ApplicationMap({ applications }, ref) {
+    const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+    const [markers, setMarkers] = useState<MapMarker[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [geocodedCount, setGeocodedCount] = useState(0);
 
-  const markers: MapMarker[] = useMemo(() => {
-    return applications
-      .map((app) => {
-        // Use stored coordinates first
-        if (app.latitude && app.longitude) {
-          return { app, lat: app.latitude, lng: app.longitude };
-        }
+    // Applications that need geocoding
+    const appsToGeocode = useMemo(() => {
+      return applications.filter((app) => {
+        if (!app.location) return false;
+        if (app.latitude && app.longitude) return false;
+        if (app.location.toLowerCase() === "remote") return false;
+        return true;
+      });
+    }, [applications]);
 
-        if (!app.location) return null;
+    // Geocode all locations
+    useEffect(() => {
+      let cancelled = false;
 
-        const locationLower = app.location.toLowerCase();
+      async function geocodeAll() {
+        setIsLoading(true);
+        setGeocodedCount(0);
 
-        // Check for city match
-        for (const [city, coords] of Object.entries(cityCoordinates)) {
-          if (locationLower.includes(city)) {
-            // Add small random offset to prevent exact overlap
-            const offset = () => (Math.random() - 0.5) * 0.02;
-            return {
-              app,
-              lat: coords.lat + offset(),
-              lng: coords.lng + offset(),
-            };
+        const newMarkers: MapMarker[] = [];
+
+        // First, add apps with existing coordinates
+        for (const app of applications) {
+          if (app.latitude && app.longitude) {
+            newMarkers.push({ app, lat: app.latitude, lng: app.longitude });
           }
         }
 
-        return null;
-      })
-      .filter((m): m is MapMarker => m !== null);
-  }, [applications]);
+        // Then geocode the rest (with rate limiting for Nominatim - 1 req/sec)
+        for (let i = 0; i < appsToGeocode.length; i++) {
+          if (cancelled) return;
 
-  const remoteApps = applications.filter(
-    (app) => app.location?.toLowerCase() === "remote"
-  );
+          const app = appsToGeocode[i];
+          
+          // Check cache first (no delay needed)
+          const cache = getGeocodeCache();
+          const cacheKey = app.location!.toLowerCase().trim();
+          
+          if (cache[cacheKey]) {
+            const offset = () => (Math.random() - 0.5) * 0.02;
+            newMarkers.push({
+              app,
+              lat: cache[cacheKey].lat + offset(),
+              lng: cache[cacheKey].lng + offset(),
+            });
+            setGeocodedCount(i + 1);
+            continue;
+          }
 
-  const unmappedApps = applications.filter((app) => {
-    if (!app.location) return true;
-    if (app.latitude && app.longitude) return false;
+          // Rate limit: wait 1 second between uncached API calls
+          if (i > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 1100));
+          }
 
-    const locationLower = app.location.toLowerCase();
-    return (
-      !Object.keys(cityCoordinates).some((city) =>
-        locationLower.includes(city)
-      ) && locationLower !== "remote"
+          const result = await geocodeLocation(app.location!);
+          
+          if (result && !cancelled) {
+            const offset = () => (Math.random() - 0.5) * 0.02;
+            newMarkers.push({
+              app,
+              lat: result.lat + offset(),
+              lng: result.lng + offset(),
+            });
+          }
+          
+          setGeocodedCount(i + 1);
+        }
+
+        if (!cancelled) {
+          setMarkers(newMarkers);
+          setIsLoading(false);
+        }
+      }
+
+      geocodeAll();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [applications, appsToGeocode]);
+
+    const remoteApps = useMemo(() => 
+      applications.filter((app) => app.location?.toLowerCase() === "remote"),
+      [applications]
     );
-  });
 
-  // Default center (US if no markers)
-  const defaultCenter: [number, number] =
-    markers.length > 0 ? [markers[0].lat, markers[0].lng] : [39.8283, -98.5795];
+    const unmappedApps = useMemo(() => {
+      const markerAppIds = new Set(markers.map((m) => m.app.id));
+      return applications.filter((app) => {
+        if (!app.location) return true;
+        if (app.location.toLowerCase() === "remote") return false;
+        return !markerAppIds.has(app.id);
+      });
+    }, [applications, markers]);
 
-  return (
-    <div className="space-y-4">
-      <CardRetro className="p-0 overflow-hidden">
-        <div className="h-[500px] relative">
-          {markers.length > 0 ? (
-            <MapContainer
-              center={defaultCenter}
-              zoom={4}
-              style={{ height: "100%", width: "100%" }}
-              scrollWheelZoom={true}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <FitBounds markers={markers} />
-              {markers.map((marker) => (
-                <Marker
-                  key={marker.app.id}
-                  position={[marker.lat, marker.lng]}
-                  icon={createColoredIcon(getStatusHexColor(marker.app.status))}
-                  eventHandlers={{
-                    click: () => setSelectedApp(marker.app),
-                  }}
-                >
-                  <Popup>
-                    <div className="min-w-[200px]">
-                      <p className="font-bold text-base">{marker.app.position}</p>
-                      <p className="text-sm text-gray-600">{marker.app.company}</p>
-                      <p className="text-xs text-gray-500">{marker.app.location}</p>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span
-                          className="px-2 py-0.5 rounded text-xs font-medium text-white"
-                          style={{
-                            backgroundColor: getStatusHexColor(marker.app.status),
-                          }}
-                        >
-                          {marker.app.status}
-                        </span>
-                        <Link
-                          to={`/applications/${marker.app.id}`}
-                          className="text-blue-600 hover:underline text-xs"
-                        >
-                          View Details →
-                        </Link>
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center bg-muted">
-              <Globe className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-bold">No mappable locations</h3>
-              <p className="text-muted-foreground text-center max-w-md mt-2">
-                Add location information to your applications to see them on the
-                map. Common city names will be automatically recognized.
-              </p>
-            </div>
-          )}
-        </div>
+    // Default center (US if no markers)
+    const defaultCenter: [number, number] =
+      markers.length > 0 ? [markers[0].lat, markers[0].lng] : [39.8283, -98.5795];
 
-        {/* Legend */}
-        <div className="flex flex-wrap gap-4 p-4 border-t-2 border-border bg-card">
-          <span className="text-sm font-bold text-muted-foreground">Status:</span>
-          {["Saved", "Applied", "Interview", "Offer", "Rejected", "Ghosted"].map(
-            (status) => (
-              <div key={status} className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: getStatusHexColor(status) }}
+    const totalToGeocode = appsToGeocode.length;
+
+    return (
+      <div className="space-y-4" ref={ref}>
+        <CardRetro className="p-0 overflow-hidden">
+          <div className="h-[500px] relative">
+            {isLoading && totalToGeocode > 0 && (
+              <div className="absolute top-4 left-4 z-[1000] bg-card border-2 border-border rounded-lg px-4 py-2 flex items-center gap-2 shadow-lg">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm font-medium">
+                  Mapping locations... {geocodedCount}/{totalToGeocode}
+                </span>
+              </div>
+            )}
+
+            {(markers.length > 0 || isLoading) ? (
+              <MapContainer
+                center={defaultCenter}
+                zoom={4}
+                style={{ height: "100%", width: "100%" }}
+                scrollWheelZoom={true}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <span className="text-sm">{status}</span>
+                {markers.length > 0 && <FitBounds markers={markers} />}
+                {markers.map((marker) => (
+                  <Marker
+                    key={marker.app.id}
+                    position={[marker.lat, marker.lng]}
+                    icon={createColoredIcon(getStatusHexColor(marker.app.status))}
+                    eventHandlers={{
+                      click: () => setSelectedApp(marker.app),
+                    }}
+                  >
+                    <Popup>
+                      <div className="min-w-[200px]">
+                        <p className="font-bold text-base">{marker.app.position}</p>
+                        <p className="text-sm text-gray-600">{marker.app.company}</p>
+                        <p className="text-xs text-gray-500">{marker.app.location}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span
+                            className="px-2 py-0.5 rounded text-xs font-medium text-white"
+                            style={{
+                              backgroundColor: getStatusHexColor(marker.app.status),
+                            }}
+                          >
+                            {marker.app.status}
+                          </span>
+                          <Link
+                            to={`/applications/${marker.app.id}`}
+                            className="text-blue-600 hover:underline text-xs"
+                          >
+                            View Details →
+                          </Link>
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center bg-muted">
+                <Globe className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-bold">No mappable locations</h3>
+                <p className="text-muted-foreground text-center max-w-md mt-2">
+                  Add location information to your applications to see them on the
+                  map. Any city, state, or address will be automatically geocoded.
+                </p>
               </div>
-            )
-          )}
-        </div>
-      </CardRetro>
+            )}
+          </div>
 
-      {/* Selected application details */}
-      {selectedApp && (
-        <CardRetro className="p-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center text-xl font-black">
-                {selectedApp.company.charAt(0).toUpperCase()}
+          {/* Legend */}
+          <div className="flex flex-wrap gap-4 p-4 border-t-2 border-border bg-card">
+            <span className="text-sm font-bold text-muted-foreground">Status:</span>
+            {["Saved", "Applied", "Interview", "Offer", "Rejected", "Ghosted"].map(
+              (status) => (
+                <div key={status} className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: getStatusHexColor(status) }}
+                  />
+                  <span className="text-sm">{status}</span>
+                </div>
+              )
+            )}
+          </div>
+        </CardRetro>
+
+        {/* Selected application details */}
+        {selectedApp && (
+          <CardRetro className="p-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center text-xl font-black">
+                  {selectedApp.company.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">{selectedApp.position}</h3>
+                  <p className="text-muted-foreground flex items-center gap-1">
+                    <Building2 className="h-3 w-3" /> {selectedApp.company}
+                  </p>
+                  <p className="text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> {selectedApp.location}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-lg">{selectedApp.position}</h3>
-                <p className="text-muted-foreground flex items-center gap-1">
-                  <Building2 className="h-3 w-3" /> {selectedApp.company}
-                </p>
-                <p className="text-muted-foreground flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> {selectedApp.location}
-                </p>
+              <div className="flex items-center gap-3">
+                <StatusBadge status={getStatusColor(selectedApp.status) as any}>
+                  {selectedApp.status}
+                </StatusBadge>
+                <Link to={`/applications/${selectedApp.id}`}>
+                  <button className="p-2 rounded-lg border-2 border-border hover:bg-muted transition-colors">
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                </Link>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <StatusBadge status={getStatusColor(selectedApp.status) as any}>
-                {selectedApp.status}
-              </StatusBadge>
-              <Link to={`/applications/${selectedApp.id}`}>
-                <button className="p-2 rounded-lg border-2 border-border hover:bg-muted transition-colors">
-                  <ExternalLink className="h-4 w-4" />
-                </button>
-              </Link>
+          </CardRetro>
+        )}
+
+        {/* Remote positions */}
+        {remoteApps.length > 0 && (
+          <CardRetro className="p-4">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              <Globe className="h-4 w-4" /> Remote Positions ({remoteApps.length})
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {remoteApps.map((app) => (
+                <Link key={app.id} to={`/applications/${app.id}`}>
+                  <div className="px-3 py-2 rounded-lg border-2 border-border hover:bg-muted transition-colors">
+                    <span className="font-bold">{app.position}</span>
+                    <span className="text-muted-foreground"> @ {app.company}</span>
+                  </div>
+                </Link>
+              ))}
             </div>
-          </div>
-        </CardRetro>
-      )}
+          </CardRetro>
+        )}
 
-      {/* Remote positions */}
-      {remoteApps.length > 0 && (
-        <CardRetro className="p-4">
-          <h3 className="font-bold mb-3 flex items-center gap-2">
-            <Globe className="h-4 w-4" /> Remote Positions ({remoteApps.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {remoteApps.map((app) => (
-              <Link key={app.id} to={`/applications/${app.id}`}>
-                <div className="px-3 py-2 rounded-lg border-2 border-border hover:bg-muted transition-colors">
-                  <span className="font-bold">{app.position}</span>
-                  <span className="text-muted-foreground"> @ {app.company}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </CardRetro>
-      )}
-
-      {/* Unmapped positions */}
-      {unmappedApps.length > 0 && (
-        <CardRetro className="p-4">
-          <h3 className="font-bold mb-3 text-muted-foreground">
-            Other Locations ({unmappedApps.length})
-          </h3>
-          <p className="text-sm text-muted-foreground mb-3">
-            These applications have locations that couldn't be mapped automatically.
-            Add coordinates or use recognized city names.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {unmappedApps.map((app) => (
-              <Link key={app.id} to={`/applications/${app.id}`}>
-                <div className="px-3 py-2 rounded-lg border-2 border-border hover:bg-muted transition-colors text-sm">
-                  <span className="font-bold">{app.company}</span>
-                  {app.location && (
-                    <span className="text-muted-foreground"> • {app.location}</span>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </CardRetro>
-      )}
-    </div>
-  );
-}
+        {/* Unmapped positions */}
+        {!isLoading && unmappedApps.length > 0 && (
+          <CardRetro className="p-4">
+            <h3 className="font-bold mb-3 text-muted-foreground">
+              Could Not Map ({unmappedApps.length})
+            </h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              These locations couldn't be found. Try adding more specific addresses or city names.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {unmappedApps.map((app) => (
+                <Link key={app.id} to={`/applications/${app.id}`}>
+                  <div className="px-3 py-2 rounded-lg border-2 border-border hover:bg-muted transition-colors text-sm">
+                    <span className="font-bold">{app.company}</span>
+                    {app.location && (
+                      <span className="text-muted-foreground"> • {app.location}</span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardRetro>
+        )}
+      </div>
+    );
+  }
+);
