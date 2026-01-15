@@ -1,15 +1,16 @@
-import { useApp } from '@/context/AppContext';
-import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
+import { useApp, UserMode } from '@/context/AppContext';
 import { ButtonRetro } from '@/components/ui/button-retro';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { motivationalQuotes } from '@/lib/data';
-import { Plus, Phone, Flame, Briefcase, FileText, Trophy, ArrowRight, Calendar, Sparkles } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, Phone } from 'lucide-react';
 import { useMemo } from 'react';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
-import { SmartStepDialog } from '@/components/dialogs/SmartStepDialog';
 import { useSmartSteps } from '@/hooks/useSmartSteps';
+import { ModeWelcome } from '@/components/home/ModeWelcome';
+import { ActiveSeekerWidgets } from '@/components/home/ActiveSeekerWidgets';
+import { CareerInsuranceWidgets } from '@/components/home/CareerInsuranceWidgets';
+import { StealthSeekerWidgets } from '@/components/home/StealthSeekerWidgets';
+import { CareerGrowthWidgets } from '@/components/home/CareerGrowthWidgets';
 
 const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
@@ -25,170 +26,157 @@ const getStatusColor = (status: string): string => {
 
 export default function Home() {
   const { profile, applications, events } = useApp();
+  const userMode = profile?.user_mode as UserMode | null;
   
   const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
   
-  const stats = useMemo(() => ({
-    weeklyStreak: 12, // TODO: Calculate from actual data
-    activeJobs: applications.filter(a => !['Rejected', 'Ghosted'].includes(a.status)).length,
-    totalApps: applications.length,
-    offers: applications.filter(a => a.status === 'Offer').length,
-  }), [applications]);
+  // Calculate stats based on applications
+  const stats = useMemo(() => {
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    const appliedThisWeek = applications.filter(a => {
+      const appDate = new Date(a.date_applied || a.created_at);
+      return appDate >= weekStart;
+    }).length;
+
+    return {
+      weeklyStreak: 12, // TODO: Calculate from actual data
+      activeJobs: applications.filter(a => !['Rejected', 'Ghosted'].includes(a.status)).length,
+      totalApps: applications.length,
+      offers: applications.filter(a => a.status === 'Offer').length,
+      interviews: applications.filter(a => a.status === 'Interview').length,
+      appliedThisWeek,
+      savedJobs: applications.filter(a => a.status === 'Saved').length,
+      networkContacts: 12, // TODO: Get from contacts
+      lastResumeUpdate: '2w',
+      monthlyCheckIns: 3,
+      activeConversations: applications.filter(a => ['Interview', 'Applied'].includes(a.status)).length,
+      discreteApplications: applications.length,
+      trustedContacts: 5,
+      pendingResponses: applications.filter(a => a.status === 'Applied').length,
+      skillsInProgress: 3,
+      completedGoals: 7,
+      learningStreak: 14,
+      nextMilestone: 'Sr. Engineer',
+    };
+  }, [applications]);
 
   const recentApps = applications.slice(0, 3);
   const upcomingEvents = events.slice(0, 3);
+  const savedPositions = applications.filter(a => a.status === 'Saved').slice(0, 4);
+  const activeOpportunities = applications
+    .filter(a => !['Rejected', 'Ghosted', 'Saved'].includes(a.status))
+    .slice(0, 4)
+    .map(a => ({
+      ...a,
+      lastActivity: '2 days ago', // TODO: Calculate from actual data
+    }));
+
+  // Skills and goals mock data for career growth mode
+  const skillsProgress = [
+    { name: 'Leadership', current: 12, target: 20, category: 'Soft Skills' },
+    { name: 'System Design', current: 8, target: 15, category: 'Technical' },
+    { name: 'Public Speaking', current: 5, target: 10, category: 'Soft Skills' },
+  ];
+
+  const growthGoals = [
+    { id: '1', title: 'Complete AWS Certification', progress: 65, deadline: 'Mar 2026' },
+    { id: '2', title: 'Lead a cross-team project', progress: 30, deadline: 'Jun 2026' },
+    { id: '3', title: 'Mentor a junior developer', progress: 80, deadline: 'Feb 2026' },
+  ];
 
   // Get automated smart steps based on user activity
   const smartSteps = useSmartSteps(applications, events);
 
+  // Mode-specific quick actions
+  const getQuickActions = () => {
+    switch (userMode) {
+      case 'career_insurance':
+        return (
+          <div className="flex gap-3 flex-wrap">
+            <ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Quick Check-in</ButtonRetro>
+            <ButtonRetro variant="outline"><Plus className="h-4 w-4" /> Save a Job</ButtonRetro>
+          </div>
+        );
+      case 'stealth_seeker':
+        return (
+          <div className="flex gap-3 flex-wrap">
+            <AddEventDialog trigger={<ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Private Note</ButtonRetro>} />
+            <AddApplicationDialog />
+          </div>
+        );
+      case 'career_growth':
+        return (
+          <div className="flex gap-3 flex-wrap">
+            <ButtonRetro variant="outline"><Plus className="h-4 w-4" /> Log Learning</ButtonRetro>
+            <ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Request Feedback</ButtonRetro>
+          </div>
+        );
+      default: // active_seeker
+        return (
+          <div className="flex gap-3 flex-wrap">
+            <AddEventDialog trigger={<ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Log Contact</ButtonRetro>} />
+            <AddApplicationDialog />
+          </div>
+        );
+    }
+  };
+
+  const renderModeWidgets = () => {
+    switch (userMode) {
+      case 'career_insurance':
+        return (
+          <CareerInsuranceWidgets 
+            stats={stats} 
+            savedPositions={savedPositions} 
+          />
+        );
+      case 'stealth_seeker':
+        return (
+          <StealthSeekerWidgets 
+            stats={stats} 
+            activeOpportunities={activeOpportunities}
+            getStatusColor={getStatusColor}
+          />
+        );
+      case 'career_growth':
+        return (
+          <CareerGrowthWidgets 
+            stats={stats} 
+            skillsProgress={skillsProgress}
+            growthGoals={growthGoals}
+          />
+        );
+      default: // active_seeker
+        return (
+          <ActiveSeekerWidgets 
+            stats={stats}
+            recentApps={recentApps}
+            upcomingEvents={upcomingEvents}
+            smartSteps={smartSteps}
+            getStatusColor={getStatusColor}
+          />
+        );
+    }
+  };
+
   return (
     <div className="space-y-8">
-      {/* Welcome Header */}
-      <div className="space-y-2">
-        <h1 className="text-4xl font-black">Welcome back, {profile?.display_name || 'Friend'} 👋</h1>
-        <p className="text-muted-foreground italic">{quote}</p>
-      </div>
+      {/* Mode-aware Welcome Header */}
+      <ModeWelcome 
+        displayName={profile?.display_name || 'Friend'}
+        mode={userMode}
+        quote={quote}
+      />
 
-      {/* Quick Actions */}
-      <div className="flex gap-3 flex-wrap">
-        <AddEventDialog trigger={<ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Log Contact</ButtonRetro>} />
-        <AddApplicationDialog />
-      </div>
+      {/* Mode-specific Quick Actions */}
+      {getQuickActions()}
 
-      {/* Performance Tracker */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <CardRetro className="p-4 bg-secondary/20">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-secondary border-2 border-border"><Flame className="h-5 w-5" /></div>
-            <div>
-              <p className="text-xs font-bold uppercase text-muted-foreground">Weekly Streak</p>
-              <p className="text-2xl font-black">{stats.weeklyStreak} 🔥</p>
-            </div>
-          </div>
-        </CardRetro>
-        <CardRetro className="p-4 bg-info/20">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-info border-2 border-border"><Briefcase className="h-5 w-5" /></div>
-            <div>
-              <p className="text-xs font-bold uppercase text-muted-foreground">Active Jobs</p>
-              <p className="text-2xl font-black">{stats.activeJobs}</p>
-            </div>
-          </div>
-        </CardRetro>
-        <CardRetro className="p-4 bg-primary/20">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary border-2 border-border"><FileText className="h-5 w-5" /></div>
-            <div>
-              <p className="text-xs font-bold uppercase text-muted-foreground">Applications</p>
-              <p className="text-2xl font-black">{stats.totalApps}</p>
-            </div>
-          </div>
-        </CardRetro>
-        <CardRetro className="p-4 bg-success/20">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success border-2 border-border"><Trophy className="h-5 w-5" /></div>
-            <div>
-              <p className="text-xs font-bold uppercase text-muted-foreground">Offers</p>
-              <p className="text-2xl font-black">{stats.offers} 🎉</p>
-            </div>
-          </div>
-        </CardRetro>
-      </div>
-
-      {/* Smart Next Steps */}
-      <CardRetro>
-        <CardRetroHeader>
-          <CardRetroTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Smart Next Steps
-          </CardRetroTitle>
-        </CardRetroHeader>
-        <CardRetroContent className="grid md:grid-cols-3 gap-4">
-          {smartSteps.length > 0 ? (
-            smartSteps.map((step, index) => (
-              <div key={`${step.type}-${index}`} className="p-4 bg-muted rounded-lg border-2 border-border">
-                <h4 className="font-bold">{step.title}</h4>
-                <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
-                <SmartStepDialog
-                  step={step}
-                  trigger={
-                    <ButtonRetro size="sm" variant={step.buttonVariant} className="mt-3">
-                      {step.buttonLabel}
-                    </ButtonRetro>
-                  }
-                />
-              </div>
-            ))
-          ) : (
-            <div className="col-span-3 text-center py-6 text-muted-foreground">
-              <p>All caught up! Add more applications to get personalized suggestions. ✨</p>
-            </div>
-          )}
-        </CardRetroContent>
-      </CardRetro>
-
-      {/* Recent Applications & Schedule */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <CardRetro>
-          <CardRetroHeader className="flex-row items-center justify-between">
-            <CardRetroTitle>Recent Applications</CardRetroTitle>
-            <Link to="/applications"><ButtonRetro size="sm" variant="ghost">View All <ArrowRight className="h-4 w-4" /></ButtonRetro></Link>
-          </CardRetroHeader>
-          <CardRetroContent className="space-y-3">
-            {recentApps.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p>No applications yet.</p>
-                <AddApplicationDialog trigger={
-                  <ButtonRetro size="sm" className="mt-2"><Plus className="h-4 w-4" /> Add your first</ButtonRetro>
-                } />
-              </div>
-            ) : (
-              recentApps.map(app => (
-                <Link key={app.id} to={`/applications/${app.id}`} className="flex items-center gap-4 p-3 rounded-lg border-2 border-border hover:bg-muted transition-colors">
-                  <div className="w-10 h-10 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center font-bold">
-                    {app.company.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold truncate">{app.position}</p>
-                    <p className="text-sm text-muted-foreground truncate">{app.company} • {app.location || 'No location'}</p>
-                  </div>
-                  <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
-                </Link>
-              ))
-            )}
-          </CardRetroContent>
-        </CardRetro>
-
-        <CardRetro>
-          <CardRetroHeader><CardRetroTitle>Upcoming Schedule 📅</CardRetroTitle></CardRetroHeader>
-          <CardRetroContent className="space-y-3">
-            {upcomingEvents.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p>No upcoming events.</p>
-              </div>
-            ) : (
-              upcomingEvents.map(event => (
-                <div key={event.id} className="flex items-center gap-4 p-3 rounded-lg border-2 border-border">
-                  <div className="text-center">
-                    <p className="text-xs font-bold uppercase text-muted-foreground">{new Date(event.date).toLocaleDateString('en-US', { month: 'short' })}</p>
-                    <p className="text-xl font-black">{new Date(event.date).getDate()}</p>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold">{event.title}</p>
-                    <p className="text-sm text-muted-foreground">{event.type}</p>
-                  </div>
-                  {event.time && (
-                    <span className="text-sm text-muted-foreground">{event.time}</span>
-                  )}
-                </div>
-              ))
-            )}
-            <AddEventDialog trigger={
-              <ButtonRetro variant="outline" className="w-full"><Calendar className="h-4 w-4" /> Add Event</ButtonRetro>
-            } />
-          </CardRetroContent>
-        </CardRetro>
-      </div>
+      {/* Mode-specific Widgets */}
+      {renderModeWidgets()}
     </div>
   );
 }

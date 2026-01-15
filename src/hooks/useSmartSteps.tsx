@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { differenceInDays, parseISO, isAfter } from 'date-fns';
 import { Application, Event } from '@/context/AppContext';
 
-interface SmartStep {
+export interface SmartStep {
   title: string;
   description: string;
   type: 'optimize' | 'followup' | 'network' | 'prepare' | 'apply';
