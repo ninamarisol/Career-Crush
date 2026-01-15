@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Building2, ExternalLink, Globe, MapPin } from "lucide-react";
+import { Building2, ExternalLink, Globe, MapPin, Loader2 } from "lucide-react";
 
 import { CardRetro } from "@/components/ui/card-retro";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Application } from "@/context/AppContext";
 
 // Fix Leaflet default icon issue in bundlers
-// (Leaflet expects these images to exist on disk, which isn't true in Vite)
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -22,9 +20,8 @@ interface ApplicationMapProps {
   applications: Application[];
 }
 
-// Common city coordinates (extend as needed)
+// Common city coordinates
 const cityCoordinates: Record<string, { lat: number; lng: number }> = {
-  // US
   "new york": { lat: 40.7128, lng: -74.006 },
   nyc: { lat: 40.7128, lng: -74.006 },
   manhattan: { lat: 40.7831, lng: -73.9712 },
@@ -63,13 +60,9 @@ const cityCoordinates: Record<string, { lat: number; lng: number }> = {
   minneapolis: { lat: 44.9778, lng: -93.265 },
   detroit: { lat: 42.3314, lng: -83.0458 },
   philadelphia: { lat: 39.9526, lng: -75.1652 },
-
-  // Added: Memphis
   memphis: { lat: 35.1495, lng: -90.049 },
   "memphis, tn": { lat: 35.1495, lng: -90.049 },
   "memphis tn": { lat: 35.1495, lng: -90.049 },
-
-  // International
   london: { lat: 51.5074, lng: -0.1278 },
   berlin: { lat: 52.52, lng: 13.405 },
   paris: { lat: 48.8566, lng: 2.3522 },
@@ -117,9 +110,7 @@ interface MapMarker {
 
 function normalizeLocation(location: string) {
   const raw = location.trim().toLowerCase();
-  // Normalize commas and multiple spaces
   const cleaned = raw.replace(/\s+/g, " ");
-  // If "City, ST" or "City, State", keep a city-only variant too
   const cityOnly = cleaned.split(",")[0]?.trim() || cleaned;
   return { cleaned, cityOnly };
 }
@@ -129,7 +120,6 @@ function getCoordsForLocation(location: string): { lat: number; lng: number } | 
   return cityCoordinates[cleaned] || cityCoordinates[cityOnly] || null;
 }
 
-// Custom colored marker
 function createColoredIcon(color: string) {
   return L.divIcon({
     className: "custom-marker",
@@ -150,18 +140,8 @@ function createColoredIcon(color: string) {
   });
 }
 
-function FitBounds({ markers }: { markers: MapMarker[] }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (markers.length === 0) return;
-
-    const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng]));
-    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-  }, [markers, map]);
-
-  return null;
-}
+// Lazy load the map content to avoid SSR issues with react-leaflet
+const MapContent = lazy(() => import("./MapContent"));
 
 export function ApplicationMap({ applications }: ApplicationMapProps) {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
@@ -169,7 +149,6 @@ export function ApplicationMap({ applications }: ApplicationMapProps) {
   const markers: MapMarker[] = useMemo(() => {
     return applications
       .map((app) => {
-        // Use stored coordinates first
         if (app.latitude != null && app.longitude != null) {
           return { app, lat: app.latitude, lng: app.longitude };
         }
@@ -182,7 +161,6 @@ export function ApplicationMap({ applications }: ApplicationMapProps) {
         const coords = getCoordsForLocation(app.location);
         if (!coords) return null;
 
-        // Add small random offset to prevent exact overlap
         const offset = () => (Math.random() - 0.5) * 0.02;
         return {
           app,
@@ -208,58 +186,25 @@ export function ApplicationMap({ applications }: ApplicationMapProps) {
     });
   }, [applications]);
 
-  const defaultCenter: [number, number] =
-    markers.length > 0 ? [markers[0].lat, markers[0].lng] : [39.8283, -98.5795];
-
   return (
     <div className="space-y-4">
       <CardRetro className="p-0 overflow-hidden">
         <div className="h-[500px] relative">
           {markers.length > 0 ? (
-            <MapContainer
-              center={defaultCenter}
-              zoom={4}
-              style={{ height: "100%", width: "100%" }}
-              scrollWheelZoom={true}
+            <Suspense
+              fallback={
+                <div className="h-full flex items-center justify-center bg-muted">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              }
             >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              <MapContent
+                markers={markers}
+                onMarkerClick={setSelectedApp}
+                getStatusHexColor={getStatusHexColor}
+                createColoredIcon={createColoredIcon}
               />
-              <FitBounds markers={markers} />
-              {markers.map((marker) => (
-                <Marker
-                  key={marker.app.id}
-                  position={[marker.lat, marker.lng]}
-                  icon={createColoredIcon(getStatusHexColor(marker.app.status))}
-                  eventHandlers={{
-                    click: () => setSelectedApp(marker.app),
-                  }}
-                >
-                  <Popup>
-                    <div className="min-w-[200px]">
-                      <p className="font-bold text-base">{marker.app.position}</p>
-                      <p className="text-sm text-muted-foreground">{marker.app.company}</p>
-                      <p className="text-xs text-muted-foreground">{marker.app.location}</p>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span
-                          className="px-2 py-0.5 rounded text-xs font-medium text-white"
-                          style={{ backgroundColor: getStatusHexColor(marker.app.status) }}
-                        >
-                          {marker.app.status}
-                        </span>
-                        <Link
-                          to={`/applications/${marker.app.id}`}
-                          className="text-sm underline"
-                        >
-                          View Details →
-                        </Link>
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
+            </Suspense>
           ) : (
             <div className="h-full flex flex-col items-center justify-center bg-muted">
               <Globe className="h-16 w-16 text-muted-foreground mb-4" />
