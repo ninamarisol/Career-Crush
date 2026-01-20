@@ -1,6 +1,6 @@
 import { useApp, UserMode } from '@/context/AppContext';
 import { ButtonRetro } from '@/components/ui/button-retro';
-import { motivationalQuotes } from '@/lib/data';
+import { crushModeQuotes, climbModeQuotes } from '@/lib/data';
 import { Plus, Phone } from 'lucide-react';
 import { useMemo } from 'react';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
@@ -28,7 +28,10 @@ export default function Home() {
   const { contacts } = useContacts();
   const userMode = profile?.user_mode as UserMode | null;
   
-  const quote = useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
+  const quote = useMemo(() => {
+    const quotes = userMode === 'climb' ? climbModeQuotes : crushModeQuotes;
+    return quotes[Math.floor(Math.random() * quotes.length)];
+  }, [userMode]);
   
   const stats = useMemo(() => {
     const now = new Date();
