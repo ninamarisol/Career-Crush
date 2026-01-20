@@ -17,6 +17,7 @@ import Profile from "./pages/Profile";
 import Goals from "./pages/Goals";
 import Contacts from "./pages/Contacts";
 import NotFound from "./pages/NotFound";
+import TrackRecord from "./pages/TrackRecord";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ function AppRoutes() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/goals" element={<Goals />} />
+        <Route path="/track-record" element={<TrackRecord />} />
         <Route path="/settings" element={<Navigate to="/profile" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
