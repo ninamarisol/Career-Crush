@@ -616,6 +616,84 @@ export type Database = {
         }
         Relationships: []
       }
+      track_record_entries: {
+        Row: {
+          ai_improvement_suggestion: string | null
+          ai_potential_questions: string[] | null
+          ai_strength_explanation: string | null
+          ai_strength_score: number | null
+          ai_suggested_tags: string[] | null
+          content: string
+          context_company: string | null
+          context_date: string | null
+          context_project: string | null
+          context_role: string | null
+          created_at: string
+          entry_type: string
+          id: string
+          manual_tags: string[] | null
+          star_action: string | null
+          star_result: string | null
+          star_situation: string | null
+          star_task: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          usage_log: Json | null
+          user_id: string
+        }
+        Insert: {
+          ai_improvement_suggestion?: string | null
+          ai_potential_questions?: string[] | null
+          ai_strength_explanation?: string | null
+          ai_strength_score?: number | null
+          ai_suggested_tags?: string[] | null
+          content: string
+          context_company?: string | null
+          context_date?: string | null
+          context_project?: string | null
+          context_role?: string | null
+          created_at?: string
+          entry_type?: string
+          id?: string
+          manual_tags?: string[] | null
+          star_action?: string | null
+          star_result?: string | null
+          star_situation?: string | null
+          star_task?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          usage_log?: Json | null
+          user_id: string
+        }
+        Update: {
+          ai_improvement_suggestion?: string | null
+          ai_potential_questions?: string[] | null
+          ai_strength_explanation?: string | null
+          ai_strength_score?: number | null
+          ai_suggested_tags?: string[] | null
+          content?: string
+          context_company?: string | null
+          context_date?: string | null
+          context_project?: string | null
+          context_role?: string | null
+          created_at?: string
+          entry_type?: string
+          id?: string
+          manual_tags?: string[] | null
+          star_action?: string | null
+          star_result?: string | null
+          star_situation?: string | null
+          star_task?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          usage_log?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_goals: {
         Row: {
           active_achievement_paths: string[] | null
