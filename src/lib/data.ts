@@ -215,18 +215,32 @@ export const mockEvents: Event[] = [
   },
 ];
 
-export const motivationalQuotes = [
+// Crush mode quotes - focused on job search and applications
+export const crushModeQuotes = [
   "Your dream job is out there waiting for you. Keep applying! ✨",
   "Every 'no' brings you closer to that perfect 'yes.' Stay strong! 💪",
-  "You're not just job hunting—you're building your future. 🚀",
   "Today's application could be tomorrow's career breakthrough! 🌟",
   "Interviews are just conversations. You've got this! 🎯",
-  "Your skills are valuable. The right company will see that. 💎",
   "Persistence beats perfection. Keep showing up! 🔥",
   "Every rejection is just redirection to something better. 🌈",
   "You're one application away from changing your life. Go for it! ⚡",
   "Companies don't just hire resumes—they hire amazing people like you! 💖",
 ];
+
+// Climb mode quotes - focused on career growth and development
+export const climbModeQuotes = [
+  "Growth happens one skill at a time. You're building something great! 🌱",
+  "Your career is a marathon, not a sprint. Keep climbing! ⛰️",
+  "Every day is a chance to become a better version of yourself. 📈",
+  "Invest in yourself—it's the highest-return investment you'll ever make. 💡",
+  "Leaders aren't born, they're built through consistent effort. 🏆",
+  "Your network is your net worth. Keep nurturing those connections! 🤝",
+  "Small daily improvements lead to stunning results over time. ✨",
+  "The best time to grow was yesterday. The next best time is now. 🚀",
+];
+
+// Legacy export for backwards compatibility
+export const motivationalQuotes = crushModeQuotes;
 
 export const getStatusColor = (status: ApplicationStatus): string => {
   const colors = {
