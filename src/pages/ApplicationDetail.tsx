@@ -5,7 +5,7 @@ import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { InputRetro } from '@/components/ui/input-retro';
-import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon, Sparkles, Wand2, Target, Tag, ChevronDown, ChevronUp, Download, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon, Sparkles, Wand2, Target, Tag, ChevronDown, ChevronUp, Download, Save, Loader2, Briefcase, StickyNote, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ import { calculateMatchScore, getScoreColor, getScoreBgColor } from '@/lib/match
 import { Progress } from '@/components/ui/progress';
 import { useMasterResume } from '@/hooks/useMasterResume';
 import { useAuth } from '@/hooks/useAuth';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type ApplicationStatus = 'Saved' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted';
 
@@ -305,12 +306,10 @@ export default function ApplicationDetail() {
         return;
       }
 
-      // Create download link
       const url = URL.createObjectURL(data);
       const link = document.createElement('a');
       link.href = url;
       
-      // Determine file extension
       const ext = app.resume_url.split('.').pop() || 'txt';
       link.download = `${app.company}_${app.position}_resume.${ext}`;
       document.body.appendChild(link);
@@ -338,7 +337,6 @@ export default function ApplicationDetail() {
     setShowAnalysisDialog(true);
 
     try {
-      // Download the resume content
       const { data: resumeData, error: downloadError } = await supabase.storage
         .from('resumes')
         .download(app.resume_url);
@@ -349,10 +347,8 @@ export default function ApplicationDetail() {
         return;
       }
 
-      // Read the resume text
       const resumeText = await resumeData.text();
 
-      // Call the analyze-resume function
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-resume`, {
         method: 'POST',
         headers: {
@@ -383,7 +379,6 @@ export default function ApplicationDetail() {
       const analysisData = await response.json();
       setResumeAnalysis(analysisData);
       
-      // Update the resume_score in the application
       if (analysisData.overallScore) {
         await updateApplication(app.id, { resume_score: analysisData.overallScore });
       }
@@ -413,505 +408,604 @@ export default function ApplicationDetail() {
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
       <ButtonRetro variant="ghost" onClick={() => navigate('/applications')}>
-        <ArrowLeft className="h-4 w-4" /> Back
+        <ArrowLeft className="h-4 w-4" /> Back to Applications
       </ButtonRetro>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
-          <CardRetro className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-xl bg-primary/20 border-2 border-border flex items-center justify-center text-2xl font-black">
-                {app.company.charAt(0).toUpperCase()}
+      {/* Header Card - Always Visible */}
+      <CardRetro className="p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-16 h-16 rounded-xl bg-primary/20 border-2 border-border flex items-center justify-center text-2xl font-black shrink-0">
+            {app.company.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            {isEditing ? (
+              <div className="space-y-3">
+                <InputRetro
+                  value={editForm.position}
+                  onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+                  placeholder="Role Title"
+                  className="text-xl font-bold"
+                />
+                <InputRetro
+                  value={editForm.company}
+                  onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+                  placeholder="Company"
+                />
               </div>
-              <div className="flex-1">
+            ) : (
+              <>
+                <h1 className="text-2xl md:text-3xl font-black truncate">{app.position}</h1>
+                <p className="text-lg text-muted-foreground flex items-center gap-2 flex-wrap">
+                  <span>{app.company}</span>
+                  {app.location && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" /> {app.location}
+                      </span>
+                    </>
+                  )}
+                </p>
+              </>
+            )}
+            
+            {/* Quick Info Row */}
+            <div className="flex gap-3 mt-3 flex-wrap items-center">
+              {isEditingStatus ? (
+                <div className="flex gap-2 flex-wrap">
+                  {statuses.map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusChange(status)}
+                      className={cn(
+                        "px-3 py-1 rounded-full border-2 border-border text-sm font-bold transition-all",
+                        app.status === status
+                          ? "bg-primary text-primary-foreground shadow-retro-sm"
+                          : "bg-card hover:bg-muted"
+                      )}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                  <ButtonRetro size="sm" variant="ghost" onClick={() => setIsEditingStatus(false)}>
+                    <X className="h-4 w-4" />
+                  </ButtonRetro>
+                </div>
+              ) : (
+                <>
+                  <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
+                  <ButtonRetro size="sm" variant="ghost" onClick={() => setIsEditingStatus(true)}>
+                    <Edit2 className="h-3 w-3" /> Change
+                  </ButtonRetro>
+                </>
+              )}
+              
+              {/* Match Score Badge */}
+              {matchBreakdown && (
+                <div className={cn("px-3 py-1 rounded-full font-bold text-sm flex items-center gap-1", getScoreBgColor(matchBreakdown.totalScore))}>
+                  <Target className="h-3 w-3" />
+                  <span className={getScoreColor(matchBreakdown.totalScore)}>{matchBreakdown.totalScore}% Match</span>
+                </div>
+              )}
+              
+              {/* ATS Score Badge */}
+              {app.resume_score && (
+                <div className={cn("px-3 py-1 rounded-full font-bold text-sm flex items-center gap-1", getAnalysisScoreBgColor(app.resume_score))}>
+                  <BarChart3 className="h-3 w-3" />
+                  <span className={getAnalysisScoreColor(app.resume_score)}>ATS: {app.resume_score}%</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Tags */}
+            {(app.industry || app.role_type || app.work_style) && !isEditing && (
+              <div className="flex gap-2 flex-wrap mt-3">
+                {app.industry && (
+                  <span className="px-2 py-1 rounded-full bg-primary/10 text-xs font-medium flex items-center gap-1 border border-border">
+                    <Tag className="h-3 w-3" /> {app.industry}
+                  </span>
+                )}
+                {app.role_type && (
+                  <span className="px-2 py-1 rounded-full bg-muted text-xs font-medium border border-border">
+                    {app.role_type}
+                  </span>
+                )}
+                {app.work_style && (
+                  <span className="px-2 py-1 rounded-full bg-muted text-xs font-medium border border-border flex items-center gap-1">
+                    <Building2 className="h-3 w-3" /> {app.work_style}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* Header Actions */}
+          <div className="flex gap-2 shrink-0">
+            {app.job_posting_url && (
+              <ButtonRetro size="sm" variant="outline" onClick={() => window.open(app.job_posting_url!, '_blank')}>
+                <ExternalLink className="h-4 w-4" />
+              </ButtonRetro>
+            )}
+            {!isEditing ? (
+              <ButtonRetro size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                <Edit2 className="h-4 w-4" />
+              </ButtonRetro>
+            ) : (
+              <div className="flex gap-2">
+                <ButtonRetro size="sm" onClick={handleSaveEdit}>
+                  <Check className="h-4 w-4" />
+                </ButtonRetro>
+                <ButtonRetro size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+                  <X className="h-4 w-4" />
+                </ButtonRetro>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardRetro>
+
+      {/* Main Content with Tabs */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="w-full justify-start mb-4 bg-muted/50 p-1">
+              <TabsTrigger value="overview" className="gap-2">
+                <Briefcase className="h-4 w-4" /> Overview
+              </TabsTrigger>
+              <TabsTrigger value="resume" className="gap-2">
+                <FileText className="h-4 w-4" /> Resume
+              </TabsTrigger>
+              <TabsTrigger value="notes" className="gap-2">
+                <StickyNote className="h-4 w-4" /> Notes
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-6 mt-0">
+              {/* Quick Details */}
+              <CardRetro className="p-6">
+                <h3 className="font-bold text-lg mb-4">Job Details</h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Salary Range</p>
+                      {isEditing ? (
+                        <div className="flex gap-2 items-center">
+                          <InputRetro
+                            type="number"
+                            value={editForm.salary_min}
+                            onChange={(e) => setEditForm({ ...editForm, salary_min: e.target.value })}
+                            placeholder="Min"
+                            className="w-16 text-sm"
+                          />
+                          <span>-</span>
+                          <InputRetro
+                            type="number"
+                            value={editForm.salary_max}
+                            onChange={(e) => setEditForm({ ...editForm, salary_max: e.target.value })}
+                            placeholder="Max"
+                            className="w-16 text-sm"
+                          />
+                          <span className="text-xs text-muted-foreground">k</span>
+                        </div>
+                      ) : (
+                        <p className="font-bold">{formatSalary(app.salary_min, app.salary_max)}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Date Applied</p>
+                      {isEditing ? (
+                        <InputRetro
+                          type="date"
+                          value={editForm.date_applied}
+                          onChange={(e) => setEditForm({ ...editForm, date_applied: e.target.value })}
+                          className="w-36 text-sm"
+                        />
+                      ) : (
+                        <p className="font-bold">{new Date(app.date_applied).toLocaleDateString()}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <Building2 className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Work Style</p>
+                      {isEditing ? (
+                        <div className="flex gap-1">
+                          {['Remote', 'Hybrid', 'On-site'].map((style) => (
+                            <button
+                              key={style}
+                              type="button"
+                              onClick={() => setEditForm({ ...editForm, work_style: style })}
+                              className={cn(
+                                "px-2 py-0.5 rounded text-xs font-bold border border-border",
+                                editForm.work_style === style ? "bg-primary text-primary-foreground" : "bg-muted"
+                              )}
+                            >
+                              {style}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="font-bold">{app.work_style || 'Not specified'}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <MapPin className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Location</p>
+                      {isEditing ? (
+                        <InputRetro
+                          value={editForm.location}
+                          onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                          placeholder="City, State"
+                          className="text-sm"
+                        />
+                      ) : (
+                        <p className="font-bold">{app.location || 'Not specified'}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Industry & Role Type (Edit Mode) */}
+                {isEditing && (
+                  <div className="grid sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Industry</label>
+                      <select
+                        value={editForm.industry}
+                        onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })}
+                        className="w-full p-2 border-2 border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none text-sm"
+                      >
+                        <option value="">Select industry...</option>
+                        {industryOptions.map((ind) => (
+                          <option key={ind} value={ind}>{ind}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Role Type</label>
+                      <select
+                        value={editForm.role_type}
+                        onChange={(e) => setEditForm({ ...editForm, role_type: e.target.value })}
+                        className="w-full p-2 border-2 border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none text-sm"
+                      >
+                        <option value="">Select role type...</option>
+                        {roleTypeOptions.map((role) => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </CardRetro>
+
+              {/* Dream Job Match Score */}
+              {matchBreakdown && (
+                <CardRetro className="p-6">
+                  <div 
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => setShowScoreBreakdown(!showScoreBreakdown)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center font-black text-xl", getScoreBgColor(matchBreakdown.totalScore))}>
+                        <span className={getScoreColor(matchBreakdown.totalScore)}>{matchBreakdown.totalScore}%</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                          <Target className="h-5 w-5" /> Dream Job Match
+                        </h3>
+                        <p className="text-sm text-muted-foreground">Based on your job preferences</p>
+                      </div>
+                    </div>
+                    <ButtonRetro size="sm" variant="ghost">
+                      {showScoreBreakdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </ButtonRetro>
+                  </div>
+                  
+                  {showScoreBreakdown && (
+                    <div className="mt-4 pt-4 border-t-2 border-border space-y-4">
+                      {[
+                        { key: 'location', label: 'Location', icon: MapPin, data: matchBreakdown.location },
+                        { key: 'salary', label: 'Salary', icon: DollarSign, data: matchBreakdown.salary },
+                        { key: 'roleType', label: 'Role Type', icon: Building2, data: matchBreakdown.roleType },
+                        { key: 'industry', label: 'Industry', icon: Tag, data: matchBreakdown.industry },
+                        { key: 'workStyle', label: 'Work Style', icon: Clock, data: matchBreakdown.workStyle },
+                      ].map(({ key, label, icon: Icon, data }) => (
+                        <div key={key} className="space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-2 font-medium">
+                              <Icon className="h-4 w-4 text-muted-foreground" />
+                              {label}
+                              <span className="text-xs text-muted-foreground">({data.weight}% weight)</span>
+                            </span>
+                            <span className={cn("font-bold", getScoreColor(data.score))}>{data.score}%</span>
+                          </div>
+                          <Progress value={data.score} className="h-2" />
+                          <p className="text-xs text-muted-foreground">{data.reason}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardRetro>
+              )}
+
+              {/* Job Description */}
+              <CardRetro className="p-6">
+                <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Job Description
+                </h3>
                 {isEditing ? (
                   <div className="space-y-3">
-                    <InputRetro
-                      value={editForm.position}
-                      onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
-                      placeholder="Role Title"
-                      className="text-2xl font-bold"
-                    />
-                    <InputRetro
-                      value={editForm.company}
-                      onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                      placeholder="Company"
-                    />
-                    <InputRetro
-                      value={editForm.location}
-                      onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                      placeholder="Location"
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <LinkIcon className="h-4 w-4" /> Job Posting URL
+                      </label>
+                      <InputRetro
+                        type="url"
+                        value={editForm.job_posting_url}
+                        onChange={(e) => setEditForm({ ...editForm, job_posting_url: e.target.value })}
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <textarea
+                      value={editForm.job_description}
+                      onChange={(e) => setEditForm({ ...editForm, job_description: e.target.value })}
+                      className="w-full p-3 border-2 border-border rounded-xl bg-background focus:ring-2 focus:ring-primary focus:outline-none min-h-[200px] resize-none"
+                      placeholder="Paste the job description here..."
                     />
                   </div>
                 ) : (
                   <>
-                    <h1 className="text-3xl font-black">{app.position}</h1>
-                    <p className="text-lg text-muted-foreground">{app.company} • {app.location || 'No location'}</p>
-                    {/* Tags */}
-                    {(app.industry || app.role_type) && (
-                      <div className="flex gap-2 flex-wrap mt-2">
-                        {app.industry && (
-                          <span className="px-2 py-1 rounded-full bg-primary/10 text-sm font-medium flex items-center gap-1 border border-border">
-                            <Tag className="h-3 w-3" /> {app.industry}
-                          </span>
-                        )}
-                        {app.role_type && (
-                          <span className="px-2 py-1 rounded-full bg-muted text-sm font-medium border border-border">
-                            {app.role_type}
-                          </span>
-                        )}
-                      </div>
+                    {app.job_posting_url && (
+                      <a 
+                        href={app.job_posting_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-primary hover:underline text-sm flex items-center gap-1 mb-3"
+                      >
+                        <LinkIcon className="h-3 w-3" /> View original posting
+                      </a>
+                    )}
+                    {app.job_description ? (
+                      <p className="text-muted-foreground whitespace-pre-wrap text-sm leading-relaxed max-h-[400px] overflow-y-auto">{app.job_description}</p>
+                    ) : (
+                      <p className="text-muted-foreground italic">No job description added. Click Edit to paste one!</p>
                     )}
                   </>
                 )}
-                <div className="flex gap-2 mt-3 flex-wrap items-center">
-                  {isEditingStatus ? (
-                    <div className="flex gap-2 flex-wrap">
-                      {statuses.map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => handleStatusChange(status)}
-                          className={cn(
-                            "px-3 py-1 rounded-full border-2 border-border text-sm font-bold transition-all",
-                            app.status === status
-                              ? "bg-primary text-primary-foreground shadow-retro-sm"
-                              : "bg-card hover:bg-muted"
-                          )}
-                        >
-                          {status}
-                        </button>
-                      ))}
-                      <ButtonRetro size="sm" variant="ghost" onClick={() => setIsEditingStatus(false)}>
-                        <X className="h-4 w-4" />
-                      </ButtonRetro>
-                    </div>
-                  ) : (
-                    <>
-                      <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
-                      <ButtonRetro size="sm" variant="ghost" onClick={() => setIsEditingStatus(true)}>
-                        <Edit2 className="h-3 w-3" /> Change
-                      </ButtonRetro>
-                    </>
-                  )}
-                  {app.job_posting_url && (
-                    <ButtonRetro size="sm" variant="outline" onClick={() => window.open(app.job_posting_url!, '_blank')}>
-                      <ExternalLink className="h-4 w-4" /> View Posting
-                    </ButtonRetro>
-                  )}
-                </div>
-              </div>
-              {!isEditing && (
-                <ButtonRetro size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                  <Edit2 className="h-4 w-4" /> Edit
-                </ButtonRetro>
-              )}
-            </div>
-            {isEditing && (
-              <div className="flex gap-2 mt-4">
-                <ButtonRetro size="sm" onClick={handleSaveEdit}>
-                  <Check className="h-4 w-4" /> Save
-                </ButtonRetro>
-                <ButtonRetro size="sm" variant="outline" onClick={() => setIsEditing(false)}>
-                  <X className="h-4 w-4" /> Cancel
-                </ButtonRetro>
-              </div>
-            )}
-          </CardRetro>
+              </CardRetro>
+            </TabsContent>
 
-          {/* Dream Job Match Score Card */}
-          {matchBreakdown && (
-            <CardRetro className="p-6">
-              <div 
-                className="flex items-center justify-between cursor-pointer"
-                onClick={() => setShowScoreBreakdown(!showScoreBreakdown)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center font-black text-xl", getScoreBgColor(matchBreakdown.totalScore))}>
-                    <span className={getScoreColor(matchBreakdown.totalScore)}>{matchBreakdown.totalScore}%</span>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg flex items-center gap-2">
-                      <Target className="h-5 w-5" /> Dream Job Match
-                    </h3>
-                    <p className="text-sm text-muted-foreground">Based on your job preferences</p>
-                  </div>
-                </div>
-                <ButtonRetro size="sm" variant="ghost">
-                  {showScoreBreakdown ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </ButtonRetro>
-              </div>
-              
-              {showScoreBreakdown && (
-                <div className="mt-4 pt-4 border-t-2 border-border space-y-4">
-                  {[
-                    { key: 'location', label: 'Location', icon: MapPin, data: matchBreakdown.location },
-                    { key: 'salary', label: 'Salary', icon: DollarSign, data: matchBreakdown.salary },
-                    { key: 'roleType', label: 'Role Type', icon: Building2, data: matchBreakdown.roleType },
-                    { key: 'industry', label: 'Industry', icon: Tag, data: matchBreakdown.industry },
-                    { key: 'workStyle', label: 'Work Style', icon: Clock, data: matchBreakdown.workStyle },
-                  ].map(({ key, label, icon: Icon, data }) => (
-                    <div key={key} className="space-y-1">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2 font-medium">
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          {label}
-                          <span className="text-xs text-muted-foreground">({data.weight}% weight)</span>
-                        </span>
-                        <span className={cn("font-bold", getScoreColor(data.score))}>{data.score}%</span>
-                      </div>
-                      <Progress value={data.score} className="h-2" />
-                      <p className="text-xs text-muted-foreground">{data.reason}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardRetro>
-          )}
-
-          <CardRetro className="p-6">
-            <h3 className="font-bold text-lg mb-4">Details</h3>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Salary</p>
-                  {isEditing ? (
-                    <div className="flex gap-2 items-center">
-                      <InputRetro
-                        type="number"
-                        value={editForm.salary_min}
-                        onChange={(e) => setEditForm({ ...editForm, salary_min: e.target.value })}
-                        placeholder="Min"
-                        className="w-20"
-                      />
-                      <span>-</span>
-                      <InputRetro
-                        type="number"
-                        value={editForm.salary_max}
-                        onChange={(e) => setEditForm({ ...editForm, salary_max: e.target.value })}
-                        placeholder="Max"
-                        className="w-20"
-                      />
-                      <span className="text-sm text-muted-foreground">k</span>
-                    </div>
-                  ) : (
-                    <p className="font-bold">{formatSalary(app.salary_min, app.salary_max)}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Applied</p>
-                  {isEditing ? (
-                    <InputRetro
-                      type="date"
-                      value={editForm.date_applied}
-                      onChange={(e) => setEditForm({ ...editForm, date_applied: e.target.value })}
-                      className="w-40"
-                    />
-                  ) : (
-                    <p className="font-bold">{new Date(app.date_applied).toLocaleDateString()}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Building2 className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Work Style</p>
-                  {isEditing ? (
-                    <div className="flex gap-1">
-                      {['Remote', 'Hybrid', 'On-site'].map((style) => (
-                        <button
-                          key={style}
-                          type="button"
-                          onClick={() => setEditForm({ ...editForm, work_style: style })}
-                          className={cn(
-                            "px-2 py-0.5 rounded text-xs font-bold border border-border",
-                            editForm.work_style === style ? "bg-primary text-primary-foreground" : "bg-muted"
-                          )}
-                        >
-                          {style}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="font-bold">{app.work_style || 'Not specified'}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Location</p>
-                  <p className="font-bold">{app.location || 'Not specified'}</p>
-                </div>
-              </div>
-            </div>
-          </CardRetro>
-
-          {/* Industry & Role Type */}
-          <CardRetro className="p-6">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-              <Tag className="h-5 w-5" /> Industry & Role Type
-            </h3>
-            {isEditing ? (
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Industry</label>
-                  <select
-                    value={editForm.industry}
-                    onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })}
-                    className="w-full p-2 border-2 border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
-                  >
-                    <option value="">Select industry...</option>
-                    {industryOptions.map((ind) => (
-                      <option key={ind} value={ind}>{ind}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Role Type</label>
-                  <select
-                    value={editForm.role_type}
-                    onChange={(e) => setEditForm({ ...editForm, role_type: e.target.value })}
-                    className="w-full p-2 border-2 border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:outline-none"
-                  >
-                    <option value="">Select role type...</option>
-                    {roleTypeOptions.map((role) => (
-                      <option key={role} value={role}>{role}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Industry</p>
-                  <p className="font-bold">{app.industry || 'Not specified'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Role Type</p>
-                  <p className="font-bold">{app.role_type || 'Not specified'}</p>
-                </div>
-              </div>
-            )}
-          </CardRetro>
-
-          {/* Job Posting URL */}
-          <CardRetro className="p-6">
-            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-              <LinkIcon className="h-5 w-5" /> Job Posting Link
-            </h3>
-            {isEditing ? (
-              <InputRetro
-                type="url"
-                value={editForm.job_posting_url}
-                onChange={(e) => setEditForm({ ...editForm, job_posting_url: e.target.value })}
-                placeholder="https://..."
-              />
-            ) : (
-              app.job_posting_url ? (
-                <a href={app.job_posting_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
-                  {app.job_posting_url}
-                </a>
-              ) : (
-                <p className="text-muted-foreground">No job posting link added</p>
-              )
-            )}
-          </CardRetro>
-
-          {/* Job Description */}
-          <CardRetro className="p-6">
-            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-              <FileText className="h-5 w-5" /> Job Description
-            </h3>
-            {isEditing ? (
-              <textarea
-                value={editForm.job_description}
-                onChange={(e) => setEditForm({ ...editForm, job_description: e.target.value })}
-                className="w-full p-3 border-2 border-border rounded-xl bg-background focus:ring-2 focus:ring-primary focus:outline-none min-h-[200px] resize-none"
-                placeholder="Paste the job description here..."
-              />
-            ) : (
-              app.job_description ? (
-                <p className="text-muted-foreground whitespace-pre-wrap">{app.job_description}</p>
-              ) : (
-                <p className="text-muted-foreground italic">No job description added. Click Edit to paste one!</p>
-              )
-            )}
-          </CardRetro>
-
-          {/* Notes Section */}
-          <CardRetro className="p-6">
-            <h3 className="font-bold text-lg mb-3">Notes</h3>
-            {isEditing ? (
-              <textarea
-                value={editForm.notes}
-                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                className="w-full p-3 border-2 border-border rounded-xl bg-background focus:ring-2 focus:ring-primary focus:outline-none min-h-[120px] resize-none"
-                placeholder="Add notes about this opportunity..."
-              />
-            ) : (
-              <p className="text-muted-foreground">{app.notes || 'No notes yet. Click Edit to add some!'}</p>
-            )}
-          </CardRetro>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Resume Upload */}
-          <CardRetro className="p-6">
-            <h3 className="font-bold mb-4 flex items-center gap-2">
-              <Upload className="h-5 w-5" /> Resume for this Job
-            </h3>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={handleResumeUpload}
-              className="hidden"
-            />
-            {app.resume_url ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Resume uploaded ✓</p>
-                  {app.resume_score && (
-                    <span className={cn("text-sm font-bold", getAnalysisScoreColor(app.resume_score))}>
-                      ATS: {app.resume_score}%
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <ButtonRetro size="sm" variant="outline" onClick={handleViewResume}>
-                    <FileText className="h-4 w-4" /> View
-                  </ButtonRetro>
-                  <ButtonRetro size="sm" variant="outline" onClick={handleDownloadResume} disabled={downloading}>
-                    {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
-                  </ButtonRetro>
-                  <ButtonRetro size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                    <Upload className="h-4 w-4" /> Replace
-                  </ButtonRetro>
-                </div>
+            {/* Resume Tab */}
+            <TabsContent value="resume" className="space-y-6 mt-0">
+              <CardRetro className="p-6">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Resume Management
+                </h3>
                 
-                {/* Analyze Resume */}
-                {app.job_description && (
-                  <div className="pt-3 border-t border-border">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleResumeUpload}
+                  className="hidden"
+                />
+                
+                {app.resume_url ? (
+                  <div className="space-y-4">
+                    {/* Current Resume Status */}
+                    <div className="p-4 bg-muted/50 rounded-lg border border-border">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-primary" />
+                          <span className="font-medium">Resume Uploaded</span>
+                          <Check className="h-4 w-4 text-green-600" />
+                        </div>
+                        {app.resume_score && (
+                          <div className={cn("px-3 py-1 rounded-full font-bold text-sm", getAnalysisScoreBgColor(app.resume_score))}>
+                            <span className={getAnalysisScoreColor(app.resume_score)}>ATS Score: {app.resume_score}%</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <ButtonRetro size="sm" variant="outline" onClick={handleViewResume}>
+                          <FileText className="h-4 w-4" /> View
+                        </ButtonRetro>
+                        <ButtonRetro size="sm" variant="outline" onClick={handleDownloadResume} disabled={downloading}>
+                          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
+                        </ButtonRetro>
+                        <ButtonRetro size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                          <Upload className="h-4 w-4" /> Replace
+                        </ButtonRetro>
+                      </div>
+                    </div>
+
+                    {/* Analyze Resume */}
+                    {app.job_description && (
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <h4 className="font-bold mb-2 flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                          <Target className="h-4 w-4" /> Analyze Your Resume
+                        </h4>
+                        <p className="text-sm text-blue-600 dark:text-blue-300 mb-3">
+                          Get detailed feedback on how well your resume matches this job description.
+                        </p>
+                        <ButtonRetro
+                          variant="outline"
+                          className="w-full gap-2 border-blue-300 dark:border-blue-700"
+                          onClick={handleAnalyzeResume}
+                          disabled={analyzingResume}
+                        >
+                          {analyzingResume ? (
+                            <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing...</>
+                          ) : (
+                            <><Target className="h-4 w-4" /> Analyze ATS Score</>
+                          )}
+                        </ButtonRetro>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 border-2 border-dashed border-border rounded-lg text-center">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="font-medium mb-1">No resume uploaded</p>
+                    <p className="text-sm text-muted-foreground mb-3">Upload your resume to track it with this application</p>
                     <ButtonRetro
                       variant="outline"
-                      size="sm"
-                      className="w-full gap-2"
-                      onClick={handleAnalyzeResume}
-                      disabled={analyzingResume}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
                     >
-                      {analyzingResume ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing...</>
-                      ) : (
-                        <><Target className="h-4 w-4" /> Analyze ATS Score</>
-                      )}
+                      {uploading ? 'Uploading...' : <><Upload className="h-4 w-4" /> Upload Resume</>}
                     </ButtonRetro>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Get feedback on how well your resume matches this job
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">PDF, DOC, or DOCX files</p>
                   </div>
                 )}
+              </CardRetro>
+
+              {/* AI Resume Generator */}
+              <CardRetro className="p-6">
+                <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                  <Wand2 className="h-5 w-5 text-primary" /> AI Resume Generator
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Generate an ATS-optimized resume tailored specifically for this job using your master resume.
+                </p>
                 
-                {/* Generate new ATS resume option */}
-                <div className="pt-3 border-t border-border">
-                  <p className="text-xs text-muted-foreground mb-2">Generate a new optimized resume:</p>
-                  <ButtonRetro
-                    variant="default"
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={handleGenerateATSResume}
-                    disabled={!app.job_description}
-                  >
-                    <Wand2 className="h-4 w-4" />
-                    Generate ATS Resume
-                  </ButtonRetro>
-                  {!hasMasterResume && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      💡 Add your master resume in Profile for better results
-                    </p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
                 <ButtonRetro
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
+                  className="w-full gap-2"
+                  onClick={handleGenerateATSResume}
+                  disabled={!app.job_description || generatingResume}
                 >
-                  {uploading ? 'Uploading...' : <><Upload className="h-4 w-4" /> Upload Resume</>}
+                  {generatingResume ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4" /> Generate ATS-Optimized Resume</>
+                  )}
                 </ButtonRetro>
                 
-                {/* ATS Resume Generator */}
-                <div className="pt-3 border-t border-border">
-                  <p className="text-xs text-muted-foreground mb-2">Or generate an optimized resume:</p>
-                  <ButtonRetro
-                    variant="default"
-                    className="w-full gap-2"
-                    onClick={handleGenerateATSResume}
-                    disabled={!app.job_description}
-                  >
-                    <Wand2 className="h-4 w-4" />
-                    Generate ATS Resume
-                  </ButtonRetro>
-                  {!app.job_description && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Add a job description first
-                    </p>
-                  )}
-                  {!hasMasterResume && app.job_description && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      💡 Add your master resume in Profile for better results
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">PDF, DOC, or DOCX files</p>
-          </CardRetro>
+                {!app.job_description && (
+                  <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                    ⚠️ Add a job description first to generate a tailored resume
+                  </p>
+                )}
+                {!hasMasterResume && app.job_description && (
+                  <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                    💡 Add your master resume in Profile for better results
+                  </p>
+                )}
+              </CardRetro>
+            </TabsContent>
 
+            {/* Notes Tab */}
+            <TabsContent value="notes" className="space-y-6 mt-0">
+              <CardRetro className="p-6">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <StickyNote className="h-5 w-5" /> Notes & Observations
+                </h3>
+                {isEditing ? (
+                  <textarea
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                    className="w-full p-3 border-2 border-border rounded-xl bg-background focus:ring-2 focus:ring-primary focus:outline-none min-h-[200px] resize-none"
+                    placeholder="Add notes about this opportunity, interview prep, company research..."
+                  />
+                ) : (
+                  <div className="min-h-[120px]">
+                    {app.notes ? (
+                      <p className="text-muted-foreground whitespace-pre-wrap">{app.notes}</p>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <StickyNote className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No notes yet.</p>
+                        <p className="text-sm">Click Edit to add your thoughts about this opportunity.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardRetro>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
           {/* Activity Timeline */}
           <CardRetro className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold">Activity Timeline</h3>
+              <h3 className="font-bold flex items-center gap-2">
+                <Clock className="h-5 w-5" /> Activity Timeline
+              </h3>
               <AddEventDialog applicationId={app.id} trigger={
-                <ButtonRetro size="sm" variant="ghost"><Calendar className="h-3 w-3" /></ButtonRetro>
+                <ButtonRetro size="sm" variant="ghost"><Calendar className="h-3 w-3" /> Add</ButtonRetro>
               } />
             </div>
             <div className="space-y-3">
               {relatedEvents.map(event => (
-                <div key={event.id} className="flex gap-3">
-                  <Clock className="h-4 w-4 text-muted-foreground mt-1" />
-                  <div>
-                    <p className="font-bold text-sm">{event.title}</p>
+                <div key={event.id} className="flex gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate">{event.title}</p>
                     <p className="text-xs text-muted-foreground">{new Date(event.date).toLocaleDateString()}</p>
                   </div>
                 </div>
               ))}
-              <div className="flex gap-3">
-                <Clock className="h-4 w-4 text-muted-foreground mt-1" />
+              <div className="flex gap-3 p-2 rounded-lg">
+                <div className="w-2 h-2 rounded-full bg-muted-foreground mt-2" />
                 <div>
                   <p className="font-bold text-sm">Applied</p>
                   <p className="text-xs text-muted-foreground">{new Date(app.date_applied).toLocaleDateString()}</p>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <FileText className="h-4 w-4 text-muted-foreground mt-1" />
+              <div className="flex gap-3 p-2 rounded-lg">
+                <div className="w-2 h-2 rounded-full bg-muted-foreground/50 mt-2" />
                 <div>
-                  <p className="font-bold text-sm">Application Created</p>
+                  <p className="font-bold text-sm text-muted-foreground">Application Created</p>
                   <p className="text-xs text-muted-foreground">Tracking started</p>
                 </div>
               </div>
             </div>
           </CardRetro>
 
+          {/* Quick Actions */}
+          <CardRetro className="p-6">
+            <h3 className="font-bold mb-4">Quick Actions</h3>
+            <div className="space-y-2">
+              {app.job_posting_url && (
+                <ButtonRetro variant="outline" className="w-full justify-start gap-2" onClick={() => window.open(app.job_posting_url!, '_blank')}>
+                  <ExternalLink className="h-4 w-4" /> View Job Posting
+                </ButtonRetro>
+              )}
+              <ButtonRetro variant="outline" className="w-full justify-start gap-2" onClick={() => setIsEditing(true)}>
+                <Edit2 className="h-4 w-4" /> Edit Details
+              </ButtonRetro>
+              <AddEventDialog applicationId={app.id} trigger={
+                <ButtonRetro variant="outline" className="w-full justify-start gap-2">
+                  <Calendar className="h-4 w-4" /> Schedule Event
+                </ButtonRetro>
+              } />
+            </div>
+          </CardRetro>
+
+          {/* Danger Zone */}
           <ButtonRetro variant="destructive" className="w-full" onClick={handleDelete}>
             <Trash2 className="h-4 w-4" /> Delete Application
           </ButtonRetro>
