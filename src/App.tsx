@@ -20,7 +20,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Component to sync profile theme to ThemeProvider
+// Component to sync profile theme to ThemeProvider - must be used inside AppProvider
 function ThemeSync() {
   const { profile } = useApp();
   const { syncFromProfile } = useTheme();
@@ -32,6 +32,20 @@ function ThemeSync() {
   }, [profile?.theme_color, syncFromProfile]);
 
   return null;
+}
+
+// Wrapper that includes ThemeSync inside the proper context
+function AppContent() {
+  return (
+    <>
+      <ThemeSync />
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </>
+  );
 }
 
 function AppRoutes() {
@@ -93,12 +107,7 @@ const App = () => (
       <ThemeProvider>
         <AuthProvider>
           <AppProvider>
-            <ThemeSync />
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
+            <AppContent />
           </AppProvider>
         </AuthProvider>
       </ThemeProvider>
