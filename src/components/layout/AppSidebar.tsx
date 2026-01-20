@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Briefcase, Users, Target, Heart, Menu, X, User } from 'lucide-react';
+import { Home, Briefcase, Users, Target, Heart, Menu, X, User, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { ButtonRetro } from '@/components/ui/button-retro';
@@ -7,6 +7,7 @@ import { ButtonRetro } from '@/components/ui/button-retro';
 const navItems = [
   { to: '/home', icon: Home, label: 'Home' },
   { to: '/applications', icon: Briefcase, label: 'Applications' },
+  { to: '/track-record', icon: Trophy, label: 'Track Record' },
   { to: '/contacts', icon: Users, label: 'Contacts' },
   { to: '/goals', icon: Target, label: 'Crush It' },
   { to: '/profile', icon: User, label: 'Profile' },
