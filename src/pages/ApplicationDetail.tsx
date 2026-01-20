@@ -5,7 +5,7 @@ import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { InputRetro } from '@/components/ui/input-retro';
-import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon, Sparkles, Wand2, Target, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon, Sparkles, Wand2, Target, Tag, ChevronDown, ChevronUp, Download, Save, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
 import { toast } from 'sonner';
@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { MasterResume, industryOptions, roleTypeOptions } from '@/lib/data';
 import { calculateMatchScore, getScoreColor, getScoreBgColor } from '@/lib/matchScore';
 import { Progress } from '@/components/ui/progress';
+import { useMasterResume } from '@/hooks/useMasterResume';
+import { useAuth } from '@/hooks/useAuth';
 
 type ApplicationStatus = 'Saved' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted';
 
@@ -37,19 +39,12 @@ const formatSalary = (min: number | null, max: number | null): string => {
   return 'Not specified';
 };
 
-// Minimal master resume for demo - in production this would come from user profile
-const defaultMasterResume: MasterResume = {
-  summary: '',
-  skills: [],
-  experience: [],
-  education: [],
-  certifications: [],
-};
-
 export default function ApplicationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { applications, updateApplication, deleteApplication, events, uploadResume, jobPreferences } = useApp();
+  const { masterResume, hasResume: hasMasterResume } = useMasterResume();
   const app = applications.find(a => a.id === id);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,6 +55,8 @@ export default function ApplicationDetail() {
   const [generatingResume, setGeneratingResume] = useState(false);
   const [generatedResume, setGeneratedResume] = useState('');
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
+  const [savingResume, setSavingResume] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [editForm, setEditForm] = useState({
     position: app?.position || '',
     company: app?.company || '',
@@ -178,7 +175,7 @@ export default function ApplicationDetail() {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
-          masterResume: defaultMasterResume, // In production, pass the user's actual master resume
+          masterResume: masterResume,
           jobDescription: app.job_description,
           jobTitle: app.position,
           company: app.company,
@@ -248,6 +245,70 @@ export default function ApplicationDetail() {
   const handleCopyResume = () => {
     navigator.clipboard.writeText(generatedResume);
     toast.success('Resume copied to clipboard!');
+  };
+
+  const handleSaveGeneratedResume = async () => {
+    if (!user || !app || !generatedResume) return;
+
+    setSavingResume(true);
+    try {
+      const fileName = `${user.id}/${app.id}/generated_resume_${Date.now()}.txt`;
+      const blob = new Blob([generatedResume], { type: 'text/plain' });
+
+      const { error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(fileName, blob);
+
+      if (uploadError) {
+        toast.error('Failed to save resume');
+        return;
+      }
+
+      await updateApplication(app.id, { resume_url: fileName });
+      toast.success('Resume saved to your application!');
+      setShowATSDialog(false);
+    } catch (error) {
+      console.error('Error saving resume:', error);
+      toast.error('Failed to save resume');
+    } finally {
+      setSavingResume(false);
+    }
+  };
+
+  const handleDownloadResume = async () => {
+    if (!app?.resume_url) return;
+    
+    setDownloading(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('resumes')
+        .download(app.resume_url);
+
+      if (error || !data) {
+        toast.error('Failed to download resume');
+        return;
+      }
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Determine file extension
+      const ext = app.resume_url.split('.').pop() || 'txt';
+      link.download = `${app.company}_${app.position}_resume.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Resume downloaded!');
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      toast.error('Failed to download resume');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const statuses: ApplicationStatus[] = ['Saved', 'Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted'];
@@ -622,9 +683,32 @@ export default function ApplicationDetail() {
                   <ButtonRetro size="sm" variant="outline" onClick={handleViewResume}>
                     <FileText className="h-4 w-4" /> View
                   </ButtonRetro>
+                  <ButtonRetro size="sm" variant="outline" onClick={handleDownloadResume} disabled={downloading}>
+                    {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
+                  </ButtonRetro>
                   <ButtonRetro size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                     <Upload className="h-4 w-4" /> Replace
                   </ButtonRetro>
+                </div>
+                
+                {/* Generate new ATS resume option */}
+                <div className="pt-3 border-t border-border">
+                  <p className="text-xs text-muted-foreground mb-2">Generate a new optimized resume:</p>
+                  <ButtonRetro
+                    variant="default"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={handleGenerateATSResume}
+                    disabled={!app.job_description}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    Generate ATS Resume
+                  </ButtonRetro>
+                  {!hasMasterResume && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      💡 Add your master resume in Profile for better results
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
@@ -653,6 +737,11 @@ export default function ApplicationDetail() {
                   {!app.job_description && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Add a job description first
+                    </p>
+                  )}
+                  {!hasMasterResume && app.job_description && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      💡 Add your master resume in Profile for better results
                     </p>
                   )}
                 </div>
@@ -723,8 +812,15 @@ export default function ApplicationDetail() {
                 <pre className="whitespace-pre-wrap font-mono text-sm bg-muted p-4 rounded-lg overflow-auto max-h-[50vh]">
                   {generatedResume}
                 </pre>
-                <div className="flex gap-2">
-                  <ButtonRetro onClick={handleCopyResume}>
+                <div className="flex gap-2 flex-wrap">
+                  <ButtonRetro onClick={handleSaveGeneratedResume} disabled={savingResume}>
+                    {savingResume ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save className="h-4 w-4" /> Save to Application</>
+                    )}
+                  </ButtonRetro>
+                  <ButtonRetro variant="outline" onClick={handleCopyResume}>
                     Copy to Clipboard
                   </ButtonRetro>
                   <ButtonRetro variant="outline" onClick={() => setShowATSDialog(false)}>
@@ -732,7 +828,7 @@ export default function ApplicationDetail() {
                   </ButtonRetro>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  💡 Tip: Copy this text and paste it into a Word document or resume builder to format and save as PDF.
+                  💡 Tip: Save the resume to your application, or copy and paste into a Word document to format as PDF.
                 </p>
               </div>
             )}
