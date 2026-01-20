@@ -5,7 +5,7 @@ import { CardRetro } from '@/components/ui/card-retro';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { InputRetro } from '@/components/ui/input-retro';
-import { LayoutGrid, List, Map, Search, Plus, MapPin, Building2, DollarSign, Target, FileCheck, Tag } from 'lucide-react';
+import { LayoutGrid, List, Map, Search, Plus, MapPin, Building2, DollarSign, Target, FileCheck, Tag, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddApplicationDialog } from '@/components/dialogs/AddApplicationDialog';
 import { ApplicationMap } from '@/components/map/ApplicationMap';
@@ -168,6 +168,14 @@ export default function Applications() {
                       <p className={cn("font-bold text-sm", getScoreColor(matchScore))}>{matchScore}%</p>
                     </div>
                     <div className="flex-1">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <FileText className="h-3 w-3" /> Resume
+                      </span>
+                      <p className={cn("font-bold text-sm", app.resume_score ? getScoreColor(app.resume_score) : 'text-muted-foreground')}>
+                        {app.resume_score ? `${app.resume_score}%` : '—'}
+                      </p>
+                    </div>
+                    <div className="flex-1">
                       <span className="text-xs text-muted-foreground">Applied</span>
                       <p className="font-bold text-sm">{new Date(app.date_applied).toLocaleDateString()}</p>
                     </div>
@@ -190,6 +198,7 @@ export default function Applications() {
                 <th className="p-4">Location</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Match</th>
+                <th className="p-4">Resume</th>
                 <th className="p-4">Salary</th>
                 <th className="p-4">Applied</th>
               </tr>
@@ -206,6 +215,9 @@ export default function Applications() {
                     <td className="p-4 text-muted-foreground">{app.location || '-'}</td>
                     <td className="p-4"><StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge></td>
                     <td className={cn("p-4 font-bold", getScoreColor(matchScore))}>{matchScore}%</td>
+                    <td className={cn("p-4 font-bold", app.resume_score ? getScoreColor(app.resume_score) : 'text-muted-foreground')}>
+                      {app.resume_score ? `${app.resume_score}%` : '-'}
+                    </td>
                     <td className="p-4 text-muted-foreground">{formatSalary(app.salary_min, app.salary_max) || '-'}</td>
                     <td className="p-4 text-muted-foreground">{new Date(app.date_applied).toLocaleDateString()}</td>
                   </tr>
