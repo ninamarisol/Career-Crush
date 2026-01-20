@@ -68,6 +68,7 @@ export type Database = {
           longitude: number | null
           notes: string | null
           position: string
+          resume_score: number | null
           resume_url: string | null
           role_type: string | null
           salary_max: number | null
@@ -91,6 +92,7 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           position: string
+          resume_score?: number | null
           resume_url?: string | null
           role_type?: string | null
           salary_max?: number | null
@@ -114,6 +116,7 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           position?: string
+          resume_score?: number | null
           resume_url?: string | null
           role_type?: string | null
           salary_max?: number | null

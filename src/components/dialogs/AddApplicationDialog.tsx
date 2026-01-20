@@ -3,11 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { InputRetro } from '@/components/ui/input-retro';
 import { useApp } from '@/context/AppContext';
-import { Plus, Building2, MapPin, DollarSign, Briefcase, Link as LinkIcon, FileText, Upload, Tag, Wand2, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Plus, Building2, MapPin, DollarSign, Briefcase, Link as LinkIcon, FileText, Upload, Tag, Wand2, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { industryOptions, roleTypeOptions } from '@/lib/data';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AddApplicationDialogProps {
   trigger?: React.ReactNode;
@@ -29,9 +31,11 @@ interface ResumeAnalysis {
 }
 
 export function AddApplicationDialog({ trigger }: AddApplicationDialogProps) {
-  const { addApplication, uploadResume } = useApp();
+  const { addApplication, uploadResume, updateApplication } = useApp();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [savingResume, setSavingResume] = useState(false);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
@@ -80,12 +84,46 @@ export function AddApplicationDialog({ trigger }: AddApplicationDialogProps) {
     setShowGeneratedResume(false);
   };
 
+  // Save generated resume text as a file to Supabase storage
+  const saveGeneratedResume = async (applicationId: string, resumeContent: string): Promise<string | null> => {
+    if (!user || !resumeContent) return null;
+
+    try {
+      setSavingResume(true);
+      const fileName = `${user.id}/${applicationId}/generated_resume_${Date.now()}.txt`;
+      const blob = new Blob([resumeContent], { type: 'text/plain' });
+
+      const { error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(fileName, blob);
+
+      if (uploadError) {
+        console.error('Error uploading generated resume:', uploadError);
+        return null;
+      }
+
+      // Update application with resume URL
+      await updateApplication(applicationId, { resume_url: fileName });
+
+      toast.success('Resume saved to your application!');
+      return fileName;
+    } catch (error) {
+      console.error('Error saving generated resume:', error);
+      return null;
+    } finally {
+      setSavingResume(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.position || !formData.company) return;
 
     setLoading(true);
     try {
+      // Calculate resume score from analysis if available
+      const resumeScore = analysis?.overallScore || null;
+
       const newApp = await addApplication({
         position: formData.position,
         company: formData.company,
@@ -104,11 +142,18 @@ export function AddApplicationDialog({ trigger }: AddApplicationDialogProps) {
         longitude: null,
         industry: formData.industry || null,
         role_type: formData.role_type || null,
+        resume_score: resumeScore,
       });
 
-      // Upload resume if selected
+      // Upload resume file if selected
       if (resumeFile && newApp?.id) {
         await uploadResume(newApp.id, resumeFile);
+      }
+
+      // If we have generated resume text, save it as a file
+      const resumeContent = generatedResume || resumeText;
+      if (resumeContent && newApp?.id) {
+        await saveGeneratedResume(newApp.id, resumeContent);
       }
 
       toast.success('Application added! 🎯');

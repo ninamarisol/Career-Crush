@@ -36,6 +36,7 @@ export interface Application {
   longitude: number | null;
   industry: string | null;
   role_type: string | null;
+  resume_score: number | null;
   created_at: string;
   updated_at: string;
 }
