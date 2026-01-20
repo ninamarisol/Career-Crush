@@ -353,6 +353,50 @@ export type Database = {
           },
         ]
       }
+      interview_prep: {
+        Row: {
+          application_id: string
+          coaching_tips: Json
+          company_research: string | null
+          created_at: string
+          id: string
+          practice_questions: Json
+          questions_to_ask: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          coaching_tips?: Json
+          company_research?: string | null
+          created_at?: string
+          id?: string
+          practice_questions?: Json
+          questions_to_ask?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          coaching_tips?: Json
+          company_research?: string | null
+          created_at?: string
+          id?: string
+          practice_questions?: Json
+          questions_to_ask?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_prep_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_preferences: {
         Row: {
           additional_notes: string | null

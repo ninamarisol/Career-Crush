@@ -5,7 +5,7 @@ import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { InputRetro } from '@/components/ui/input-retro';
-import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon, Sparkles, Wand2, Target, Tag, ChevronDown, ChevronUp, Download, Save, Loader2, Briefcase, StickyNote, BarChart3 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2, MapPin, DollarSign, Calendar, Building2, FileText, Clock, Edit2, Check, X, Upload, Link as LinkIcon, Sparkles, Wand2, Target, Tag, ChevronDown, ChevronUp, Download, Save, Loader2, Briefcase, StickyNote, BarChart3, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddEventDialog } from '@/components/dialogs/AddEventDialog';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { useMasterResume } from '@/hooks/useMasterResume';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { InterviewWizard } from '@/components/interview/InterviewWizard';
 
 type ApplicationStatus = 'Saved' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted';
 
@@ -557,6 +558,9 @@ export default function ApplicationDetail() {
               <TabsTrigger value="resume" className="gap-2">
                 <FileText className="h-4 w-4" /> Resume
               </TabsTrigger>
+              <TabsTrigger value="interview" className="gap-2">
+                <GraduationCap className="h-4 w-4" /> Interview
+              </TabsTrigger>
               <TabsTrigger value="notes" className="gap-2">
                 <StickyNote className="h-4 w-4" /> Notes
               </TabsTrigger>
@@ -913,6 +917,18 @@ export default function ApplicationDetail() {
                   </p>
                 )}
               </CardRetro>
+            </TabsContent>
+
+
+            {/* Interview Tab */}
+            <TabsContent value="interview" className="mt-0">
+              <InterviewWizard
+                applicationId={app.id}
+                jobDescription={app.job_description}
+                jobTitle={app.position}
+                company={app.company}
+                industry={app.industry}
+              />
             </TabsContent>
 
             {/* Notes Tab */}
