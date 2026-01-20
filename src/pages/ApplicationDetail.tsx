@@ -19,6 +19,19 @@ import { useAuth } from '@/hooks/useAuth';
 
 type ApplicationStatus = 'Saved' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted';
 
+interface ResumeAnalysis {
+  overallScore: number;
+  categories: {
+    keywords: { score: number; feedback: string; matchedKeywords?: string[]; missingKeywords?: string[] };
+    experience: { score: number; feedback: string };
+    skills: { score: number; feedback: string; matchedSkills?: string[]; missingSkills?: string[] };
+    formatting: { score: number; feedback: string };
+    impact: { score: number; feedback: string };
+  };
+  topImprovements: string[];
+  summary: string;
+}
+
 const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
     Saved: 'saved',
@@ -57,6 +70,9 @@ export default function ApplicationDetail() {
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
   const [savingResume, setSavingResume] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [analyzingResume, setAnalyzingResume] = useState(false);
+  const [resumeAnalysis, setResumeAnalysis] = useState<ResumeAnalysis | null>(null);
+  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [editForm, setEditForm] = useState({
     position: app?.position || '',
     company: app?.company || '',
@@ -309,6 +325,88 @@ export default function ApplicationDetail() {
     } finally {
       setDownloading(false);
     }
+  };
+
+  const handleAnalyzeResume = async () => {
+    if (!app?.resume_url || !app?.job_description) {
+      toast.error('Resume and job description are required for analysis');
+      return;
+    }
+
+    setAnalyzingResume(true);
+    setResumeAnalysis(null);
+    setShowAnalysisDialog(true);
+
+    try {
+      // Download the resume content
+      const { data: resumeData, error: downloadError } = await supabase.storage
+        .from('resumes')
+        .download(app.resume_url);
+
+      if (downloadError || !resumeData) {
+        toast.error('Failed to retrieve resume');
+        setAnalyzingResume(false);
+        return;
+      }
+
+      // Read the resume text
+      const resumeText = await resumeData.text();
+
+      // Call the analyze-resume function
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-resume`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          resumeText: resumeText,
+          jobDescription: app.job_description,
+          jobTitle: app.position,
+          company: app.company,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (response.status === 429) {
+          toast.error('Rate limit exceeded. Please try again later.');
+        } else if (response.status === 402) {
+          toast.error('AI credits exhausted.');
+        } else {
+          toast.error(error.error || 'Failed to analyze resume');
+        }
+        setAnalyzingResume(false);
+        return;
+      }
+
+      const analysisData = await response.json();
+      setResumeAnalysis(analysisData);
+      
+      // Update the resume_score in the application
+      if (analysisData.overallScore) {
+        await updateApplication(app.id, { resume_score: analysisData.overallScore });
+      }
+      
+      toast.success('Resume analyzed!');
+    } catch (error) {
+      console.error('Error analyzing resume:', error);
+      toast.error('Failed to analyze resume');
+    } finally {
+      setAnalyzingResume(false);
+    }
+  };
+
+  const getAnalysisScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getAnalysisScoreBgColor = (score: number) => {
+    if (score >= 80) return 'bg-green-100';
+    if (score >= 60) return 'bg-yellow-100';
+    return 'bg-red-100';
   };
 
   const statuses: ApplicationStatus[] = ['Saved', 'Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted'];
@@ -678,7 +776,14 @@ export default function ApplicationDetail() {
             />
             {app.resume_url ? (
               <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">Resume uploaded ✓</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Resume uploaded ✓</p>
+                  {app.resume_score && (
+                    <span className={cn("text-sm font-bold", getAnalysisScoreColor(app.resume_score))}>
+                      ATS: {app.resume_score}%
+                    </span>
+                  )}
+                </div>
                 <div className="flex gap-2 flex-wrap">
                   <ButtonRetro size="sm" variant="outline" onClick={handleViewResume}>
                     <FileText className="h-4 w-4" /> View
@@ -690,6 +795,28 @@ export default function ApplicationDetail() {
                     <Upload className="h-4 w-4" /> Replace
                   </ButtonRetro>
                 </div>
+                
+                {/* Analyze Resume */}
+                {app.job_description && (
+                  <div className="pt-3 border-t border-border">
+                    <ButtonRetro
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={handleAnalyzeResume}
+                      disabled={analyzingResume}
+                    >
+                      {analyzingResume ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing...</>
+                      ) : (
+                        <><Target className="h-4 w-4" /> Analyze ATS Score</>
+                      )}
+                    </ButtonRetro>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Get feedback on how well your resume matches this job
+                    </p>
+                  </div>
+                )}
                 
                 {/* Generate new ATS resume option */}
                 <div className="pt-3 border-t border-border">
@@ -830,6 +957,80 @@ export default function ApplicationDetail() {
                 <p className="text-xs text-muted-foreground">
                   💡 Tip: Save the resume to your application, or copy and paste into a Word document to format as PDF.
                 </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resume Analysis Dialog */}
+      <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Resume Analysis
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {analyzingResume && !resumeAnalysis && (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Analyzing your resume against the job description...</p>
+              </div>
+            )}
+            {resumeAnalysis && (
+              <div className="space-y-4">
+                {/* Overall Score */}
+                <div className="flex items-center gap-4 p-4 rounded-lg border-2 border-border">
+                  <div className={cn("w-16 h-16 rounded-xl flex items-center justify-center font-black text-xl", getAnalysisScoreBgColor(resumeAnalysis.overallScore))}>
+                    <span className={getAnalysisScoreColor(resumeAnalysis.overallScore)}>{resumeAnalysis.overallScore}</span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg">ATS Resume Score</p>
+                    <p className="text-sm text-muted-foreground">{resumeAnalysis.summary}</p>
+                  </div>
+                </div>
+
+                {/* Category Breakdowns */}
+                <div className="space-y-3">
+                  <h4 className="font-bold">Score Breakdown</h4>
+                  {Object.entries(resumeAnalysis.categories).map(([key, cat]) => (
+                    <div key={key} className="space-y-1 p-3 bg-muted/30 rounded-lg">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium capitalize">{key}</span>
+                        <span className={cn("font-bold", getAnalysisScoreColor(cat.score))}>{cat.score}%</span>
+                      </div>
+                      <Progress value={cat.score} className="h-2" />
+                      <p className="text-xs text-muted-foreground">{cat.feedback}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Top Improvements */}
+                {resumeAnalysis.topImprovements && resumeAnalysis.topImprovements.length > 0 && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="font-bold flex items-center gap-2 mb-2 text-amber-800 dark:text-amber-200">
+                      <Sparkles className="h-4 w-4" /> Top Improvements
+                    </p>
+                    <ul className="space-y-2">
+                      {resumeAnalysis.topImprovements.map((imp, i) => (
+                        <li key={i} className="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                          <span className="text-amber-500">•</span> {imp}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <ButtonRetro variant="outline" onClick={() => setShowAnalysisDialog(false)} className="flex-1">
+                    Close
+                  </ButtonRetro>
+                  <ButtonRetro onClick={handleGenerateATSResume} className="flex-1">
+                    <Wand2 className="h-4 w-4" /> Generate Improved Resume
+                  </ButtonRetro>
+                </div>
               </div>
             )}
           </div>

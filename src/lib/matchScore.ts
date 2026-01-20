@@ -10,6 +10,99 @@ export interface ScoreBreakdown {
   totalScore: number;
 }
 
+// Region to cities/states mapping for location matching
+const regionMapping: Record<string, string[]> = {
+  'south': [
+    'memphis', 'nashville', 'atlanta', 'miami', 'tampa', 'orlando', 'jacksonville',
+    'charlotte', 'raleigh', 'durham', 'greensboro', 'winston-salem',
+    'dallas', 'houston', 'austin', 'san antonio', 'fort worth',
+    'new orleans', 'baton rouge', 'birmingham', 'montgomery',
+    'louisville', 'lexington', 'little rock', 'oklahoma city', 'tulsa',
+    'richmond', 'virginia beach', 'norfolk', 'charleston', 'columbia',
+    'savannah', 'knoxville', 'chattanooga', 'jackson', 'mobile',
+    // States
+    'tennessee', 'tn', 'georgia', 'ga', 'florida', 'fl', 'north carolina', 'nc',
+    'south carolina', 'sc', 'texas', 'tx', 'louisiana', 'la', 'alabama', 'al',
+    'kentucky', 'ky', 'arkansas', 'ar', 'oklahoma', 'ok', 'virginia', 'va',
+    'mississippi', 'ms', 'west virginia', 'wv'
+  ],
+  'northeast': [
+    'new york', 'nyc', 'manhattan', 'brooklyn', 'boston', 'philadelphia', 'pittsburgh',
+    'baltimore', 'washington', 'dc', 'd.c.', 'newark', 'jersey city', 'hartford',
+    'providence', 'buffalo', 'rochester', 'syracuse', 'albany', 'portland',
+    // States
+    'new york', 'ny', 'massachusetts', 'ma', 'pennsylvania', 'pa', 'new jersey', 'nj',
+    'maryland', 'md', 'connecticut', 'ct', 'rhode island', 'ri', 'vermont', 'vt',
+    'new hampshire', 'nh', 'maine', 'me', 'delaware', 'de'
+  ],
+  'midwest': [
+    'chicago', 'detroit', 'indianapolis', 'columbus', 'cleveland', 'cincinnati',
+    'milwaukee', 'minneapolis', 'st. paul', 'st louis', 'kansas city', 'omaha',
+    'des moines', 'madison', 'grand rapids', 'ann arbor', 'dayton', 'toledo',
+    'akron', 'fargo', 'sioux falls', 'wichita', 'lincoln', 'topeka',
+    // States
+    'illinois', 'il', 'michigan', 'mi', 'ohio', 'oh', 'indiana', 'in',
+    'wisconsin', 'wi', 'minnesota', 'mn', 'missouri', 'mo', 'iowa', 'ia',
+    'kansas', 'ks', 'nebraska', 'ne', 'north dakota', 'nd', 'south dakota', 'sd'
+  ],
+  'west': [
+    'los angeles', 'la', 'san francisco', 'sf', 'san diego', 'san jose', 'seattle',
+    'portland', 'denver', 'phoenix', 'las vegas', 'salt lake city', 'sacramento',
+    'oakland', 'fresno', 'long beach', 'anaheim', 'irvine', 'tucson', 'albuquerque',
+    'colorado springs', 'aurora', 'boise', 'spokane', 'tacoma', 'reno', 'henderson',
+    'honolulu', 'anchorage',
+    // States
+    'california', 'ca', 'washington', 'wa', 'oregon', 'or', 'colorado', 'co',
+    'arizona', 'az', 'nevada', 'nv', 'utah', 'ut', 'new mexico', 'nm',
+    'idaho', 'id', 'montana', 'mt', 'wyoming', 'wy', 'hawaii', 'hi', 'alaska', 'ak'
+  ],
+  'bay area': [
+    'san francisco', 'sf', 'oakland', 'san jose', 'palo alto', 'mountain view',
+    'sunnyvale', 'santa clara', 'fremont', 'hayward', 'berkeley', 'redwood city',
+    'menlo park', 'cupertino', 'milpitas', 'pleasanton', 'walnut creek', 'concord'
+  ],
+  'silicon valley': [
+    'san jose', 'palo alto', 'mountain view', 'sunnyvale', 'santa clara',
+    'cupertino', 'menlo park', 'redwood city', 'milpitas', 'fremont'
+  ],
+  'new york metro': [
+    'new york', 'nyc', 'manhattan', 'brooklyn', 'queens', 'bronx', 'staten island',
+    'jersey city', 'newark', 'hoboken', 'yonkers', 'white plains', 'stamford'
+  ],
+  'dc metro': [
+    'washington', 'dc', 'd.c.', 'arlington', 'alexandria', 'bethesda', 'silver spring',
+    'reston', 'tysons', 'fairfax', 'rockville', 'college park'
+  ]
+};
+
+// Check if a location matches a preference (including region matching)
+const locationMatches = (jobLocation: string, preference: string): boolean => {
+  const jobLower = jobLocation.toLowerCase().trim();
+  const prefLower = preference.toLowerCase().trim();
+  
+  // Direct match
+  if (jobLower.includes(prefLower) || prefLower.includes(jobLower)) {
+    return true;
+  }
+  
+  // Check if preference is a region
+  const regionCities = regionMapping[prefLower];
+  if (regionCities) {
+    return regionCities.some(city => jobLower.includes(city));
+  }
+  
+  // Check if job location is in any region that matches the preference
+  for (const [region, cities] of Object.entries(regionMapping)) {
+    if (region.includes(prefLower) || prefLower.includes(region)) {
+      if (cities.some(city => jobLower.includes(city))) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+};
+
 export const calculateMatchScore = (
   application: Application,
   preferences: JobPreferences | null
@@ -29,15 +122,14 @@ export const calculateMatchScore = (
     return breakdown;
   }
 
-  // Location match
+  // Location match with region support
   if (preferences.locations.length > 0 && application.location) {
     const isRemote = application.location.toLowerCase() === 'remote';
-    const locationLower = application.location.toLowerCase();
     
     const hasMatch = preferences.locations.some(loc => {
-      if (loc === 'anywhere') return true;
-      if (loc === 'remote' && isRemote) return true;
-      return locationLower.includes(loc.toLowerCase());
+      if (loc.toLowerCase() === 'anywhere') return true;
+      if (loc.toLowerCase() === 'remote' && isRemote) return true;
+      return locationMatches(application.location!, loc);
     });
     
     if (hasMatch) {
