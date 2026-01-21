@@ -62,9 +62,9 @@ export default function Goals() {
   const getModeInfo = () => {
     switch (userMode) {
       case 'climb':
-        return { title: 'Goal Crusher 📈', subtitle: 'Set & track weekly skill development, networking & visibility goals' };
+        return { title: 'Level Up 📈', subtitle: 'Building skills for long-term success' };
       default:
-        return { title: 'Goal Crusher 💪', subtitle: 'Set & track weekly applications, contacts & interview prep goals' };
+        return { title: 'Crush It 💪', subtitle: 'Track YOUR progress, at YOUR pace' };
     }
   };
 

@@ -9,7 +9,7 @@ const navItems = [
   { to: '/applications', icon: Briefcase, label: 'Applications' },
   { to: '/track-record', icon: Trophy, label: 'Track Record' },
   { to: '/contacts', icon: Users, label: 'Contacts' },
-  { to: '/goals', icon: Target, label: 'Goal Crusher' },
+  { to: '/goals', icon: Target, label: 'Crush It' },
   { to: '/profile', icon: User, label: 'Profile' },
 ];
 
