@@ -1,48 +1,43 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings2 } from 'lucide-react';
-import { CardRetro, CardRetroContent } from '@/components/ui/card-retro';
+import { Target, Sparkles, Plus } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
-import { useGoals } from '@/hooks/useGoals';
-import { GoalsSetup } from '@/components/goals/GoalsSetup';
-import { ActiveSeekerGoals } from '@/components/goals/ActiveSeekerGoals';
-import { ClimbGoals } from '@/components/goals/ClimbGoals';
-import { useApp } from '@/context/AppContext';
-
-const achievementLabels: Record<string, { name: string; emoji: string }> = {
-  application_warrior: { name: 'Application Warrior', emoji: '⚔️' },
-  interview_ace: { name: 'Interview Ace', emoji: '🎯' },
-  quality_seeker: { name: 'Quality Seeker', emoji: '💎' },
-  star_story_master: { name: 'Story Master', emoji: '⭐' },
-  skill_builder: { name: 'Skill Builder', emoji: '🎓' },
-  win_logger: { name: 'Win Logger', emoji: '🏆' },
-};
-
-const tierColors: Record<string, string> = {
-  bronze: 'from-amber-600 to-amber-800',
-  silver: 'from-gray-400 to-gray-600',
-  gold: 'from-yellow-400 to-yellow-600',
-  platinum: 'from-cyan-300 to-blue-500',
-};
+import { Badge } from '@/components/ui/badge';
+import { useGoalCrusher } from '@/hooks/useGoalCrusher';
+import { CrushModeGoals } from '@/components/goals/CrushModeGoals';
+import { ClimbModeGoals } from '@/components/goals/ClimbModeGoals';
+import { GoalCrusherSetup } from '@/components/goals/GoalCrusherSetup';
+import { EditGoalsModal } from '@/components/goals/EditGoalsModal';
+import { WeeklyCheckInModal } from '@/components/goals/WeeklyCheckInModal';
+import { AddSkillModal } from '@/components/goals/AddSkillModal';
+import { LogSkillHoursModal } from '@/components/goals/LogSkillHoursModal';
 
 export default function Goals() {
   const {
-    userGoals,
-    quests,
-    achievements,
-    weeklyStats,
-    personalBests,
+    userMode,
+    crushGoals,
+    climbGoals,
+    weeklyProgress,
+    monthlyProgress,
     loading,
-    levelProgress,
-    getLevelTitle,
-    updateGoals,
-    completeSetup,
-    updateQuestProgress,
-  } = useGoals();
+    goalsSetup,
+    updateCrushGoals,
+    updateClimbGoals,
+    logProgress,
+    addSkill,
+    logSkillHours,
+    toggleVisibilityActivity,
+    logVisibilityActivity,
+    submitCheckIn,
+    getGoalProgress,
+    setupGoals,
+  } = useGoalCrusher();
 
-  const { profile } = useApp();
-  const [showSetup, setShowSetup] = useState(false);
-  const userMode = profile?.user_mode || 'crush';
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showAddSkillModal, setShowAddSkillModal] = useState(false);
+  const [showLogHoursModal, setShowLogHoursModal] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState<{ name: string; logged: number; hoursPerWeek: number } | null>(null);
 
   if (loading) {
     return (
@@ -55,126 +50,152 @@ export default function Goals() {
     );
   }
 
-  if (!userGoals?.calibration_complete) {
-    return <GoalsSetup onComplete={completeSetup} />;
-  }
-
-  const getModeInfo = () => {
-    switch (userMode) {
-      case 'climb':
-        return { title: 'Level Up 📈', subtitle: 'Building skills for long-term success' };
-      default:
-        return { title: 'Crush It 💪', subtitle: 'Track YOUR progress, at YOUR pace' };
-    }
-  };
-
-  const modeInfo = getModeInfo();
-
-  const renderModeContent = () => {
-    if (userMode === 'climb') {
-      return (
-        <ClimbGoals
-          userGoals={userGoals}
-          quests={quests}
-          weeklyStats={weeklyStats}
-          personalBests={personalBests}
-          levelProgress={levelProgress}
-          getLevelTitle={getLevelTitle}
-          updateQuestProgress={updateQuestProgress}
-        />
-      );
-    }
+  if (!goalsSetup) {
     return (
-      <ActiveSeekerGoals
-        userGoals={userGoals}
-        quests={quests}
-        achievements={achievements}
-        weeklyStats={weeklyStats}
-        personalBests={personalBests}
-        levelProgress={levelProgress}
-        getLevelTitle={getLevelTitle}
-        updateQuestProgress={updateQuestProgress}
-        achievementLabels={{}}
-        tierColors={{}}
+      <GoalCrusherSetup
+        userMode={userMode}
+        onComplete={(goals) => setupGoals(userMode, goals)}
       />
     );
+  }
+
+  const handleLogSkillHours = (skillName: string) => {
+    const skill = climbGoals.skills.find(s => s.name === skillName);
+    if (skill) {
+      setSelectedSkill(skill);
+      setShowLogHoursModal(true);
+    }
   };
+
+  // Build goals status for weekly check-in
+  const goalsStatus = userMode === 'crush' 
+    ? [
+        { label: `${crushGoals.applications} applications`, hit: weeklyProgress.applications >= crushGoals.applications },
+        { label: `${crushGoals.newContacts} new contacts`, hit: weeklyProgress.newContacts >= crushGoals.newContacts },
+        { label: `${crushGoals.followUps} follow-ups`, hit: weeklyProgress.followUps >= crushGoals.followUps },
+        { label: `${crushGoals.interviewPrepHours}h interview prep`, hit: weeklyProgress.interviewPrepHours >= crushGoals.interviewPrepHours },
+      ]
+    : climbGoals.skills.map(s => ({
+        label: `${s.hoursPerWeek}h ${s.name}`,
+        hit: s.logged >= s.hoursPerWeek,
+      }));
 
   return (
     <div className="min-h-screen">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex items-center justify-between"
+          className="mb-8"
         >
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-black mb-2">{modeInfo.title}</h1>
-            <p className="text-muted-foreground">{modeInfo.subtitle}</p>
-          </div>
-          <ButtonRetro variant="outline" size="sm" onClick={() => setShowSetup(true)}>
-            <Settings2 className="w-4 h-4 mr-2" />
-            Adjust Goals
-          </ButtonRetro>
-        </motion.div>
-
-        {renderModeContent()}
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-6"
-        >
-          <CardRetro className="bg-muted/30">
-            <CardRetroContent className="p-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h4 className="font-bold">How's this pace feeling?</h4>
-                  <p className="text-sm text-muted-foreground">Your goals adapt to YOU</p>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <ButtonRetro variant="outline" size="sm" onClick={() => updateGoals({ weekly_application_target: Math.max(1, (userGoals?.weekly_application_target || 3) - 1) })}>
-                    Too hard
-                  </ButtonRetro>
-                  <ButtonRetro variant="outline" size="sm">Just right ✓</ButtonRetro>
-                  <ButtonRetro variant="outline" size="sm" onClick={() => updateGoals({ weekly_application_target: (userGoals?.weekly_application_target || 3) + 1 })}>
-                    Too easy
-                  </ButtonRetro>
-                </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-primary/10">
+                <Target className="w-8 h-8 text-primary" />
               </div>
-            </CardRetroContent>
-          </CardRetro>
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-black">Goal Crusher</h1>
+                <p className="text-muted-foreground">
+                  {userMode === 'crush' 
+                    ? 'Focus on actions you can control' 
+                    : 'Build skills and visibility for your next level'
+                  }
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="px-3 py-1">
+                <Sparkles className="w-3 h-3 mr-1" />
+                {userMode === 'crush' ? 'Crush Mode' : 'Climb Mode'}
+              </Badge>
+              <ButtonRetro 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowCheckInModal(true)}
+              >
+                Weekly Check-In
+              </ButtonRetro>
+            </div>
+          </div>
         </motion.div>
 
-        <AnimatePresence>
-          {showSetup && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-foreground/50 z-50 flex items-center justify-center p-4"
-              onClick={() => setShowSetup(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-card rounded-xl max-w-2xl w-full max-h-[90vh] overflow-auto"
-                onClick={e => e.stopPropagation()}
-              >
-                <GoalsSetup 
-                  onComplete={async (setup) => {
-                    await completeSetup(setup);
-                    setShowSetup(false);
-                  }}
-                  isEdit
-                  initialValues={userGoals}
-                />
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Mode-specific content */}
+        {userMode === 'crush' ? (
+          <CrushModeGoals
+            goals={crushGoals}
+            progress={weeklyProgress}
+            onLogProgress={logProgress}
+            onEditGoals={() => setShowEditModal(true)}
+            getGoalProgress={getGoalProgress}
+          />
+        ) : (
+          <ClimbModeGoals
+            goals={climbGoals}
+            monthlyProgress={monthlyProgress}
+            onAddSkill={() => setShowAddSkillModal(true)}
+            onLogSkillHours={handleLogSkillHours}
+            onToggleVisibility={toggleVisibilityActivity}
+            onLogVisibility={logVisibilityActivity}
+            onEditGoals={() => setShowEditModal(true)}
+            getGoalProgress={getGoalProgress}
+          />
+        )}
+
+        {/* Floating Action Button for Mobile */}
+        <div className="fixed bottom-6 right-6 sm:hidden">
+          <ButtonRetro 
+            size="lg" 
+            className="rounded-full w-14 h-14 p-0 shadow-lg"
+            onClick={() => {
+              if (userMode === 'crush') {
+                logProgress('applications');
+              } else {
+                setShowAddSkillModal(true);
+              }
+            }}
+          >
+            <Plus className="w-6 h-6" />
+          </ButtonRetro>
+        </div>
+
+        {/* Modals */}
+        <EditGoalsModal
+          open={showEditModal}
+          onOpenChange={setShowEditModal}
+          userMode={userMode}
+          crushGoals={crushGoals}
+          climbGoals={climbGoals}
+          onSaveCrushGoals={updateCrushGoals}
+          onSaveClimbGoals={updateClimbGoals}
+          onToggleVisibility={toggleVisibilityActivity}
+        />
+
+        <WeeklyCheckInModal
+          open={showCheckInModal}
+          onOpenChange={setShowCheckInModal}
+          goalsStatus={goalsStatus}
+          onSubmit={submitCheckIn}
+        />
+
+        <AddSkillModal
+          open={showAddSkillModal}
+          onOpenChange={setShowAddSkillModal}
+          onAddSkill={addSkill}
+          existingSkills={climbGoals.skills.map(s => s.name)}
+        />
+
+        {selectedSkill && (
+          <LogSkillHoursModal
+            open={showLogHoursModal}
+            onOpenChange={setShowLogHoursModal}
+            skillName={selectedSkill.name}
+            currentHours={selectedSkill.logged}
+            targetHours={selectedSkill.hoursPerWeek}
+            onLogHours={logSkillHours}
+          />
+        )}
       </div>
     </div>
   );
