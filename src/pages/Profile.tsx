@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Target, User, Palette, LogOut, Sun, Moon, Compass, Mail, Lock, Shield, Rocket, TrendingUp, Eye, LayoutGrid } from 'lucide-react';
+import { FileText, Target, User, Palette, LogOut, Sun, Moon, Compass, Mail, Lock, Shield, Rocket, TrendingUp, Eye, MessageSquare } from 'lucide-react';
 import { useApp, UserMode } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -10,7 +10,7 @@ import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/
 import { MasterResumeBuilder } from '@/components/profile/MasterResumeBuilder';
 import { DreamJobProfiler } from '@/components/profile/DreamJobProfiler';
 import { CareerPather } from '@/components/profile/CareerPather';
-import { WidgetCustomizer } from '@/components/settings/WidgetCustomizer';
+import { FeedbackForm } from '@/components/profile/FeedbackForm';
 import { MasterResume, JobPreferences, defaultPriorityWeights } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -20,7 +20,7 @@ const tabs = [
   { id: 'resume', label: 'Master Resume', icon: FileText, emoji: '📄' },
   { id: 'preferences', label: 'Dream Job Profiler', icon: Target, emoji: '🎯' },
   { id: 'career', label: 'Career Pather', icon: Compass, emoji: '🧭' },
-  { id: 'widgets', label: 'Dashboard Widgets', icon: LayoutGrid, emoji: '🎛️' },
+  { id: 'feedback', label: 'Send Feedback', icon: MessageSquare, emoji: '💬' },
   { id: 'account', label: 'Account Settings', icon: User, emoji: '⚙️' },
 ];
 
@@ -382,8 +382,8 @@ export default function Profile() {
             />
           )}
 
-          {activeTab === 'widgets' && (
-            <WidgetCustomizer />
+          {activeTab === 'feedback' && (
+            <FeedbackForm />
           )}
 
           {activeTab === 'account' && (
