@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   FileText, Users, MessageSquare, Clock, 
-  Plus, Check, TrendingUp, Zap 
+  Plus, Check, Target, ArrowRight
 } from 'lucide-react';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { Progress } from '@/components/ui/progress';
@@ -19,68 +19,36 @@ interface CrushModeGoalsProps {
   getGoalProgress: (current: number, target: number) => number;
 }
 
-interface GoalCardProps {
-  icon: React.ElementType;
-  label: string;
-  current: number;
-  target: number;
-  progressPercent: number;
-  onLog: () => void;
-  color: string;
-}
-
-function GoalCard({ icon: Icon, label, current, target, progressPercent, onLog, color }: GoalCardProps) {
-  const isComplete = current >= target;
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative"
-    >
-      <CardRetro className={cn(
-        "transition-all",
-        isComplete && "border-green-500/50 bg-green-500/5"
-      )}>
-        <CardRetroContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className={cn("p-2 rounded-lg", color)}>
-              <Icon className="w-5 h-5" />
-            </div>
-            {isComplete ? (
-              <Badge className="bg-green-500 text-white">
-                <Check className="w-3 h-3 mr-1" /> Done!
-              </Badge>
-            ) : (
-              <ButtonRetro size="sm" variant="outline" onClick={onLog}>
-                <Plus className="w-4 h-4" />
-              </ButtonRetro>
-            )}
-          </div>
-          
-          <h3 className="font-bold mb-1">{label}</h3>
-          
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl font-black">{current}</span>
-            <span className="text-muted-foreground">/ {target}</span>
-          </div>
-          
-          <Progress 
-            value={progressPercent} 
-            className={cn("h-2", isComplete && "[&>div]:bg-green-500")} 
-          />
-          
-          <p className="text-xs text-muted-foreground mt-2">
-            {isComplete 
-              ? '🎉 Goal achieved this week!' 
-              : `${target - current} more to go`
-            }
-          </p>
-        </CardRetroContent>
-      </CardRetro>
-    </motion.div>
-  );
-}
+const GOAL_CONFIG = {
+  applications: {
+    icon: FileText,
+    label: 'Applications',
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500/10',
+    description: 'Quality job applications submitted',
+  },
+  newContacts: {
+    icon: Users,
+    label: 'New Contacts',
+    color: 'text-emerald-500',
+    bgColor: 'bg-emerald-500/10',
+    description: 'LinkedIn connects, referrals, networking',
+  },
+  followUps: {
+    icon: MessageSquare,
+    label: 'Follow-Ups',
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
+    description: 'Reach out to existing contacts',
+  },
+  interviewPrepHours: {
+    icon: Clock,
+    label: 'Interview Prep',
+    color: 'text-purple-500',
+    bgColor: 'bg-purple-500/10',
+    description: 'Hours practicing questions & research',
+  },
+} as const;
 
 export function CrushModeGoals({ 
   goals, 
@@ -89,106 +57,135 @@ export function CrushModeGoals({
   onEditGoals,
   getGoalProgress 
 }: CrushModeGoalsProps) {
-  const goalCards = [
-    {
-      icon: FileText,
-      label: 'Applications',
-      current: progress.applications,
-      target: goals.applications,
-      color: 'bg-blue-500/10 text-blue-500',
-      key: 'applications' as const,
-    },
-    {
-      icon: Users,
-      label: 'New Contacts',
-      current: progress.newContacts,
-      target: goals.newContacts,
-      color: 'bg-emerald-500/10 text-emerald-500',
-      key: 'newContacts' as const,
-    },
-    {
-      icon: MessageSquare,
-      label: 'Follow-Ups',
-      current: progress.followUps,
-      target: goals.followUps,
-      color: 'bg-amber-500/10 text-amber-500',
-      key: 'followUps' as const,
-    },
-    {
-      icon: Clock,
-      label: 'Interview Prep (hrs)',
-      current: progress.interviewPrepHours,
-      target: goals.interviewPrepHours,
-      color: 'bg-purple-500/10 text-purple-500',
-      key: 'interviewPrepHours' as const,
-    },
+  const goalEntries = [
+    { key: 'applications' as const, current: progress.applications, target: goals.applications },
+    { key: 'newContacts' as const, current: progress.newContacts, target: goals.newContacts },
+    { key: 'followUps' as const, current: progress.followUps, target: goals.followUps },
+    { key: 'interviewPrepHours' as const, current: progress.interviewPrepHours, target: goals.interviewPrepHours },
   ];
 
+  const completedCount = goalEntries.filter(g => g.current >= g.target).length;
   const totalProgress = Math.round(
-    goalCards.reduce((acc, g) => acc + getGoalProgress(g.current, g.target), 0) / goalCards.length
+    goalEntries.reduce((acc, g) => acc + getGoalProgress(g.current, g.target), 0) / goalEntries.length
   );
-
-  const completedGoals = goalCards.filter(g => g.current >= g.target).length;
 
   return (
     <div className="space-y-6">
-      {/* Weekly Overview */}
+      {/* Progress Overview Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <CardRetro className="bg-gradient-to-r from-primary/10 to-orange-500/10 border-primary/30">
+        <CardRetro className="bg-gradient-to-br from-primary/5 via-primary/10 to-orange-500/5 border-primary/20">
           <CardRetroContent className="p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="w-6 h-6 text-primary" />
-                  <h2 className="text-xl font-black">This Week's Progress</h2>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full border-4 border-primary/20 flex items-center justify-center">
+                    <span className="text-2xl font-black text-primary">{totalProgress}%</span>
+                  </div>
+                  <div 
+                    className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary"
+                    style={{ 
+                      transform: `rotate(${(totalProgress / 100) * 360}deg)`,
+                      transition: 'transform 0.5s ease-out'
+                    }}
+                  />
                 </div>
-                <p className="text-muted-foreground">
-                  {completedGoals === goalCards.length 
-                    ? "🏆 All goals crushed! You're on fire!" 
-                    : `${completedGoals}/${goalCards.length} goals hit - keep pushing!`
-                  }
-                </p>
+                <div>
+                  <h2 className="text-xl font-black">This Week's Progress</h2>
+                  <p className="text-muted-foreground">
+                    {completedCount === goalEntries.length 
+                      ? "🏆 All goals crushed!" 
+                      : `${completedCount}/${goalEntries.length} goals completed`
+                    }
+                  </p>
+                </div>
               </div>
               
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <p className="text-4xl font-black text-primary">{totalProgress}%</p>
-                  <p className="text-xs text-muted-foreground">Complete</p>
-                </div>
-                <ButtonRetro variant="outline" size="sm" onClick={onEditGoals}>
-                  Edit Goals
-                </ButtonRetro>
-              </div>
+              <ButtonRetro variant="outline" size="sm" onClick={onEditGoals}>
+                Edit Weekly Targets
+              </ButtonRetro>
             </div>
             
-            <Progress value={totalProgress} className="h-3 mt-4" />
+            <Progress value={totalProgress} className="h-2 mt-4" />
           </CardRetroContent>
         </CardRetro>
       </motion.div>
 
-      {/* Goal Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {goalCards.map((goal, index) => (
-          <motion.div
-            key={goal.key}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <GoalCard
-              icon={goal.icon}
-              label={goal.label}
-              current={goal.current}
-              target={goal.target}
-              progressPercent={getGoalProgress(goal.current, goal.target)}
-              onLog={() => onLogProgress(goal.key)}
-              color={goal.color}
-            />
-          </motion.div>
-        ))}
+      {/* Goals Grid - Clean & Organized */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {goalEntries.map((goal, index) => {
+          const config = GOAL_CONFIG[goal.key];
+          const Icon = config.icon;
+          const progressPercent = getGoalProgress(goal.current, goal.target);
+          const isComplete = goal.current >= goal.target;
+          const isHours = goal.key === 'interviewPrepHours';
+
+          return (
+            <motion.div
+              key={goal.key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <CardRetro className={cn(
+                "h-full transition-all hover:shadow-md",
+                isComplete && "ring-2 ring-green-500/30 bg-green-500/5"
+              )}>
+                <CardRetroContent className="p-5">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("p-2.5 rounded-xl", config.bgColor)}>
+                        <Icon className={cn("w-5 h-5", config.color)} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold">{config.label}</h3>
+                        <p className="text-xs text-muted-foreground">{config.description}</p>
+                      </div>
+                    </div>
+                    {isComplete && (
+                      <Badge className="bg-green-500 text-white shrink-0">
+                        <Check className="w-3 h-3 mr-1" /> Done
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Progress Display */}
+                  <div className="mb-4">
+                    <div className="flex items-baseline gap-1 mb-2">
+                      <span className="text-3xl font-black">{goal.current}</span>
+                      <span className="text-muted-foreground text-lg">/ {goal.target}</span>
+                      {isHours && <span className="text-muted-foreground text-sm ml-1">hrs</span>}
+                    </div>
+                    <Progress 
+                      value={progressPercent} 
+                      className={cn("h-2", isComplete && "[&>div]:bg-green-500")} 
+                    />
+                  </div>
+
+                  {/* Action Button */}
+                  {!isComplete ? (
+                    <ButtonRetro 
+                      size="sm" 
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => onLogProgress(goal.key)}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Log {isHours ? 'Hour' : config.label.replace(/s$/, '')}
+                    </ButtonRetro>
+                  ) : (
+                    <p className="text-center text-sm text-green-600 font-medium">
+                      🎉 Goal achieved this week!
+                    </p>
+                  )}
+                </CardRetroContent>
+              </CardRetro>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Quick Actions */}
@@ -198,49 +195,35 @@ export function CrushModeGoals({
         transition={{ delay: 0.4 }}
       >
         <CardRetro>
-          <CardRetroHeader>
-            <CardRetroTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Quick Actions
+          <CardRetroHeader className="pb-2">
+            <CardRetroTitle className="flex items-center gap-2 text-base">
+              <Target className="w-4 h-4" />
+              Quick Log
             </CardRetroTitle>
           </CardRetroHeader>
-          <CardRetroContent>
+          <CardRetroContent className="pt-2">
             <div className="flex flex-wrap gap-2">
-              <ButtonRetro 
-                size="sm" 
-                onClick={() => onLogProgress('applications')}
-                className="gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                Log Application
-              </ButtonRetro>
-              <ButtonRetro 
-                size="sm" 
-                variant="outline"
-                onClick={() => onLogProgress('newContacts')}
-                className="gap-2"
-              >
-                <Users className="w-4 h-4" />
-                Add Contact
-              </ButtonRetro>
-              <ButtonRetro 
-                size="sm" 
-                variant="outline"
-                onClick={() => onLogProgress('followUps')}
-                className="gap-2"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Log Follow-Up
-              </ButtonRetro>
-              <ButtonRetro 
-                size="sm" 
-                variant="outline"
-                onClick={() => onLogProgress('interviewPrepHours')}
-                className="gap-2"
-              >
-                <Clock className="w-4 h-4" />
-                Log Prep Hour
-              </ButtonRetro>
+              {goalEntries.map((goal) => {
+                const config = GOAL_CONFIG[goal.key];
+                const Icon = config.icon;
+                const isComplete = goal.current >= goal.target;
+                const isHours = goal.key === 'interviewPrepHours';
+                
+                return (
+                  <ButtonRetro 
+                    key={goal.key}
+                    size="sm" 
+                    variant={isComplete ? "ghost" : "outline"}
+                    disabled={isComplete}
+                    onClick={() => onLogProgress(goal.key)}
+                    className={cn("gap-2", isComplete && "opacity-50")}
+                  >
+                    <Icon className={cn("w-4 h-4", config.color)} />
+                    +1 {isHours ? 'Hour' : config.label.replace(/s$/, '')}
+                    {isComplete && <Check className="w-3 h-3 text-green-500" />}
+                  </ButtonRetro>
+                );
+              })}
             </div>
           </CardRetroContent>
         </CardRetro>
@@ -248,18 +231,16 @@ export function CrushModeGoals({
 
       {/* Tips */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
+        className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-4 flex items-start gap-3"
       >
-        <CardRetro className="bg-muted/30">
-          <CardRetroContent className="p-4">
-            <p className="text-sm text-muted-foreground">
-              💡 <strong>Pro tip:</strong> Applications and contacts are auto-tracked from the Applications and Network tabs. 
-              Manual logging is available for activities outside the app.
-            </p>
-          </CardRetroContent>
-        </CardRetro>
+        <ArrowRight className="w-4 h-4 shrink-0 mt-0.5" />
+        <div>
+          <strong>Auto-tracking:</strong> Applications and contacts are synced from your Applications and Network tabs. 
+          Use manual logging for activities outside the app.
+        </div>
       </motion.div>
     </div>
   );

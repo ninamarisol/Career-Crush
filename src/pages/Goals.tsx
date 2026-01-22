@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Sparkles, Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Target, Sparkles, Plus, CalendarCheck } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { Badge } from '@/components/ui/badge';
 import { useGoalCrusher } from '@/hooks/useGoalCrusher';
@@ -87,26 +87,26 @@ export default function Goals() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6"
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-primary/10">
-                <Target className="w-8 h-8 text-primary" />
+                <Target className="w-7 h-7 text-primary" />
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl font-black">Goal Crusher</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-2xl sm:text-3xl font-black">Goal Crusher</h1>
+                <p className="text-sm text-muted-foreground">
                   {userMode === 'crush' 
-                    ? 'Focus on actions you can control' 
-                    : 'Build skills and visibility for your next level'
+                    ? 'Weekly targets for your job search' 
+                    : 'Monthly goals for career growth'
                   }
                 </p>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="px-3 py-1">
+              <Badge variant="outline" className="px-3 py-1.5">
                 <Sparkles className="w-3 h-3 mr-1" />
                 {userMode === 'crush' ? 'Crush Mode' : 'Climb Mode'}
               </Badge>
@@ -114,8 +114,10 @@ export default function Goals() {
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowCheckInModal(true)}
+                className="gap-2"
               >
-                Weekly Check-In
+                <CalendarCheck className="w-4 h-4" />
+                <span className="hidden sm:inline">Weekly Check-In</span>
               </ButtonRetro>
             </div>
           </div>
@@ -144,7 +146,7 @@ export default function Goals() {
         )}
 
         {/* Floating Action Button for Mobile */}
-        <div className="fixed bottom-6 right-6 sm:hidden">
+        <div className="fixed bottom-6 right-6 sm:hidden z-50">
           <ButtonRetro 
             size="lg" 
             className="rounded-full w-14 h-14 p-0 shadow-lg"
