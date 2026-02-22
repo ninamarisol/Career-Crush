@@ -75,10 +75,10 @@ export default {
           ghosted: "hsl(var(--status-ghosted))",
         },
         theme: {
-          pink: "hsl(var(--theme-pink))",
-          yellow: "hsl(var(--theme-yellow))",
-          teal: "hsl(var(--theme-teal))",
-          blue: "hsl(var(--theme-blue))",
+          grenadine: "hsl(var(--theme-grenadine))",
+          beeswax: "hsl(var(--theme-beeswax))",
+          darlington: "hsl(var(--theme-darlington))",
+          latte: "hsl(var(--theme-latte))",
         },
       },
       borderRadius: {
