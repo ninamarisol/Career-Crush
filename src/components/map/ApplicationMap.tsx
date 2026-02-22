@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useMemo, useState, lazy, Suspense, Component, type ReactNode, type ErrorInfo } from "react";
 import { Link } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -140,6 +140,37 @@ function createColoredIcon(color: string) {
   });
 }
 
+// Error boundary to prevent map crashes from taking down the whole page
+class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Map rendering error:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center bg-muted rounded-lg p-8">
+          <Globe className="h-12 w-12 text-muted-foreground mb-3" />
+          <h3 className="text-lg font-bold">Map couldn't load</h3>
+          <p className="text-muted-foreground text-sm text-center mt-1">
+            Try refreshing the page. Your applications are still accessible in Card or List view.
+          </p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Lazy load the map content to avoid SSR issues with react-leaflet
 const MapContent = lazy(() => import("./MapContent"));
 
@@ -191,20 +222,22 @@ export function ApplicationMap({ applications }: ApplicationMapProps) {
       <CardRetro className="p-0 overflow-hidden">
         <div className="h-[500px] relative">
           {markers.length > 0 ? (
-            <Suspense
-              fallback={
-                <div className="h-full flex items-center justify-center bg-muted">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              }
-            >
-              <MapContent
-                markers={markers}
-                onMarkerClick={setSelectedApp}
-                getStatusHexColor={getStatusHexColor}
-                createColoredIcon={createColoredIcon}
-              />
-            </Suspense>
+            <MapErrorBoundary>
+              <Suspense
+                fallback={
+                  <div className="h-full flex items-center justify-center bg-muted">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                }
+              >
+                <MapContent
+                  markers={markers}
+                  onMarkerClick={setSelectedApp}
+                  getStatusHexColor={getStatusHexColor}
+                  createColoredIcon={createColoredIcon}
+                />
+              </Suspense>
+            </MapErrorBoundary>
           ) : (
             <div className="h-full flex flex-col items-center justify-center bg-muted">
               <Globe className="h-16 w-16 text-muted-foreground mb-4" />

@@ -27,14 +27,14 @@ const tabs = [
 type ThemeColorValue = 'bubblegum' | 'electric' | 'minty' | 'sky' | 'coral' | 'lavender' | 'peach' | 'rose';
 
 const themeOptions: { value: ThemeColorValue; label: string; color: string; gradient: string }[] = [
-  { value: 'bubblegum', label: 'Bubblegum', color: 'hsl(330, 100%, 70%)', gradient: 'linear-gradient(135deg, hsl(330, 100%, 97%) 0%, hsl(330, 100%, 85%) 100%)' },
-  { value: 'electric', label: 'Electric', color: 'hsl(47, 100%, 55%)', gradient: 'linear-gradient(135deg, hsl(47, 100%, 97%) 0%, hsl(47, 100%, 80%) 100%)' },
-  { value: 'minty', label: 'Minty', color: 'hsl(160, 60%, 45%)', gradient: 'linear-gradient(135deg, hsl(160, 60%, 97%) 0%, hsl(160, 60%, 80%) 100%)' },
-  { value: 'sky', label: 'Sky', color: 'hsl(214, 100%, 60%)', gradient: 'linear-gradient(135deg, hsl(214, 100%, 97%) 0%, hsl(214, 100%, 85%) 100%)' },
-  { value: 'coral', label: 'Coral', color: 'hsl(16, 100%, 65%)', gradient: 'linear-gradient(135deg, hsl(16, 100%, 97%) 0%, hsl(16, 100%, 85%) 100%)' },
-  { value: 'lavender', label: 'Lavender', color: 'hsl(270, 70%, 65%)', gradient: 'linear-gradient(135deg, hsl(270, 70%, 97%) 0%, hsl(270, 70%, 85%) 100%)' },
-  { value: 'peach', label: 'Peach', color: 'hsl(30, 100%, 70%)', gradient: 'linear-gradient(135deg, hsl(30, 100%, 97%) 0%, hsl(30, 100%, 85%) 100%)' },
-  { value: 'rose', label: 'Rose', color: 'hsl(350, 90%, 65%)', gradient: 'linear-gradient(135deg, hsl(350, 90%, 97%) 0%, hsl(350, 90%, 85%) 100%)' },
+  { value: 'bubblegum', label: 'Grenadine', color: 'hsl(15, 75%, 48%)', gradient: 'linear-gradient(135deg, hsl(15, 40%, 96%) 0%, hsl(15, 30%, 85%) 100%)' },
+  { value: 'electric', label: 'Beeswax', color: 'hsl(34, 78%, 52%)', gradient: 'linear-gradient(135deg, hsl(34, 40%, 96%) 0%, hsl(34, 30%, 80%) 100%)' },
+  { value: 'minty', label: 'Darlington', color: 'hsl(150, 30%, 42%)', gradient: 'linear-gradient(135deg, hsl(150, 25%, 96%) 0%, hsl(150, 20%, 80%) 100%)' },
+  { value: 'sky', label: 'Ocean', color: 'hsl(200, 60%, 45%)', gradient: 'linear-gradient(135deg, hsl(200, 30%, 96%) 0%, hsl(200, 25%, 85%) 100%)' },
+  { value: 'coral', label: 'Coral', color: 'hsl(8, 65%, 55%)', gradient: 'linear-gradient(135deg, hsl(8, 40%, 96%) 0%, hsl(8, 30%, 85%) 100%)' },
+  { value: 'lavender', label: 'Cafe Latte', color: 'hsl(24, 23%, 39%)', gradient: 'linear-gradient(135deg, hsl(24, 20%, 96%) 0%, hsl(24, 15%, 85%) 100%)' },
+  { value: 'peach', label: 'Peach', color: 'hsl(30, 70%, 60%)', gradient: 'linear-gradient(135deg, hsl(30, 40%, 96%) 0%, hsl(30, 30%, 85%) 100%)' },
+  { value: 'rose', label: 'Rose', color: 'hsl(350, 55%, 50%)', gradient: 'linear-gradient(135deg, hsl(350, 30%, 96%) 0%, hsl(350, 25%, 85%) 100%)' },
 ];
 
 const userModeOptions: { 
