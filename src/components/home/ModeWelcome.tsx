@@ -37,7 +37,7 @@ export function ModeWelcome({ displayName, mode, quote }: ModeWelcomeProps) {
           <h1 className="text-4xl font-black">
             Welcome back, {displayName || 'Friend'} {config.emoji}
           </h1>
-          <p className="text-sm text-muted-foreground font-medium">{config.greeting} — {config.description}</p>
+          
         </div>
       </div>
       <p className="text-muted-foreground italic">{quote}</p>
