@@ -141,14 +141,14 @@
   }
 
   .theme-lavender {
-    --primary: 24 23% 39%;
-    --ring: 24 23% 39%;
-    --sidebar-primary: 24 23% 39%;
-    --border: 24 20% 28%;
-    --input: 24 20% 28%;
-    --sidebar-border: 24 20% 28%;
-    --gradient-start: 24 20% 96%;
-    --gradient-end: 24 15% 90%;
+    --primary: 270 70% 65%;
+    --ring: 270 70% 65%;
+    --sidebar-primary: 270 70% 65%;
+    --border: 270 40% 35%;
+    --input: 270 40% 35%;
+    --sidebar-border: 270 40% 35%;
+    --gradient-start: 270 30% 96%;
+    --gradient-end: 270 25% 90%;
   }
 
   .theme-peach {
