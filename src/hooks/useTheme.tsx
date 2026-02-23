@@ -276,7 +276,21 @@ const THEME_PRESETS: Record<ThemeColor, { light: ThemeVars; dark: ThemeVars }> =
   },
 };
 
+// All CSS custom properties that any preset might set — used to clear stale inline overrides
+const ALL_THEME_KEYS = [
+  "primary", "ring", "border", "input",
+  "sidebar-primary", "sidebar-border",
+  "gradient-start", "gradient-end",
+  "background", "card", "popover", "muted",
+  "sidebar-background", "sidebar-accent",
+];
+
 function applyThemeVars(vars: ThemeVars) {
+  // First, remove ALL possible inline overrides so CSS-class values can take effect
+  for (const key of ALL_THEME_KEYS) {
+    document.documentElement.style.removeProperty(`--${key}`);
+  }
+  // Then apply the new preset values
   for (const [key, value] of Object.entries(vars)) {
     document.documentElement.style.setProperty(`--${key}`, value);
   }
