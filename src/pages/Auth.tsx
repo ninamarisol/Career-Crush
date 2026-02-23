@@ -69,10 +69,6 @@ export default function Auth() {
                 <Heart className="w-8 h-8 text-secondary-foreground" />
               </div>
             </div>
-            <div className="text-center">
-              <h1 className="text-4xl font-black">Career Crush</h1>
-              <p className="text-muted-foreground mt-2">Your job search, organized.</p>
-            </div>
           </div>
 
           {/* Right side - Form card */}
