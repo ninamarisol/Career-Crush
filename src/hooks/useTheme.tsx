@@ -326,8 +326,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       el.classList.add(`theme-${effectiveColor}`);
     });
 
-    const preset = THEME_PRESETS[effectiveColor];
-    applyThemeVars(theme === "dark" ? preset.dark : preset.light);
     document.documentElement.dataset.themeColor = effectiveColor;
 
     if (!previewColor) localStorage.setItem("themeColor", themeColor);

@@ -141,14 +141,14 @@
   }
 
   .theme-lavender {
-    --primary: 24 23% 39%;
-    --ring: 24 23% 39%;
-    --sidebar-primary: 24 23% 39%;
-    --border: 24 20% 28%;
-    --input: 24 20% 28%;
-    --sidebar-border: 24 20% 28%;
-    --gradient-start: 24 20% 96%;
-    --gradient-end: 24 15% 90%;
+    --primary: 270 70% 65%;
+    --ring: 270 70% 65%;
+    --sidebar-primary: 270 70% 65%;
+    --border: 270 40% 35%;
+    --input: 270 40% 35%;
+    --sidebar-border: 270 40% 35%;
+    --gradient-start: 270 30% 96%;
+    --gradient-end: 270 25% 90%;
   }
 
   .theme-peach {
@@ -303,20 +303,20 @@
   }
 
   .dark.theme-lavender {
-    --background: 24 15% 8%;
-    --card: 24 12% 12%;
-    --popover: 24 12% 12%;
-    --muted: 24 10% 18%;
-    --sidebar-background: 24 12% 10%;
-    --sidebar-accent: 24 10% 18%;
-    --primary: 24 30% 50%;
-    --ring: 24 30% 50%;
-    --sidebar-primary: 24 30% 50%;
-    --border: 24 20% 35%;
-    --input: 24 20% 35%;
-    --sidebar-border: 24 20% 35%;
-    --gradient-start: 24 12% 12%;
-    --gradient-end: 24 15% 6%;
+    --background: 270 15% 8%;
+    --card: 270 12% 12%;
+    --popover: 270 12% 12%;
+    --muted: 270 10% 18%;
+    --sidebar-background: 270 12% 10%;
+    --sidebar-accent: 270 10% 18%;
+    --primary: 270 70% 65%;
+    --ring: 270 70% 65%;
+    --sidebar-primary: 270 70% 65%;
+    --border: 270 30% 35%;
+    --input: 270 30% 35%;
+    --sidebar-border: 270 30% 35%;
+    --gradient-start: 270 12% 12%;
+    --gradient-end: 270 15% 6%;
   }
 
   .dark.theme-peach {
