@@ -81,7 +81,6 @@ export default function Home() {
       return (
         <div className="flex gap-3 flex-wrap">
           <ButtonRetro variant="outline"><Plus className="h-4 w-4" /> Log Learning</ButtonRetro>
-          <ButtonRetro variant="outline"><Phone className="h-4 w-4" /> Request Feedback</ButtonRetro>
         </div>
       );
     }
