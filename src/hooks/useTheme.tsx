@@ -19,7 +19,7 @@ export type ThemeColor =
   | "peach"
   | "rose";
 
-type ThemeVars = Record<string, string>;
+
 
 interface ThemeContextType {
   theme: Theme;
