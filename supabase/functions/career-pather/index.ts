@@ -11,19 +11,16 @@ serve(async (req) => {
   }
 
   try {
-    const { resume, preferences, applications } = await req.json();
+    const { resume, preferences, applications, mode, targetGoal, constraints } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build context from user data
     const currentRole = resume?.experience?.[0]?.title || "Job Seeker";
     const currentCompany = resume?.experience?.[0]?.company || "";
     const yearsOfExperience = resume?.experience?.length || 0;
-    
-    // Estimate current compensation (or use placeholder)
     const estimatedComp = preferences?.salaryRange?.min || 80000;
 
     const resumeContext = resume ? `
@@ -48,106 +45,204 @@ serve(async (req) => {
 - Salary Expectations: $${preferences.salaryRange?.min?.toLocaleString() || 0} - $${preferences.salaryRange?.max?.toLocaleString() || "Open"}
 ` : "";
 
-    const applicationContext = applications?.length > 0 ? `
-## Current Job Search Activity:
-- Total applications: ${applications.length}
-- Status breakdown: ${Object.entries(
-      applications.reduce((acc: any, app: any) => {
-        acc[app.status] = (acc[app.status] || 0) + 1;
-        return acc;
-      }, {})
-    ).map(([status, count]) => `${status}: ${count}`).join(", ")}
+    const constraintsContext = constraints ? `
+## User Constraints:
+${constraints.locationLocked ? `- Location locked: Cannot relocate from ${constraints.location || "current location"}` : ""}
+${constraints.minSalary ? `- Minimum salary requirement: $${constraints.minSalary.toLocaleString()}` : ""}
+${constraints.familyObligations ? `- Has family obligations affecting flexibility` : ""}
+${constraints.noMBA ? `- Cannot pursue MBA (budget or time constraint)` : ""}
+${constraints.otherConstraints ? `- Other: ${constraints.otherConstraints}` : ""}
 ` : "";
 
-    const systemPrompt = `You are an expert career strategist who analyzes career trajectories and suggests realistic next moves.
+    const isGoalOriented = mode === "goal-oriented" && targetGoal;
 
-TASK: Analyze this person's background and generate 5 DISTINCT career trajectories they could realistically pursue. Each trajectory should represent a meaningfully different career direction.
+    const systemPrompt = isGoalOriented
+      ? `You are an expert career strategist. A user has specified a SPECIFIC career goal. Your job is to reverse-engineer the most efficient path from their current position to that goal.
+
+TASK: Analyze this person's background and create a detailed roadmap to reach their specified target role/goal. If the goal seems unrealistic given their background, say so honestly but still provide the path while noting the challenges.
 
 CRITICAL: Return ONLY valid JSON matching this exact schema. No markdown, no explanations, just pure JSON:
 
 {
-  "currentRole": "string - their current/most recent role",
+  "mode": "goal-oriented",
+  "currentRole": "string",
   "currentCompensation": number,
   "yearsOfExperience": number,
-  "trajectories": [
+  "targetGoal": "string - the user's stated goal",
+  "feasibilityScore": number (0-100, how realistic this goal is),
+  "feasibilityNote": "string - honest assessment. Flag if unrealistic, e.g. 'Becoming a surgeon requires 11+ years of training' or 'This is very achievable within 2 years'",
+  "primaryPath": {
+    "id": "primary",
+    "name": "string - descriptive name for this path",
+    "icon": "🎯",
+    "targetRole": "string",
+    "targetCompany": "string - type of company to target",
+    "timeline": "string - e.g. '18-24 months'",
+    "compensation": {
+      "current": number,
+      "target": number,
+      "increase": number,
+      "percentIncrease": number
+    },
+    "successProbability": number (0-100),
+    "difficulty": "Low" | "Medium" | "Medium-High" | "High" | "Very High",
+    "gapAnalysis": {
+      "strengths": ["what user already has going for them"],
+      "gaps": ["specific gaps like '2 years analytics experience needed'", "MBA recommended for this path"],
+      "effortLevel": "Low" | "Medium" | "High" | "Very High"
+    },
+    "roadmap": {
+      "milestones": [
+        {
+          "id": "m1",
+          "order": 1,
+          "title": "string",
+          "duration": "Months 1-6",
+          "targetRoles": ["job titles to pursue at this stage"],
+          "companiesTargeted": ["specific companies or types"],
+          "objectives": ["specific actions"],
+          "skillsToAcquire": ["skills needed"],
+          "resources": ["courses, books, communities"],
+          "successMetrics": ["how to know you've completed this"],
+          "avgTimeToComplete": "string",
+          "completed": false,
+          "progress": 0
+        }
+      ]
+    },
+    "actionItems": {
+      "immediate": ["things to do this week"],
+      "shortTerm": ["things to do in next 3 months"],
+      "longTerm": ["things to do in 6-12 months"]
+    }
+  },
+  "alternativePaths": [
     {
-      "id": "rocketship",
-      "name": "The Rocketship",
-      "icon": "🚀",
-      "targetRole": "Senior Product Manager",
-      "targetCompany": "High-growth startup (Series B-C)",
-      "timeline": "12-18 months",
+      "id": "alt1",
+      "name": "string - e.g. 'Non-MBA path to consulting'",
+      "icon": "🔄",
+      "description": "string - when to use this alternative",
+      "timeline": "string",
+      "keyDifference": "string - what makes this different from primary",
+      "tradeoffs": ["what you give up", "what you gain"],
+      "roadmap": {
+        "milestones": [
+          {
+            "id": "a1",
+            "order": 1,
+            "title": "string",
+            "duration": "string",
+            "objectives": ["specific actions"],
+            "skillsToAcquire": ["skills"],
+            "resources": ["resources"],
+            "successMetrics": ["metrics"],
+            "completed": false,
+            "progress": 0
+          }
+        ]
+      }
+    }
+  ],
+  "reasoning": "string - overall strategic reasoning"
+}
+
+REQUIREMENTS:
+- Primary path should have 3-5 milestones with SPECIFIC role titles, companies, and timelines
+- Include 1-2 alternative paths if primary has blockers (e.g. non-MBA path, non-traditional path)
+- Action items should be CONCRETE: "Build SQL skills via Mode Analytics free course" not "Learn data"
+- Flag unrealistic goals honestly but respectfully
+- Adjust for any constraints the user has specified
+- Include real company names and real resources (courses, books, communities)`
+
+      : `You are an expert career strategist who analyzes career trajectories and suggests realistic next moves.
+
+TASK: Analyze this person's background and generate 3-5 DISTINCT career paths they could realistically pursue. Each path should represent a meaningfully different career direction. Highlight where their current experience gives them advantages.
+
+CRITICAL: Return ONLY valid JSON matching this exact schema. No markdown, no explanations, just pure JSON:
+
+{
+  "mode": "exploratory",
+  "currentRole": "string",
+  "currentCompensation": number,
+  "yearsOfExperience": number,
+  "paths": [
+    {
+      "id": "string",
+      "name": "string - descriptive path name",
+      "icon": "emoji",
+      "targetRole": "string - realistic next role",
+      "targetCompany": "string - type of company",
+      "timeline": "string - e.g. '12-18 months'",
       "compensation": {
-        "current": 145000,
-        "target": 200000,
-        "increase": 55000,
-        "percentIncrease": 38
+        "current": number,
+        "target": number,
+        "increase": number,
+        "percentIncrease": number
       },
-      "successProbability": 78,
-      "difficulty": "Medium-High",
+      "successProbability": number (0-100),
+      "difficulty": "Low" | "Medium" | "Medium-High" | "High" | "Very High",
+      "whyThisPath": "string - why this path makes sense given their background",
+      "existingAdvantages": ["what they already have that helps"],
       "appeal": {
-        "bestFor": ["Fast growth seekers", "Risk tolerant", "Generalists"],
-        "benefits": ["Rapid career advancement", "Higher compensation", "Learning opportunities"],
-        "tradeoffs": ["Higher risk", "Fast pace", "Less stability"]
+        "bestFor": ["type of person this suits"],
+        "benefits": ["key benefits"],
+        "tradeoffs": ["key tradeoffs"]
       },
+      "nextSteps": ["3-5 concrete immediate actions"],
       "roadmap": {
         "milestones": [
           {
             "id": "m1",
             "order": 1,
-            "title": "Build Foundation",
-            "duration": "Months 1-4",
-            "objectives": ["Complete growth course", "Network with 5 senior PMs"],
-            "skillsToAcquire": ["Growth metrics", "A/B testing"],
-            "resources": ["Reforge Growth Series", "Product School"],
-            "successMetrics": ["Certificate earned", "Contacts made"],
+            "title": "string",
+            "duration": "string",
+            "targetRoles": ["job titles at this stage"],
+            "companiesTargeted": ["companies or types"],
+            "objectives": ["specific actions"],
+            "skillsToAcquire": ["skills"],
+            "resources": ["real courses, books, communities"],
+            "successMetrics": ["how to know you've completed this"],
             "completed": false,
             "progress": 0
           }
         ]
       },
-      "gaps": {
-        "strengths": ["Strong product foundation", "Communication skills"],
-        "needsToBuild": ["Growth expertise", "Startup experience"],
-        "effortLevel": "High"
+      "gapAnalysis": {
+        "strengths": ["existing strengths"],
+        "gaps": ["what needs building"],
+        "effortLevel": "Low" | "Medium" | "High" | "Very High"
       },
       "marketContext": {
-        "demandScore": 85,
-        "hiringTrends": "Strong demand for growth PMs",
-        "competitiveLandscape": "Competitive but achievable",
-        "topCompanies": ["Notion", "Linear", "Figma"]
+        "demandScore": number (0-100),
+        "hiringTrends": "string",
+        "topCompanies": ["real company names"]
       }
     }
   ],
-  "recommendedPath": "rocketship",
-  "reasoning": "Based on your skills and trajectory, this path offers the best combination of growth and probability of success."
+  "recommendedPath": "string - id of recommended path",
+  "reasoning": "string - why this path is recommended"
 }
 
-TRAJECTORY TYPES TO INCLUDE (adapt names/icons based on the person's field):
-1. "The Rocketship" 🚀 - Fast track to senior role at high-growth company
-2. "The Specialist" 🎯 - Deep expertise in a hot domain (AI, Growth, etc.)
-3. "The Leader" 💼 - People management track
-4. "The Strategist" 🌟 - Consulting/strategy pivot
-5. "The Safe Bet" 🛡️ - Steady promotion at current company type
-
 REQUIREMENTS:
-- Each trajectory must have 3-4 specific milestones
-- Success probabilities should be realistic (60-90% range)
-- Compensation increases should be data-driven (20-60% typical for role changes)
-- Include real company names and resources
-- Make trajectories MEANINGFULLY DIFFERENT, not just variations`;
+- Generate 3-5 paths (fewer if the person's background is narrow)
+- Each path must be MEANINGFULLY DIFFERENT (not just variations)
+- Highlight existing advantages for each path
+- Success probabilities should be realistic (60-90%)
+- Include REAL company names, resources, and courses
+- Action items should be specific: "Complete Google Analytics cert" not "Learn analytics"
+- Each path should have 2-4 milestones
+- Adjust recommendations based on any constraints`;
 
-    const userPrompt = `Based on this person's profile, generate 5 career trajectories:
+    const userPrompt = `Based on this person's profile, generate career paths:
 
 ${resumeContext}
 ${preferencesContext}
-${applicationContext}
-
-Generate trajectories that are:
-- Realistic given their background
-- Distinct from each other (different directions, not just variations)
-- Ranked by probability of success
-- Include specific timelines, compensation changes, and actionable milestones
+${constraintsContext}
+${isGoalOriented ? `
+## SPECIFIC GOAL:
+The user wants to reach: "${targetGoal}"
+Reverse-engineer the path to this goal. Be honest about feasibility.
+` : ""}
 
 Remember: Return ONLY valid JSON, no other text.`;
 
