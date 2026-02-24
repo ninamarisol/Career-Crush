@@ -5,6 +5,7 @@ import { CardRetro } from '@/components/ui/card-retro';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { InputRetro } from '@/components/ui/input-retro';
 import { useAuth } from '@/hooks/useAuth';
+import { lovable } from '@/integrations/lovable/index';
 import { Briefcase, Heart, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 
