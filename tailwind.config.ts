@@ -80,6 +80,11 @@ export default {
           darlington: "hsl(var(--theme-darlington))",
           latte: "hsl(var(--theme-latte))",
         },
+        pillar: {
+          visibility: "hsl(var(--pillar-visibility))",
+          network: "hsl(var(--pillar-network))",
+          skills: "hsl(var(--pillar-skills))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
