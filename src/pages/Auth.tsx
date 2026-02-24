@@ -44,8 +44,10 @@ export default function Auth() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { error } = await signInWithGoogle();
-      if (error) throw error;
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) throw result.error;
     } catch (error: any) {
       toast.error(error.message || 'Google sign in failed');
       setLoading(false);
