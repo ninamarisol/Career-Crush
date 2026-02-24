@@ -17,7 +17,7 @@ export type ThemeColor =
   | "coral"
   | "lavender"
   | "peach"
-  | "rose";
+  | "purple";
 
 
 
@@ -41,7 +41,7 @@ const THEME_COLORS: ThemeColor[] = [
   "coral",
   "lavender",
   "peach",
-  "rose",
+  "purple",
 ];
 
 function isValidThemeColor(color: string | null): color is ThemeColor {
@@ -55,6 +55,7 @@ const ALL_THEME_KEYS = [
   "gradient-start", "gradient-end",
   "background", "card", "popover", "muted",
   "sidebar-background", "sidebar-accent",
+  "accent", "accent-foreground",
 ];
 
 function clearInlineThemeVars() {

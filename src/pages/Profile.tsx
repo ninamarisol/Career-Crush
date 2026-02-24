@@ -24,7 +24,7 @@ const tabs = [
   { id: 'account', label: 'Account Settings', icon: User, emoji: '⚙️' },
 ];
 
-type ThemeColorValue = 'bubblegum' | 'electric' | 'minty' | 'sky' | 'coral' | 'lavender' | 'peach' | 'rose';
+type ThemeColorValue = 'bubblegum' | 'electric' | 'minty' | 'sky' | 'coral' | 'lavender' | 'peach' | 'purple';
 
 const themeOptions: { value: ThemeColorValue; label: string; color: string; gradient: string }[] = [
   { value: 'bubblegum', label: 'Grenadine', color: 'hsl(15, 75%, 48%)', gradient: 'linear-gradient(135deg, hsl(15, 40%, 96%) 0%, hsl(15, 30%, 85%) 100%)' },
@@ -34,7 +34,7 @@ const themeOptions: { value: ThemeColorValue; label: string; color: string; grad
   { value: 'coral', label: 'Coral', color: 'hsl(8, 65%, 55%)', gradient: 'linear-gradient(135deg, hsl(8, 40%, 96%) 0%, hsl(8, 30%, 85%) 100%)' },
   { value: 'lavender', label: 'Cafe Latte', color: 'hsl(24, 23%, 39%)', gradient: 'linear-gradient(135deg, hsl(24, 20%, 96%) 0%, hsl(24, 15%, 85%) 100%)' },
   { value: 'peach', label: 'Peach', color: 'hsl(30, 70%, 60%)', gradient: 'linear-gradient(135deg, hsl(30, 40%, 96%) 0%, hsl(30, 30%, 85%) 100%)' },
-  { value: 'rose', label: 'Rose', color: 'hsl(350, 55%, 50%)', gradient: 'linear-gradient(135deg, hsl(350, 30%, 96%) 0%, hsl(350, 25%, 85%) 100%)' },
+  { value: 'purple', label: 'Purple', color: 'hsl(270, 50%, 55%)', gradient: 'linear-gradient(135deg, hsl(270, 30%, 96%) 0%, hsl(270, 25%, 85%) 100%)' },
 ];
 
 const userModeOptions: { 
