@@ -22,7 +22,7 @@ export interface ClimbModeGoals {
 export interface VisibilityActivity {
   id: string;
   label: string;
-  frequency: string; // e.g., "2x/month", "1x/week"
+  frequency: string;
   target: number;
   completed: number;
   enabled: boolean;
@@ -49,6 +49,21 @@ export interface CheckInData {
   whatGotInTheWay: string;
 }
 
+export interface CustomGoalStep {
+  title: string;
+  cadence: string;
+  dueDate?: string;
+  completed?: boolean;
+}
+
+export interface CustomGoal {
+  id: string;
+  pillar: 'visibility' | 'network' | 'skills';
+  refinedGoal: string;
+  steps: CustomGoalStep[];
+  featureSuggestions: string[];
+}
+
 const DEFAULT_CRUSH_GOALS: CrushModeGoals = {
   applications: 5,
   newContacts: 3,
@@ -62,6 +77,10 @@ const DEFAULT_VISIBILITY_ACTIVITIES: VisibilityActivity[] = [
   { id: 'volunteer-project', label: 'Volunteer for high-visibility projects', frequency: '1x/month', target: 1, completed: 0, enabled: false },
   { id: 'present-meeting', label: 'Present in team meeting', frequency: '1x/month', target: 1, completed: 0, enabled: false },
 ];
+
+function getMonthKey(): string {
+  return format(new Date(), 'yyyy-MM');
+}
 
 export function useGoalCrusher() {
   const { user } = useAuth();
@@ -87,6 +106,9 @@ export function useGoalCrusher() {
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [loading, setLoading] = useState(true);
   const [goalsSetup, setGoalsSetup] = useState(false);
+  const [customGoals, setCustomGoals] = useState<CustomGoal[]>([]);
+  const [streakCount, setStreakCount] = useState(0);
+  const [streakMonths, setStreakMonths] = useState<string[]>([]);
 
   // Calculate weekly progress from real data
   const calculateWeeklyProgress = useCallback(() => {
@@ -94,13 +116,11 @@ export function useGoalCrusher() {
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    // Applications this week
     const appsThisWeek = applications.filter(app => {
       const date = new Date(app.date_applied);
       return date >= weekStart && date <= weekEnd;
     }).length;
 
-    // Interviews (follow-ups) this week
     const followUpsThisWeek = events.filter(e => {
       const date = new Date(e.date);
       return (e.type === 'follow_up' || e.type === 'networking') && date >= weekStart && date <= weekEnd;
@@ -117,7 +137,31 @@ export function useGoalCrusher() {
     calculateWeeklyProgress();
   }, [calculateWeeklyProgress]);
 
-  // Fetch goals from user_goals table
+  // Persist climb goals to DB
+  const persistClimbGoals = useCallback(async (
+    visActivities: VisibilityActivity[],
+    goals: CustomGoal[],
+    networkTarget: number,
+    streak: number,
+    months: string[]
+  ) => {
+    if (!user) return;
+    const monthKey = getMonthKey();
+
+    await supabase
+      .from('climb_goals')
+      .upsert({
+        user_id: user.id,
+        month_key: monthKey,
+        visibility_activities: JSON.parse(JSON.stringify(visActivities)),
+        custom_goals: JSON.parse(JSON.stringify(goals)),
+        network_contacts_target: networkTarget,
+        streak_count: streak,
+        streak_months: JSON.parse(JSON.stringify(months)),
+      } as any, { onConflict: 'user_id,month_key' });
+  }, [user]);
+
+  // Fetch goals from DB
   const fetchGoals = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -156,7 +200,35 @@ export function useGoalCrusher() {
         }));
       }
 
-      // Fetch contacts added this month for monthly network goal
+      // Fetch persisted climb goals for current month
+      const monthKey = getMonthKey();
+      const { data: climbData } = await supabase
+        .from('climb_goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('month_key', monthKey)
+        .maybeSingle();
+
+      if (climbData) {
+        const visActivities = (climbData as any).visibility_activities as VisibilityActivity[];
+        const savedGoals = (climbData as any).custom_goals as CustomGoal[];
+        const netTarget = (climbData as any).network_contacts_target as number;
+        const streak = (climbData as any).streak_count as number;
+        const months = (climbData as any).streak_months as string[];
+
+        if (visActivities && visActivities.length > 0) {
+          setClimbGoals(prev => ({
+            ...prev,
+            visibilityActivities: visActivities,
+            networkContacts: netTarget || 5,
+          }));
+        }
+        if (savedGoals) setCustomGoals(savedGoals);
+        setStreakCount(streak || 0);
+        setStreakMonths(months || []);
+      }
+
+      // Fetch contacts for monthly progress
       const monthStart = startOfMonth(new Date());
       const monthEnd = endOfMonth(new Date());
       
@@ -206,7 +278,6 @@ export function useGoalCrusher() {
   // Update crush mode goals
   const updateCrushGoals = async (newGoals: Partial<CrushModeGoals>) => {
     if (!user) return;
-
     const updated = { ...crushGoals, ...newGoals };
     setCrushGoals(updated);
 
@@ -223,7 +294,15 @@ export function useGoalCrusher() {
 
   // Update climb mode goals
   const updateClimbGoals = async (newGoals: Partial<ClimbModeGoals>) => {
-    setClimbGoals(prev => ({ ...prev, ...newGoals }));
+    const updated = { ...climbGoals, ...newGoals };
+    setClimbGoals(updated);
+    await persistClimbGoals(
+      updated.visibilityActivities,
+      customGoals,
+      updated.networkContacts,
+      streakCount,
+      streakMonths
+    );
     toast.success('Goals updated!');
   };
 
@@ -239,7 +318,6 @@ export function useGoalCrusher() {
   // Add skill to track
   const addSkill = async (skillName: string, targetHours: number = 5) => {
     if (!user) return;
-
     const { error } = await supabase
       .from('skill_tracking')
       .insert({
@@ -261,7 +339,6 @@ export function useGoalCrusher() {
   // Log skill hours
   const logSkillHours = async (skillName: string, hours: number) => {
     if (!user) return;
-
     const { error } = await supabase
       .from('skill_tracking')
       .update({ logged_hours: hours })
@@ -278,25 +355,98 @@ export function useGoalCrusher() {
     }
   };
 
-  // Toggle visibility activity
+  // Toggle visibility activity and persist
   const toggleVisibilityActivity = (activityId: string, enabled: boolean) => {
-    setClimbGoals(prev => ({
-      ...prev,
-      visibilityActivities: prev.visibilityActivities.map(a =>
-        a.id === activityId ? { ...a, enabled } : a
-      ),
-    }));
+    setClimbGoals(prev => {
+      const updated = {
+        ...prev,
+        visibilityActivities: prev.visibilityActivities.map(a =>
+          a.id === activityId ? { ...a, enabled } : a
+        ),
+      };
+      persistClimbGoals(updated.visibilityActivities, customGoals, updated.networkContacts, streakCount, streakMonths);
+      return updated;
+    });
   };
 
-  // Log visibility activity
-  const logVisibilityActivity = (activityId: string) => {
-    setClimbGoals(prev => ({
-      ...prev,
-      visibilityActivities: prev.visibilityActivities.map(a =>
-        a.id === activityId ? { ...a, completed: a.completed + 1 } : a
-      ),
-    }));
+  // Log visibility activity, persist, and auto-sync to Track Record
+  const logVisibilityActivity = async (activityId: string) => {
+    let activityLabel = '';
+    setClimbGoals(prev => {
+      const updated = {
+        ...prev,
+        visibilityActivities: prev.visibilityActivities.map(a => {
+          if (a.id === activityId) {
+            activityLabel = a.label;
+            return { ...a, completed: a.completed + 1 };
+          }
+          return a;
+        }),
+      };
+      persistClimbGoals(updated.visibilityActivities, customGoals, updated.networkContacts, streakCount, streakMonths);
+      return updated;
+    });
+
+    // Auto-sync: create a track record entry for visibility wins
+    if (user && activityLabel) {
+      try {
+        await supabase.from('track_record_entries').insert({
+          user_id: user.id,
+          content: `Completed visibility action: ${activityLabel}`,
+          title: activityLabel,
+          entry_type: 'achievement',
+          status: 'ready_to_use',
+          manual_tags: ['visibility', 'goal-crusher'],
+          context_date: new Date().toISOString().split('T')[0],
+        });
+      } catch (e) {
+        console.error('Auto-sync to Track Record failed:', e);
+      }
+    }
+
     toast.success('Activity logged!');
+  };
+
+  // Save custom goal and persist
+  const saveCustomGoal = async (goal: CustomGoal) => {
+    const updated = [...customGoals, goal];
+    setCustomGoals(updated);
+    await persistClimbGoals(climbGoals.visibilityActivities, updated, climbGoals.networkContacts, streakCount, streakMonths);
+    toast.success('Custom goal added!');
+  };
+
+  // Toggle custom goal step and persist
+  const toggleCustomGoalStep = async (goalId: string, stepIdx: number) => {
+    const updated = customGoals.map(g =>
+      g.id === goalId
+        ? { ...g, steps: g.steps.map((s, i) => (i === stepIdx ? { ...s, completed: !s.completed } : s)) }
+        : g
+    );
+    setCustomGoals(updated);
+    await persistClimbGoals(climbGoals.visibilityActivities, updated, climbGoals.networkContacts, streakCount, streakMonths);
+  };
+
+  // Log network check-in and auto-sync to contacts
+  const logNetworkCheckIn = async (contactId?: string) => {
+    setMonthlyProgress(prev => ({
+      ...prev,
+      networkContacts: prev.networkContacts + 1,
+    }));
+
+    // Auto-sync: update contact's last_contacted
+    if (user && contactId) {
+      try {
+        await supabase
+          .from('contacts')
+          .update({ last_contacted: new Date().toISOString().split('T')[0] })
+          .eq('id', contactId)
+          .eq('user_id', user.id);
+      } catch (e) {
+        console.error('Auto-sync to Contacts failed:', e);
+      }
+    }
+
+    toast.success('Check-in logged!');
   };
 
   // Submit weekly check-in
@@ -321,7 +471,6 @@ export function useGoalCrusher() {
     const contactsProgress = getGoalProgress(weeklyProgress.newContacts, crushGoals.newContacts);
     const followUpsProgress = getGoalProgress(weeklyProgress.followUps, crushGoals.followUps);
     const prepProgress = getGoalProgress(weeklyProgress.interviewPrepHours, crushGoals.interviewPrepHours);
-    
     return Math.round((appsProgress + contactsProgress + followUpsProgress + prepProgress) / 4);
   };
 
@@ -340,6 +489,19 @@ export function useGoalCrusher() {
           calibration_complete: true,
         });
       setCrushGoals(crushG);
+    } else {
+      // Persist climb goals setup
+      const climbG = goals as ClimbModeGoals;
+      await persistClimbGoals(climbG.visibilityActivities, [], climbG.networkContacts, 0, []);
+      setClimbGoals(climbG);
+      
+      // Also mark calibration as complete
+      await supabase
+        .from('user_goals')
+        .upsert({
+          user_id: user.id,
+          calibration_complete: true,
+        });
     }
 
     setGoalsSetup(true);
@@ -355,6 +517,9 @@ export function useGoalCrusher() {
     checkIns,
     loading,
     goalsSetup,
+    customGoals,
+    streakCount,
+    streakMonths,
     updateCrushGoals,
     updateClimbGoals,
     logProgress,
@@ -366,6 +531,9 @@ export function useGoalCrusher() {
     getGoalProgress,
     getCrushWeeklyProgress,
     setupGoals,
+    saveCustomGoal,
+    toggleCustomGoalStep,
+    logNetworkCheckIn,
     refreshGoals: fetchGoals,
   };
 }

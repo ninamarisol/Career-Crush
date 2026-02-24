@@ -197,6 +197,45 @@ export type Database = {
         }
         Relationships: []
       }
+      climb_goals: {
+        Row: {
+          created_at: string
+          custom_goals: Json
+          id: string
+          month_key: string
+          network_contacts_target: number
+          streak_count: number
+          streak_months: Json
+          updated_at: string
+          user_id: string
+          visibility_activities: Json
+        }
+        Insert: {
+          created_at?: string
+          custom_goals?: Json
+          id?: string
+          month_key: string
+          network_contacts_target?: number
+          streak_count?: number
+          streak_months?: Json
+          updated_at?: string
+          user_id: string
+          visibility_activities?: Json
+        }
+        Update: {
+          created_at?: string
+          custom_goals?: Json
+          id?: string
+          month_key?: string
+          network_contacts_target?: number
+          streak_count?: number
+          streak_months?: Json
+          updated_at?: string
+          user_id?: string
+          visibility_activities?: Json
+        }
+        Relationships: []
+      }
       contact_interactions: {
         Row: {
           contact_id: string
