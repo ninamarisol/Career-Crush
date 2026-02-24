@@ -219,6 +219,11 @@
 
     --gradient-start: 24 18% 10%;
     --gradient-end: 24 20% 6%;
+
+    /* Pillar accent colors - dark */
+    --pillar-visibility: 8 72% 62%;
+    --pillar-network: 174 55% 48%;
+    --pillar-skills: 270 50% 60%;
   }
 
   /* Dark theme variants */
