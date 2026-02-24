@@ -21,6 +21,9 @@ export default function Goals() {
     monthlyProgress,
     loading,
     goalsSetup,
+    customGoals,
+    streakCount,
+    streakMonths,
     updateCrushGoals,
     updateClimbGoals,
     logProgress,
@@ -31,6 +34,9 @@ export default function Goals() {
     submitCheckIn,
     getGoalProgress,
     setupGoals,
+    saveCustomGoal,
+    toggleCustomGoalStep,
+    logNetworkCheckIn,
   } = useGoalCrusher();
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -67,7 +73,6 @@ export default function Goals() {
     }
   };
 
-  // Build goals status for weekly check-in
   const goalsStatus = userMode === 'crush' 
     ? [
         { label: `${crushGoals.applications} applications`, hit: weeklyProgress.applications >= crushGoals.applications },
@@ -136,12 +141,17 @@ export default function Goals() {
           <ClimbModeGoals
             goals={climbGoals}
             monthlyProgress={monthlyProgress}
+            customGoals={customGoals}
+            streakCount={streakCount}
+            streakMonths={streakMonths}
             onAddSkill={() => setShowAddSkillModal(true)}
             onLogSkillHours={handleLogSkillHours}
             onToggleVisibility={toggleVisibilityActivity}
             onLogVisibility={logVisibilityActivity}
             onEditGoals={() => setShowEditModal(true)}
             getGoalProgress={getGoalProgress}
+            onSaveCustomGoal={saveCustomGoal}
+            onToggleCustomStep={toggleCustomGoalStep}
           />
         )}
 

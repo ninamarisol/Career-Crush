@@ -19,18 +19,23 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, getDaysInMonth, getDate } from 'date-fns';
-import type { ClimbModeGoals as ClimbGoalsType, MonthlyProgress, VisibilityActivity } from '@/hooks/useGoalCrusher';
+import type { ClimbModeGoals as ClimbGoalsType, MonthlyProgress, VisibilityActivity, CustomGoal, CustomGoalStep } from '@/hooks/useGoalCrusher';
 import { useNavigate } from 'react-router-dom';
 
 interface ClimbModeGoalsProps {
   goals: ClimbGoalsType;
   monthlyProgress: MonthlyProgress;
+  customGoals: CustomGoal[];
+  streakCount: number;
+  streakMonths: string[];
   onAddSkill: () => void;
   onLogSkillHours: (skillName: string) => void;
   onToggleVisibility: (activityId: string, enabled: boolean) => void;
   onLogVisibility: (activityId: string) => void;
   onEditGoals: () => void;
   getGoalProgress: (current: number, target: number) => number;
+  onSaveCustomGoal: (goal: CustomGoal) => void;
+  onToggleCustomStep: (goalId: string, stepIdx: number) => void;
 }
 
 type PillarType = 'visibility' | 'network' | 'skills';
@@ -42,20 +47,7 @@ interface AINudges {
   statusMessage: string;
 }
 
-interface CustomGoalStep {
-  title: string;
-  cadence: string;
-  dueDate?: string;
-  completed?: boolean;
-}
-
-interface CustomGoal {
-  id: string;
-  pillar: PillarType;
-  refinedGoal: string;
-  steps: CustomGoalStep[];
-  featureSuggestions: string[];
-}
+// CustomGoal and CustomGoalStep imported from useGoalCrusher
 
 // ─── Pillar Summary Card ────────────────────────────────────────────────────
 function PillarCard({
@@ -78,12 +70,7 @@ function PillarCard({
   onToggle: () => void;
 }) {
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const colorMap: Record<PillarType, string> = {
-    visibility: 'pillar-visibility',
-    network: 'pillar-network',
-    skills: 'pillar-skills',
-  };
-  const color = colorMap[pillar];
+  const color = `hsl(var(--pillar-${pillar}))`;
 
   return (
     <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
@@ -92,14 +79,15 @@ function PillarCard({
         onClick={onToggle}
         className={cn(
           'relative overflow-hidden transition-all',
-          isExpanded && `ring-2 ring-${color}/50`
+          isExpanded && 'ring-2'
         )}
+        style={isExpanded ? { boxShadow: `0 0 0 2px ${color}80` } : undefined}
       >
         <CardRetroContent className="p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className={cn('p-2 rounded-lg', `bg-${color}/10`)}>
-                <Icon className={cn('w-5 h-5', `text-${color}`)} />
+              <div className="p-2 rounded-lg" style={{ backgroundColor: `${color}15` }}>
+                <Icon className="w-5 h-5" style={{ color }} />
               </div>
               <span className="font-black text-base uppercase tracking-wide">{label}</span>
             </div>
@@ -117,7 +105,8 @@ function PillarCard({
 
           <div className="relative h-3 rounded-full overflow-hidden bg-muted">
             <motion.div
-              className={cn('h-full rounded-full', `bg-${color}`)}
+              className="h-full rounded-full"
+              style={{ backgroundColor: color }}
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -561,18 +550,22 @@ function PillarDrawer({
 export function ClimbModeGoals({
   goals,
   monthlyProgress,
+  customGoals,
+  streakCount,
+  streakMonths,
   onAddSkill,
   onLogSkillHours,
   onToggleVisibility,
   onLogVisibility,
   onEditGoals,
   getGoalProgress,
+  onSaveCustomGoal,
+  onToggleCustomStep,
 }: ClimbModeGoalsProps) {
   const [expandedPillar, setExpandedPillar] = useState<PillarType | null>(null);
   const [nudges, setNudges] = useState<AINudges | null>(null);
   const [nudgesLoading, setNudgesLoading] = useState(true);
   const [showGoalBuilder, setShowGoalBuilder] = useState(false);
-  const [customGoals, setCustomGoals] = useState<CustomGoal[]>([]);
 
   const now = new Date();
   const monthName = format(now, 'MMMM');
@@ -648,22 +641,7 @@ export function ClimbModeGoals({
     fetchNudges();
   }, []);
 
-  const handleToggleCustomStep = (goalId: string, stepIdx: number) => {
-    setCustomGoals(prev =>
-      prev.map(g =>
-        g.id === goalId
-          ? { ...g, steps: g.steps.map((s, i) => (i === stepIdx ? { ...s, completed: !s.completed } : s)) }
-          : g
-      )
-    );
-  };
-
-  const handleSaveCustomGoal = (goal: CustomGoal) => {
-    setCustomGoals(prev => [...prev, goal]);
-    toast.success('Custom goal added!');
-  };
-
-  const streak = 2; // TODO: calculate from persisted data
+  const streak = streakCount;
 
   return (
     <div className="space-y-6">
@@ -753,7 +731,7 @@ export function ClimbModeGoals({
             onLogVisibility={onLogVisibility}
             onLogSkillHours={onLogSkillHours}
             onAddCustomGoal={() => setShowGoalBuilder(true)}
-            onToggleCustomStep={handleToggleCustomStep}
+            onToggleCustomStep={onToggleCustomStep}
             getGoalProgress={getGoalProgress}
           />
         )}
@@ -773,7 +751,7 @@ export function ClimbModeGoals({
       <CustomGoalBuilder
         open={showGoalBuilder}
         onOpenChange={setShowGoalBuilder}
-        onSave={handleSaveCustomGoal}
+        onSave={onSaveCustomGoal}
       />
     </div>
   );
