@@ -82,6 +82,11 @@
     /* Gradient background */
     --gradient-start: 40 35% 96%;
     --gradient-end: 34 30% 90%;
+
+    /* Pillar accent colors */
+    --pillar-visibility: 8 72% 58%;
+    --pillar-network: 174 55% 42%;
+    --pillar-skills: 270 50% 55%;
   }
 
   /* Theme variants - warm retro palette */
