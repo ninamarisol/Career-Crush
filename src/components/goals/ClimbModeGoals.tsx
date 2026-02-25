@@ -1,26 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Eye, Users, BookOpen, Plus, Check, ChevronDown, ChevronUp,
-  Sparkles, Flame, MessageSquare, ExternalLink, Calendar
+  Eye, Users, BookOpen, Target, Sparkles, Flame, RefreshCw,
+  ChevronDown, ChevronUp, Check, Plus
 } from 'lucide-react';
 import { CardRetro, CardRetroContent } from '@/components/ui/card-retro';
 import { Progress } from '@/components/ui/progress';
-import { ProgressCircle } from '@/components/ui/progress-circle';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format, getDaysInMonth, getDate } from 'date-fns';
-import type { ClimbModeGoals as ClimbGoalsType, MonthlyProgress, VisibilityActivity, CustomGoal, CustomGoalStep } from '@/hooks/useGoalCrusher';
-import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
+import { useApp } from '@/context/AppContext';
+import { useContacts } from '@/hooks/useContacts';
+import type { ClimbModeGoals as ClimbGoalsType, MonthlyProgress, VisibilityActivity, CustomGoal } from '@/hooks/useGoalCrusher';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+export interface BriefingData {
+  retrospective: string;
+  stats: { label: string; value: string }[];
+  patterns: string[];
+  blindSpots: string[];
+  oneMove: string;
+  supportingActions: string[];
+}
 
 interface ClimbModeGoalsProps {
   goals: ClimbGoalsType;
@@ -38,512 +46,121 @@ interface ClimbModeGoalsProps {
   onToggleCustomStep: (goalId: string, stepIdx: number) => void;
 }
 
-type PillarType = 'visibility' | 'network' | 'skills';
+// ─── Data Snapshot Builder ──────────────────────────────────────────────────
+function useDataSnapshot() {
+  const { user } = useAuth();
+  const { applications, events } = useApp();
+  const { contacts } = useContacts();
 
-interface AINudges {
-  visibility: string;
-  network: string;
-  skills: string;
-  statusMessage: string;
-}
+  return useCallback(async () => {
+    if (!user) return null;
 
-// CustomGoal and CustomGoalStep imported from useGoalCrusher
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const isoThirty = thirtyDaysAgo.toISOString();
 
-// ─── Pillar Summary Card ────────────────────────────────────────────────────
-function PillarCard({
-  pillar,
-  label,
-  icon: Icon,
-  completed,
-  total,
-  statusNote,
-  isExpanded,
-  onToggle,
-}: {
-  pillar: PillarType;
-  label: string;
-  icon: React.ElementType;
-  completed: number;
-  total: number;
-  statusNote: string;
-  isExpanded: boolean;
-  onToggle: () => void;
-}) {
-  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const color = `hsl(var(--pillar-${pillar}))`;
+    // Recent applications
+    const recentApps = applications.filter(a => new Date(a.created_at) >= thirtyDaysAgo);
+    const statusCounts: Record<string, number> = {};
+    recentApps.forEach(a => { statusCounts[a.status] = (statusCounts[a.status] || 0) + 1; });
 
-  return (
-    <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
-      <CardRetro
-        hoverable
-        onClick={onToggle}
-        className={cn(
-          'relative overflow-hidden transition-all',
-          isExpanded && 'ring-2'
-        )}
-        style={isExpanded ? { boxShadow: `0 0 0 2px ${color}80` } : undefined}
-      >
-        <CardRetroContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg" style={{ backgroundColor: `${color}15` }}>
-                <Icon className="w-5 h-5" style={{ color }} />
-              </div>
-              <span className="font-black text-base uppercase tracking-wide">{label}</span>
-            </div>
-            {isExpanded ? (
-              <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            )}
-          </div>
+    // Contacts & interactions
+    const totalContacts = contacts.length;
+    const dormantContacts = contacts.filter(c => {
+      if (!c.last_contacted) return true;
+      return new Date(c.last_contacted) < thirtyDaysAgo;
+    }).length;
 
-          <div className="flex items-end justify-between mb-3">
-            <span className="text-3xl font-black">{pct}%</span>
-            <span className="text-sm text-muted-foreground">{completed}/{total} done</span>
-          </div>
+    const { data: interactions } = await supabase
+      .from('contact_interactions')
+      .select('type, date')
+      .eq('user_id', user.id)
+      .gte('date', isoThirty.split('T')[0]);
 
-          <div className="relative h-3 rounded-full overflow-hidden bg-muted">
-            <motion.div
-              className="h-full rounded-full"
-              style={{ backgroundColor: color }}
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-            />
-          </div>
+    // Track record entries
+    const { data: trackEntries } = await supabase
+      .from('track_record_entries')
+      .select('entry_type, title, ai_strength_score, manual_tags')
+      .eq('user_id', user.id)
+      .gte('created_at', isoThirty);
 
-          <p className="text-xs text-muted-foreground mt-2">{statusNote}</p>
-        </CardRetroContent>
-      </CardRetro>
-    </motion.div>
-  );
-}
+    // Career wins
+    const { data: wins } = await supabase
+      .from('career_wins')
+      .select('description, impact, category')
+      .eq('user_id', user.id)
+      .gte('win_date', isoThirty.split('T')[0]);
 
-// ─── Monthly Streak ─────────────────────────────────────────────────────────
-function MonthlyStreak({ streak }: { streak: number }) {
-  const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'];
-  const filled = Math.min(streak, 5);
+    // Skills
+    const { data: skills } = await supabase
+      .from('skill_tracking')
+      .select('skill_name, logged_hours, target_hours')
+      .eq('user_id', user.id);
 
-  return (
-    <CardRetro>
-      <CardRetroContent className="p-5">
-        <h3 className="font-black text-base mb-4 flex items-center gap-2">
-          <Flame className="w-5 h-5 text-primary" />
-          Monthly Streak
-        </h3>
+    // Climb goals
+    const monthKey = format(now, 'yyyy-MM');
+    const { data: climbData } = await supabase
+      .from('climb_goals')
+      .select('visibility_activities, streak_count, streak_months')
+      .eq('user_id', user.id)
+      .eq('month_key', monthKey)
+      .maybeSingle();
 
-        <div className="text-center mb-4">
-          <span className="text-5xl font-black">{streak}</span>
-          <p className="text-sm text-muted-foreground mt-1">consecutive months ≥ 70%</p>
-        </div>
+    // Events
+    const recentEvents = events.filter(e => new Date(e.date) >= thirtyDaysAgo);
 
-        <div className="flex items-center justify-center gap-2 mb-4">
-          {months.map((m, i) => {
-            const isFilled = i < filled;
-            const isCurrent = i === months.length - 1;
-            return (
-              <div key={m} className="flex flex-col items-center gap-1">
-                <div
-                  className={cn(
-                    'w-4 h-4 rounded-full border-2 transition-all',
-                    isFilled ? 'bg-primary border-primary' : 'border-muted-foreground/30',
-                    isCurrent && !isFilled && 'border-primary animate-pulse-scale'
-                  )}
-                />
-                <span className="text-[10px] text-muted-foreground">{m}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <p className="text-xs text-muted-foreground text-center italic">
-          {streak >= 1
-            ? `Finish this month → ${streak + 1}-month streak. Keep building! 🔥`
-            : 'Complete ≥ 70% this month to start your streak!'}
-        </p>
-      </CardRetroContent>
-    </CardRetro>
-  );
-}
-
-// ─── AI Nudges Panel ────────────────────────────────────────────────────────
-function AINudgesPanel({ nudges, loading }: { nudges: AINudges | null; loading: boolean }) {
-  if (loading) {
-    return (
-      <CardRetro>
-        <CardRetroContent className="p-5">
-          <h3 className="font-black text-base mb-4 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-secondary" />
-            AI Nudges
-          </h3>
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
-            ))}
-          </div>
-        </CardRetroContent>
-      </CardRetro>
-    );
-  }
-
-  if (!nudges) return null;
-
-  const items: { pillar: PillarType; text: string; icon: React.ElementType }[] = [
-    { pillar: 'visibility', text: nudges.visibility, icon: Eye },
-    { pillar: 'network', text: nudges.network, icon: Users },
-    { pillar: 'skills', text: nudges.skills, icon: BookOpen },
-  ];
-
-  const colorMap: Record<PillarType, string> = {
-    visibility: 'pillar-visibility',
-    network: 'pillar-network',
-    skills: 'pillar-skills',
-  };
-
-  return (
-    <CardRetro>
-      <CardRetroContent className="p-5">
-        <h3 className="font-black text-base mb-4 flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-secondary" />
-          AI Nudges
-        </h3>
-        <div className="space-y-3">
-          {items.map(({ pillar, text, icon: NIcon }) => (
-            <div
-              key={pillar}
-              className={cn(
-                'p-3 rounded-lg border-l-4 bg-muted/30',
-                `border-l-${colorMap[pillar]}`
-              )}
-              style={{ borderLeftColor: `hsl(var(--pillar-${pillar}))` }}
-            >
-              <div className="flex items-start gap-2">
-                <NIcon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: `hsl(var(--pillar-${pillar}))` }} />
-                <p className="text-sm italic">{text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardRetroContent>
-    </CardRetro>
-  );
-}
-
-// ─── Custom Goal Builder Modal ──────────────────────────────────────────────
-function CustomGoalBuilder({
-  open,
-  onOpenChange,
-  onSave,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (goal: CustomGoal) => void;
-}) {
-  const [text, setText] = useState('');
-  const [pillar, setPillar] = useState<PillarType>('visibility');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ refinedGoal: string; steps: CustomGoalStep[]; featureSuggestions: string[] } | null>(null);
-
-  const handleGenerate = async () => {
-    if (!text.trim()) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('climb-nudges', {
-        body: { type: 'custom_goal', goal: { text, pillar, timeframe: 'this month' } },
-      });
-      if (error) throw error;
-      setResult(data);
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to generate goal. Try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = () => {
-    if (!result) return;
-    onSave({
-      id: crypto.randomUUID(),
-      pillar,
-      refinedGoal: result.refinedGoal,
-      steps: result.steps.map(s => ({ ...s, completed: false })),
-      featureSuggestions: result.featureSuggestions,
-    });
-    setText('');
-    setResult(null);
-    onOpenChange(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-secondary" />
-            AI Goal Builder
-          </DialogTitle>
-        </DialogHeader>
-
-        {!result ? (
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-bold mb-1 block">What do you want to achieve this month?</label>
-              <Textarea
-                value={text}
-                onChange={e => setText(e.target.value)}
-                placeholder="e.g. Get feedback from my manager on my promotion readiness"
-                className="min-h-[80px]"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-bold mb-1 block">Pillar</label>
-              <Select value={pillar} onValueChange={v => setPillar(v as PillarType)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="visibility">Visibility</SelectItem>
-                  <SelectItem value="network">Network</SelectItem>
-                  <SelectItem value="skills">Skills</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <ButtonRetro onClick={handleGenerate} disabled={loading || !text.trim()} className="w-full">
-              {loading ? 'Generating...' : 'Generate Goal Plan'}
-            </ButtonRetro>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="p-3 rounded-lg bg-muted/50 border-l-4" style={{ borderLeftColor: `hsl(var(--pillar-${pillar}))` }}>
-              <p className="text-xs text-muted-foreground mb-1 italic">AI suggested</p>
-              <p className="font-bold text-sm">{result.refinedGoal}</p>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-sm mb-2">Action Steps</h4>
-              <div className="space-y-2">
-                {result.steps.map((step, i) => (
-                  <div key={i} className="flex items-start gap-3 p-2 rounded-lg bg-card border">
-                    <span className="text-xs font-bold text-muted-foreground mt-0.5">{i + 1}.</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{step.title}</p>
-                      <Badge variant="outline" className="text-xs mt-1">{step.cadence}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {result.featureSuggestions.length > 0 && (
-              <div className="text-xs text-muted-foreground space-y-1">
-                {result.featureSuggestions.map((s, i) => (
-                  <p key={i} className="flex items-start gap-1">
-                    <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
-                    {s}
-                  </p>
-                ))}
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <ButtonRetro variant="outline" onClick={() => setResult(null)} className="flex-1">
-                Edit
-              </ButtonRetro>
-              <ButtonRetro onClick={handleSave} className="flex-1">
-                Save Goal
-              </ButtonRetro>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Pillar Detail Drawer ───────────────────────────────────────────────────
-function PillarDrawer({
-  pillar,
-  goals,
-  monthlyProgress,
-  customGoals,
-  onToggleVisibility,
-  onLogVisibility,
-  onLogSkillHours,
-  onAddCustomGoal,
-  onToggleCustomStep,
-  getGoalProgress,
-}: {
-  pillar: PillarType;
-  goals: ClimbGoalsType;
-  monthlyProgress: MonthlyProgress;
-  customGoals: CustomGoal[];
-  onToggleVisibility: (id: string, enabled: boolean) => void;
-  onLogVisibility: (id: string) => void;
-  onLogSkillHours: (name: string) => void;
-  onAddCustomGoal: () => void;
-  onToggleCustomStep: (goalId: string, stepIdx: number) => void;
-  getGoalProgress: (current: number, target: number) => number;
-}) {
-  const navigate = useNavigate();
-  const pillarCustomGoals = customGoals.filter(g => g.pillar === pillar);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.3 }}
-      className="overflow-hidden"
-    >
-      <CardRetro className="mt-2">
-        <CardRetroContent className="p-5 space-y-3">
-          {/* Visibility actions */}
-          {pillar === 'visibility' && (
-            <>
-              {goals.visibilityActivities.map(activity => (
-                <div
-                  key={activity.id}
-                  className={cn(
-                    'flex items-center justify-between p-3 rounded-lg border transition-all',
-                    activity.completed >= activity.target && activity.enabled
-                      ? 'border-pillar-visibility/30 bg-pillar-visibility/5'
-                      : 'border-border',
-                    !activity.enabled && 'opacity-40'
-                  )}
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Checkbox
-                      checked={activity.completed >= activity.target}
-                      disabled={!activity.enabled}
-                      onCheckedChange={() => activity.enabled && onLogVisibility(activity.id)}
-                    />
-                    <div className="min-w-0">
-                      <p className={cn('text-sm font-medium truncate', !activity.enabled && 'line-through')}>
-                        {activity.label}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">{activity.frequency}</Badge>
-                        <span className="text-xs text-muted-foreground">{activity.completed}/{activity.target}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={activity.enabled}
-                    onCheckedChange={(e) => onToggleVisibility(activity.id, e)}
-                    className="ml-2"
-                  />
-                </div>
-              ))}
-            </>
-          )}
-
-          {/* Network actions */}
-          {pillar === 'network' && (
-            <>
-              <div className="p-4 rounded-lg border">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold">Monthly check-in goal</span>
-                  <span className="text-lg font-black">{monthlyProgress.networkContacts}/{goals.networkContacts}</span>
-                </div>
-                <Progress
-                  value={getGoalProgress(monthlyProgress.networkContacts, goals.networkContacts)}
-                  className="h-2.5 [&>div]:rounded-full"
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Coffee chats, LinkedIn messages, emails, meeting catch-ups
-                </p>
-              </div>
-              <ButtonRetro
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => navigate('/contacts')}
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                View Overdue Contacts
-              </ButtonRetro>
-            </>
-          )}
-
-          {/* Skills actions */}
-          {pillar === 'skills' && (
-            <>
-              {goals.skills.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                  <p className="font-medium text-sm">No skills tracked yet</p>
-                  <p className="text-xs mb-3">Add skills to generate weekly micro-actions</p>
-                </div>
-              ) : (
-                goals.skills.map(skill => {
-                  const pct = getGoalProgress(skill.logged, skill.hoursPerWeek);
-                  const done = skill.logged >= skill.hoursPerWeek;
-                  return (
-                    <div
-                      key={skill.name}
-                      className={cn(
-                        'p-3 rounded-lg border transition-all',
-                        done ? 'border-pillar-skills/30 bg-pillar-skills/5' : 'border-border'
-                      )}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Checkbox checked={done} disabled />
-                          <span className="font-bold text-sm">{skill.name}</span>
-                        </div>
-                        {!done && (
-                          <ButtonRetro size="sm" variant="ghost" onClick={() => onLogSkillHours(skill.name)}>
-                            <Plus className="w-3 h-3 mr-1" /> Log
-                          </ButtonRetro>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Progress value={pct} className="h-2 flex-1 [&>div]:rounded-full" />
-                        <span className="text-xs font-bold whitespace-nowrap">{skill.logged}h / {skill.hoursPerWeek}h</span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </>
-          )}
-
-          {/* Custom goals for this pillar */}
-          {pillarCustomGoals.map(cg => (
-            <div key={cg.id} className="p-3 rounded-lg border border-dashed" style={{ borderColor: `hsl(var(--pillar-${pillar}) / 0.3)` }}>
-              <p className="text-xs text-muted-foreground italic mb-1">AI suggested goal</p>
-              <p className="text-sm font-bold mb-2">{cg.refinedGoal}</p>
-              <div className="space-y-1.5">
-                {cg.steps.map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <Checkbox
-                      checked={step.completed}
-                      onCheckedChange={() => onToggleCustomStep(cg.id, idx)}
-                      className="mt-0.5"
-                    />
-                    <div>
-                      <span className={cn('text-xs', step.completed && 'line-through text-muted-foreground')}>{step.title}</span>
-                      <Badge variant="outline" className="text-[10px] ml-1.5 px-1 py-0">{step.cadence}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Add Custom Goal */}
-          <button
-            onClick={onAddCustomGoal}
-            className="w-full p-3 rounded-lg border-2 border-dashed border-muted-foreground/20 text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground transition-all flex items-center justify-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Add Custom Goal
-          </button>
-        </CardRetroContent>
-      </CardRetro>
-    </motion.div>
-  );
+    return {
+      period: `${format(thirtyDaysAgo, 'MMM d')} – ${format(now, 'MMM d, yyyy')}`,
+      applications: {
+        total: recentApps.length,
+        byStatus: statusCounts,
+        companies: [...new Set(recentApps.map(a => a.company))].slice(0, 10),
+      },
+      network: {
+        totalContacts,
+        dormantContacts,
+        recentInteractions: interactions?.length || 0,
+        interactionTypes: interactions?.reduce((acc: Record<string, number>, i) => {
+          acc[i.type] = (acc[i.type] || 0) + 1;
+          return acc;
+        }, {}) || {},
+      },
+      trackRecord: {
+        entriesLogged: trackEntries?.length || 0,
+        types: trackEntries?.reduce((acc: Record<string, number>, e) => {
+          acc[e.entry_type] = (acc[e.entry_type] || 0) + 1;
+          return acc;
+        }, {}) || {},
+        withImpactScores: trackEntries?.filter(e => e.ai_strength_score).length || 0,
+      },
+      wins: {
+        total: wins?.length || 0,
+        withImpact: wins?.filter(w => w.impact).length || 0,
+        categories: wins?.reduce((acc: Record<string, number>, w) => {
+          const cat = w.category || 'general';
+          acc[cat] = (acc[cat] || 0) + 1;
+          return acc;
+        }, {}) || {},
+      },
+      skills: skills?.map(s => ({
+        name: s.skill_name,
+        logged: Number(s.logged_hours),
+        target: s.target_hours,
+        onTrack: Number(s.logged_hours) >= s.target_hours,
+      })) || [],
+      visibility: {
+        activities: (climbData?.visibility_activities as any[]) || [],
+        streak: (climbData?.streak_count as number) || 0,
+      },
+      events: {
+        total: recentEvents.length,
+        byType: recentEvents.reduce((acc: Record<string, number>, e) => {
+          acc[e.type] = (acc[e.type] || 0) + 1;
+          return acc;
+        }, {}),
+      },
+    };
+  }, [user, applications, events, contacts]);
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -562,197 +179,347 @@ export function ClimbModeGoals({
   onSaveCustomGoal,
   onToggleCustomStep,
 }: ClimbModeGoalsProps) {
-  const [expandedPillar, setExpandedPillar] = useState<PillarType | null>(null);
-  const [nudges, setNudges] = useState<AINudges | null>(null);
-  const [nudgesLoading, setNudgesLoading] = useState(true);
-  const [showGoalBuilder, setShowGoalBuilder] = useState(false);
+  const { user } = useAuth();
+  const [briefing, setBriefing] = useState<BriefingData | null>(null);
+  const [briefingLoading, setBriefingLoading] = useState(false);
+  const [activityLogOpen, setActivityLogOpen] = useState(false);
+  const buildSnapshot = useDataSnapshot();
 
-  const now = new Date();
-  const monthName = format(now, 'MMMM');
-  const daysInMonth = getDaysInMonth(now);
-  const currentDay = getDate(now);
-  const daysLeft = daysInMonth - currentDay;
-  const monthPct = Math.round((currentDay / daysInMonth) * 100);
+  const monthKey = format(new Date(), 'yyyy-MM');
+  const monthLabel = format(new Date(), 'MMMM yyyy');
+  const nextMonthLabel = format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1), 'MMMM');
 
-  // Calculate pillar stats
+  // Load cached briefing on mount
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from('career_briefings')
+        .select('briefing_data')
+        .eq('user_id', user.id)
+        .eq('month_key', monthKey)
+        .maybeSingle();
+
+      if (data?.briefing_data) {
+        setBriefing(data.briefing_data as unknown as BriefingData);
+      }
+    })();
+  }, [user, monthKey]);
+
+  const generateBriefing = async () => {
+    if (!user) return;
+    setBriefingLoading(true);
+    try {
+      const snapshot = await buildSnapshot();
+      if (!snapshot) throw new Error('Could not build data snapshot');
+
+      const { data, error } = await supabase.functions.invoke('career-briefing', {
+        body: { dataSnapshot: snapshot },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setBriefing(data);
+
+      // Cache the briefing
+      await supabase.from('career_briefings').upsert(
+        {
+          user_id: user.id,
+          month_key: monthKey,
+          briefing_data: data as any,
+          generated_at: new Date().toISOString(),
+        } as any,
+        { onConflict: 'user_id,month_key' }
+      );
+
+      toast.success('Briefing generated!');
+    } catch (e: any) {
+      console.error('Briefing error:', e);
+      toast.error(e.message || 'Failed to generate briefing');
+    } finally {
+      setBriefingLoading(false);
+    }
+  };
+
+  // Pillar summaries for the activity log
   const enabledVis = goals.visibilityActivities.filter(a => a.enabled);
   const visCompleted = enabledVis.filter(a => a.completed >= a.target).length;
-  const visTotal = enabledVis.length;
-
-  const netCompleted = monthlyProgress.networkContacts;
-  const netTotal = goals.networkContacts;
-
   const skillsOnTrack = goals.skills.filter(s => s.logged >= s.hoursPerWeek).length;
-  const skillsTotal = goals.skills.length;
-
-  const visPct = visTotal > 0 ? Math.round((visCompleted / visTotal) * 100) : 0;
-  const netPct = netTotal > 0 ? Math.round((netCompleted / netTotal) * 100) : 0;
-  const skillsPct = skillsTotal > 0 ? Math.round((skillsOnTrack / skillsTotal) * 100) : 0;
-  const overallPct = Math.round((visPct + netPct + skillsPct) / 3);
-
-  const totalActions = visTotal + 1 + skillsTotal; // vis actions + network goal + skills
-  const doneActions = visCompleted + (netCompleted >= netTotal ? 1 : 0) + skillsOnTrack;
-
-  // Fetch AI nudges
-  const fetchNudges = useCallback(async () => {
-    setNudgesLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('climb-nudges', {
-        body: {
-          type: 'nudges',
-          progress: {
-            monthName,
-            daysLeft,
-            visibility: {
-              completed: visCompleted,
-              total: visTotal,
-              actions: enabledVis.map(a => ({ label: a.label, completed: a.completed, target: a.target })),
-            },
-            network: {
-              completed: netCompleted,
-              total: netTotal,
-              details: { contacts: netCompleted, goal: netTotal },
-            },
-            skills: {
-              completed: skillsOnTrack,
-              total: skillsTotal,
-              details: goals.skills.map(s => ({ name: s.name, logged: s.logged, target: s.hoursPerWeek })),
-            },
-          },
-        },
-      });
-      if (error) throw error;
-      setNudges(data);
-    } catch (e) {
-      console.error('Nudges error:', e);
-      // Fallback nudges
-      setNudges({
-        visibility: 'Check your visibility actions — staying visible keeps you top of mind.',
-        network: 'Reach out to a contact this week to maintain your network momentum.',
-        skills: 'Keep logging skill hours — consistency beats intensity.',
-        statusMessage: `You're ${monthPct}% through ${monthName}. ${daysLeft} days left to hit your goals.`,
-      });
-    } finally {
-      setNudgesLoading(false);
-    }
-  }, [monthName, daysLeft, visCompleted, visTotal, netCompleted, netTotal, skillsOnTrack, skillsTotal]);
-
-  useEffect(() => {
-    fetchNudges();
-  }, []);
-
-  const streak = streakCount;
 
   return (
     <div className="space-y-6">
-      {/* Monthly Progress Banner */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      {/* ─── Briefing Card ─────────────────────────────────────────────── */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <CardRetro className="overflow-hidden">
-          <CardRetroContent className="p-6">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <ProgressCircle value={overallPct} size={100} strokeWidth={8}>
-                <span className="text-2xl font-black">{overallPct}%</span>
-              </ProgressCircle>
+          <CardRetroContent className="p-6 sm:p-8">
+            {briefing ? (
+              <div className="space-y-8">
+                {/* Header */}
+                <div>
+                  <Badge variant="outline" className="mb-3 text-xs tracking-widest uppercase">
+                    Monthly Career Briefing
+                  </Badge>
+                  <h2 className="text-2xl sm:text-3xl font-black">{monthLabel}</h2>
+                </div>
 
-              <div className="flex-1 text-center md:text-left">
-                <p className="text-sm font-medium text-muted-foreground italic mb-1">
-                  {nudges?.statusMessage || `${monthPct}% through ${monthName}. ${daysLeft} days left.`}
-                </p>
-                <div className="flex items-center justify-center md:justify-start gap-4 mt-3">
-                  <div className="text-center">
-                    <span className="text-2xl font-black">{doneActions}</span>
-                    <p className="text-xs text-muted-foreground">Done</p>
+                {/* Retrospective */}
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">
+                    Your Last 30 Days
+                  </h3>
+                  <p className="text-base leading-relaxed">{briefing.retrospective}</p>
+                </div>
+
+                {/* Stats Row */}
+                {briefing.stats && briefing.stats.length > 0 && (
+                  <div className="grid grid-cols-3 gap-3">
+                    {briefing.stats.map((stat, i) => (
+                      <div key={i} className="text-center p-4 rounded-xl bg-muted/50 border border-border">
+                        <p className="text-2xl sm:text-3xl font-black">{stat.value}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+                      </div>
+                    ))}
                   </div>
-                  <div className="w-px h-8 bg-border" />
-                  <div className="text-center">
-                    <span className="text-2xl font-black">{totalActions - doneActions}</span>
-                    <p className="text-xs text-muted-foreground">Remaining</p>
-                  </div>
-                  <div className="w-px h-8 bg-border" />
-                  <div className="text-center">
-                    <span className="text-2xl font-black">{streak}</span>
-                    <p className="text-xs text-muted-foreground">Mo. Streak</p>
+                )}
+
+                {/* Patterns */}
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">
+                    What the Data Says
+                  </h3>
+                  <div className="space-y-2">
+                    {briefing.patterns.map((p, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
+                        <p className="text-sm leading-relaxed">{p}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
 
-              <ButtonRetro variant="outline" size="sm" onClick={onEditGoals}>
-                Edit Goals
-              </ButtonRetro>
-            </div>
+                {/* Blind Spots */}
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">
+                    What You're Not Seeing
+                  </h3>
+                  <div className="space-y-2">
+                    {briefing.blindSpots.map((b, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/10 border border-secondary/20">
+                        <Eye className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
+                        <p className="text-sm leading-relaxed">{b}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* The One Move */}
+                <div className="p-5 sm:p-6 rounded-xl bg-primary/10 border-2 border-primary/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Target className="w-5 h-5 text-primary" />
+                    <h3 className="text-xs font-black uppercase tracking-widest text-primary">
+                      Your One Move for {nextMonthLabel}
+                    </h3>
+                  </div>
+                  <p className="text-lg font-bold leading-snug mb-4">{briefing.oneMove}</p>
+                  <div className="space-y-2">
+                    {briefing.supportingActions.map((a, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <span className="text-xs font-black text-primary mt-0.5">{i + 1}.</span>
+                        <p className="text-sm">{a}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Regenerate */}
+                <ButtonRetro
+                  variant="outline"
+                  size="sm"
+                  onClick={generateBriefing}
+                  disabled={briefingLoading}
+                  className="gap-2"
+                >
+                  <RefreshCw className={cn("w-4 h-4", briefingLoading && "animate-spin")} />
+                  Regenerate Briefing
+                </ButtonRetro>
+              </div>
+            ) : (
+              /* Empty state — generate first briefing */
+              <div className="text-center py-10 space-y-5">
+                <div className="p-4 rounded-full bg-primary/10 border-2 border-primary/20 w-fit mx-auto">
+                  <Sparkles className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black mb-2">{monthLabel} Career Briefing</h2>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    Get an AI-powered debrief of your last 30 days — patterns, blind spots, and the one move that will create the most leverage for your career.
+                  </p>
+                </div>
+                <ButtonRetro
+                  onClick={generateBriefing}
+                  disabled={briefingLoading}
+                  className="gap-2"
+                >
+                  {briefingLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Generate My Briefing
+                    </>
+                  )}
+                </ButtonRetro>
+              </div>
+            )}
           </CardRetroContent>
         </CardRetro>
       </motion.div>
 
-      {/* Three Pillar Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <PillarCard
-          pillar="visibility"
-          label="Visibility"
-          icon={Eye}
-          completed={visCompleted}
-          total={visTotal}
-          statusNote={visCompleted === visTotal && visTotal > 0 ? 'All actions complete! 🎉' : `${visTotal - visCompleted} actions remaining`}
-          isExpanded={expandedPillar === 'visibility'}
-          onToggle={() => setExpandedPillar(p => (p === 'visibility' ? null : 'visibility'))}
-        />
-        <PillarCard
-          pillar="network"
-          label="Network"
-          icon={Users}
-          completed={Math.min(netCompleted, netTotal)}
-          total={netTotal}
-          statusNote={netCompleted >= netTotal ? 'Monthly goal hit! 🎉' : `${netTotal - netCompleted} check-ins to go`}
-          isExpanded={expandedPillar === 'network'}
-          onToggle={() => setExpandedPillar(p => (p === 'network' ? null : 'network'))}
-        />
-        <PillarCard
-          pillar="skills"
-          label="Skills"
-          icon={BookOpen}
-          completed={skillsOnTrack}
-          total={skillsTotal || 1}
-          statusNote={skillsTotal === 0 ? 'Add skills to start tracking' : `${skillsOnTrack}/${skillsTotal} on track`}
-          isExpanded={expandedPillar === 'skills'}
-          onToggle={() => setExpandedPillar(p => (p === 'skills' ? null : 'skills'))}
-        />
-      </div>
+      {/* ─── Monthly Streak ────────────────────────────────────────────── */}
+      <CardRetro>
+        <CardRetroContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Flame className="w-5 h-5 text-primary" />
+              <div>
+                <span className="font-black text-lg">{streakCount}</span>
+                <span className="text-sm text-muted-foreground ml-2">consecutive months ≥ 70%</span>
+              </div>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {streakCount >= 1 ? `🔥 ${streakCount} mo streak` : 'Start your streak!'}
+            </Badge>
+          </div>
+        </CardRetroContent>
+      </CardRetro>
 
-      {/* Expanded Pillar Drawer */}
-      <AnimatePresence>
-        {expandedPillar && (
-          <PillarDrawer
-            key={expandedPillar}
-            pillar={expandedPillar}
-            goals={goals}
-            monthlyProgress={monthlyProgress}
-            customGoals={customGoals}
-            onToggleVisibility={onToggleVisibility}
-            onLogVisibility={onLogVisibility}
-            onLogSkillHours={onLogSkillHours}
-            onAddCustomGoal={() => setShowGoalBuilder(true)}
-            onToggleCustomStep={onToggleCustomStep}
-            getGoalProgress={getGoalProgress}
-          />
-        )}
-      </AnimatePresence>
+      {/* ─── Collapsible Activity Log ──────────────────────────────────── */}
+      <Collapsible open={activityLogOpen} onOpenChange={setActivityLogOpen}>
+        <CollapsibleTrigger asChild>
+          <CardRetro className="cursor-pointer hover-lift">
+            <CardRetroContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Check className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <span className="font-black text-sm">Activity Log</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {visCompleted}/{enabledVis.length} visibility · {monthlyProgress.networkContacts}/{goals.networkContacts} network · {skillsOnTrack}/{goals.skills.length || 0} skills
+                    </span>
+                  </div>
+                </div>
+                {activityLogOpen ? (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                )}
+              </div>
+            </CardRetroContent>
+          </CardRetro>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-3 space-y-4">
+            {/* Visibility */}
+            <CardRetro>
+              <CardRetroContent className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Eye className="w-4 h-4" style={{ color: 'hsl(var(--pillar-visibility))' }} />
+                  <span className="font-black text-sm uppercase tracking-wide">Visibility</span>
+                </div>
+                <div className="space-y-2">
+                  {goals.visibilityActivities.map(activity => (
+                    <div
+                      key={activity.id}
+                      className={cn(
+                        'flex items-center justify-between p-3 rounded-lg border',
+                        !activity.enabled && 'opacity-40'
+                      )}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Checkbox
+                          checked={activity.completed >= activity.target}
+                          disabled={!activity.enabled}
+                          onCheckedChange={() => activity.enabled && onLogVisibility(activity.id)}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{activity.label}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">{activity.frequency}</Badge>
+                            <span className="text-xs text-muted-foreground">{activity.completed}/{activity.target}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={activity.enabled}
+                        onCheckedChange={(e) => onToggleVisibility(activity.id, e)}
+                        className="ml-2"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardRetroContent>
+            </CardRetro>
 
-      {/* Bottom Row: Streak + AI Nudges */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <MonthlyStreak streak={streak} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-          <AINudgesPanel nudges={nudges} loading={nudgesLoading} />
-        </motion.div>
-      </div>
+            {/* Network */}
+            <CardRetro>
+              <CardRetroContent className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users className="w-4 h-4" style={{ color: 'hsl(var(--pillar-network))' }} />
+                  <span className="font-black text-sm uppercase tracking-wide">Network</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm">Monthly check-ins</span>
+                  <span className="text-lg font-black">{monthlyProgress.networkContacts}/{goals.networkContacts}</span>
+                </div>
+                <Progress value={getGoalProgress(monthlyProgress.networkContacts, goals.networkContacts)} className="h-2.5" />
+              </CardRetroContent>
+            </CardRetro>
 
-      {/* Custom Goal Builder Modal */}
-      <CustomGoalBuilder
-        open={showGoalBuilder}
-        onOpenChange={setShowGoalBuilder}
-        onSave={onSaveCustomGoal}
-      />
+            {/* Skills */}
+            <CardRetro>
+              <CardRetroContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" style={{ color: 'hsl(var(--pillar-skills))' }} />
+                    <span className="font-black text-sm uppercase tracking-wide">Skills</span>
+                  </div>
+                  <ButtonRetro variant="outline" size="sm" onClick={onAddSkill} className="gap-1 text-xs">
+                    <Plus className="w-3 h-3" /> Add
+                  </ButtonRetro>
+                </div>
+                {goals.skills.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No skills tracked yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {goals.skills.map(skill => (
+                      <div
+                        key={skill.name}
+                        className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => onLogSkillHours(skill.name)}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{skill.name}</p>
+                          <Progress
+                            value={getGoalProgress(skill.logged, skill.hoursPerWeek)}
+                            className="h-1.5 mt-1.5"
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-3 shrink-0">
+                          {skill.logged}/{skill.hoursPerWeek}h
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardRetroContent>
+            </CardRetro>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

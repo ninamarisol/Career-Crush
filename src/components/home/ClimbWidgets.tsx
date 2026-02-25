@@ -3,32 +3,50 @@ import {
   TwoColumn,
 } from '@/components/widgets';
 import { WidgetContainer } from '@/components/widgets/WidgetContainer';
-import { Users, Award, TrendingUp, Target, Eye, BookOpen, Plus, Flame } from 'lucide-react';
+import { Users, Award, TrendingUp, Target, Flame, Plus, Sparkles } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { useContacts } from '@/hooks/useContacts';
-import { useMemo, useState } from 'react';
-import { differenceInDays } from 'date-fns';
+import { useMemo, useState, useEffect } from 'react';
+import { differenceInDays, format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
 import { CardRetro } from '@/components/ui/card-retro';
-import { Progress } from '@/components/ui/progress';
-import { ProgressCircle } from '@/components/ui/progress-circle';
+import { Slider } from '@/components/ui/slider';
 import { useCareerData } from '@/hooks/useCareerData';
 import { AddCareerGoalDialog } from '@/components/dialogs/AddCareerGoalDialog';
-import { Slider } from '@/components/ui/slider';
 import { useGoalCrusher } from '@/hooks/useGoalCrusher';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
+import type { BriefingData } from '@/components/goals/ClimbModeGoals';
 
 export function ClimbWidgets() {
   const { contacts } = useContacts();
   const { wins, goals, addWin, addGoal, updateGoalProgress } = useCareerData();
-  const { climbGoals, monthlyProgress, getGoalProgress, streakCount } = useGoalCrusher();
+  const { streakCount } = useGoalCrusher();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [showWinLogger, setShowWinLogger] = useState(false);
   const [winText, setWinText] = useState('');
+  const [briefingOneMove, setBriefingOneMove] = useState<string | null>(null);
 
-  // Calculate stats from real data
+  // Fetch cached briefing's "One Move" for the teaser
+  useEffect(() => {
+    if (!user) return;
+    const monthKey = format(new Date(), 'yyyy-MM');
+    (async () => {
+      const { data } = await supabase
+        .from('career_briefings')
+        .select('briefing_data')
+        .eq('user_id', user.id)
+        .eq('month_key', monthKey)
+        .maybeSingle();
+      if (data?.briefing_data) {
+        const bd = data.briefing_data as unknown as BriefingData;
+        setBriefingOneMove(bd.oneMove || null);
+      }
+    })();
+  }, [user]);
+
   const stats = useMemo(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -45,7 +63,6 @@ export function ClimbWidgets() {
     };
   }, [contacts, wins, goals]);
 
-  // Calculate contacts that need attention
   const contactsNeedingAttention = useMemo(() => {
     return contacts.filter(c => {
       if (!c.last_contacted) return true;
@@ -68,26 +85,6 @@ export function ClimbWidgets() {
   const handleUpdateProgress = (goalId: string, progress: number) => {
     updateGoalProgress.mutate({ goalId, progress });
   };
-
-  // Goal Crusher pillar data
-  const enabledVis = climbGoals.visibilityActivities.filter(a => a.enabled);
-  const visCompleted = enabledVis.filter(a => a.completed >= a.target).length;
-  const visTotal = enabledVis.length;
-  const netCompleted = monthlyProgress.networkContacts;
-  const netTotal = climbGoals.networkContacts;
-  const skillsOnTrack = climbGoals.skills.filter(s => s.logged >= s.hoursPerWeek).length;
-  const skillsTotal = climbGoals.skills.length || 1;
-
-  const visPct = visTotal > 0 ? Math.round((visCompleted / visTotal) * 100) : 0;
-  const netPct = netTotal > 0 ? Math.round((netCompleted / netTotal) * 100) : 0;
-  const skillsPct = climbGoals.skills.length > 0 ? Math.round((skillsOnTrack / skillsTotal) * 100) : 0;
-  const overallPct = Math.round((visPct + netPct + skillsPct) / 3);
-
-  const pillars = [
-    { key: 'visibility', label: 'Visibility', pct: visPct, icon: Eye, color: 'hsl(var(--pillar-visibility))' },
-    { key: 'network', label: 'Network', pct: netPct, icon: Users, color: 'hsl(var(--pillar-network))' },
-    { key: 'skills', label: 'Skills', pct: skillsPct, icon: BookOpen, color: 'hsl(var(--pillar-skills))' },
-  ];
 
   return (
     <WidgetGrid>
@@ -142,52 +139,36 @@ export function ClimbWidgets() {
         </CardRetro>
       </div>
 
-      {/* Goal Crusher Monitor — replaces Skills Development */}
+      {/* Goal Crusher Monitor — Briefing "One Move" teaser */}
       <div className="col-span-full">
         <CardRetro className="overflow-hidden cursor-pointer hover-lift" onClick={() => navigate('/goals')}>
           <div className="p-5 sm:p-6">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Target className="w-5 h-5 text-primary" />
-                <h3 className="font-black text-base">Goal Crusher — {format(new Date(), 'MMMM')}</h3>
+                <h3 className="font-black text-base">Career Briefing — {format(new Date(), 'MMMM')}</h3>
               </div>
-              <span className="text-xs text-muted-foreground">Tap for details →</span>
+              <span className="text-xs text-muted-foreground">Tap for full briefing →</span>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              {/* Overall progress ring */}
-              <div className="shrink-0">
-                <ProgressCircle value={overallPct} size={90} strokeWidth={7}>
-                  <span className="text-xl font-black">{overallPct}%</span>
-                </ProgressCircle>
+            {briefingOneMove ? (
+              <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-black uppercase tracking-widest text-primary">Your One Move</span>
+                </div>
+                <p className="text-sm font-bold leading-relaxed">{briefingOneMove}</p>
               </div>
-
-              {/* Three pillar bars */}
-              <div className="flex-1 w-full space-y-3">
-                {pillars.map(p => (
-                  <div key={p.key} className="flex items-center gap-3">
-                    <div className="p-1.5 rounded-md" style={{ backgroundColor: `${p.color}20` }}>
-                      <p.icon className="w-4 h-4" style={{ color: p.color }} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold uppercase tracking-wide">{p.label}</span>
-                        <span className="text-xs font-black">{p.pct}%</span>
-                      </div>
-                      <div className="relative h-2.5 rounded-full overflow-hidden bg-muted">
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{ backgroundColor: p.color }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${p.pct}%` }}
-                          transition={{ duration: 0.8, ease: 'easeOut' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">
+                  Generate your monthly career briefing to get your personalized recommendation.
+                </p>
+                <ButtonRetro size="sm" className="mt-3 gap-2" onClick={(e) => { e.stopPropagation(); navigate('/goals'); }}>
+                  <Sparkles className="w-4 h-4" /> Get Briefing
+                </ButtonRetro>
               </div>
-            </div>
+            )}
           </div>
         </CardRetro>
       </div>

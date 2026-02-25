@@ -128,6 +128,33 @@ export type Database = {
         }
         Relationships: []
       }
+      career_briefings: {
+        Row: {
+          briefing_data: Json
+          created_at: string
+          generated_at: string
+          id: string
+          month_key: string
+          user_id: string
+        }
+        Insert: {
+          briefing_data?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          month_key: string
+          user_id: string
+        }
+        Update: {
+          briefing_data?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          month_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       career_goals: {
         Row: {
           created_at: string
