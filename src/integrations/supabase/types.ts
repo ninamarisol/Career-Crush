@@ -562,6 +562,45 @@ export type Database = {
         }
         Relationships: []
       }
+      job_search_context: {
+        Row: {
+          ai_summary: string | null
+          created_at: string
+          friction_type: string
+          id: string
+          search_stage: string
+          target_companies: string | null
+          target_role: string
+          updated_at: string
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          created_at?: string
+          friction_type: string
+          id?: string
+          search_stage: string
+          target_companies?: string | null
+          target_role: string
+          updated_at?: string
+          urgency: string
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          created_at?: string
+          friction_type?: string
+          id?: string
+          search_stage?: string
+          target_companies?: string | null
+          target_role?: string
+          updated_at?: string
+          urgency?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       master_resumes: {
         Row: {
           certifications: Json
