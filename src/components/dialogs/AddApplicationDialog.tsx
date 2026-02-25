@@ -119,6 +119,19 @@ export function AddApplicationDialog({ trigger }: AddApplicationDialogProps) {
     e.preventDefault();
     if (!formData.position || !formData.company) return;
 
+    if (formData.job_posting_url) {
+      try {
+        const parsed = new URL(formData.job_posting_url);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          toast.error('Invalid URL. Please use http:// or https://');
+          return;
+        }
+      } catch {
+        toast.error('Invalid URL format.');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       // Calculate resume score from analysis if available

@@ -322,14 +322,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('resumes')
-      .getPublicUrl(fileName);
-
-    // Update application with resume URL
+    // Update application with resume URL (file path only, use signed URLs when viewing)
     await updateApplication(applicationId, { resume_url: fileName });
 
-    return publicUrl;
+    return fileName;
   };
 
   return (
