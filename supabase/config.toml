@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.career-target-summary]
 verify_jwt = false
+
+[functions.crush-context-summary]
+verify_jwt = false
+
+[functions.crush-brief]
+verify_jwt = false

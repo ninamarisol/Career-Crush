@@ -6,11 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { useGoalCrusher } from '@/hooks/useGoalCrusher';
 import { useCareerTarget, QuizAnswers } from '@/hooks/useCareerTarget';
 import { useWeeklyBrief } from '@/hooks/useWeeklyBrief';
+import { useCrushContext } from '@/hooks/useCrushContext';
+import { useCrushBrief } from '@/hooks/useCrushBrief';
 import { useApp } from '@/context/AppContext';
-import { CrushModeGoals } from '@/components/goals/CrushModeGoals';
 import { CareerTargetQuiz } from '@/components/goals/CareerTargetQuiz';
 import { GoalCrusherSetup } from '@/components/goals/GoalCrusherSetup';
 import { ClimbGoalCrusher } from '@/components/goals/ClimbGoalCrusher';
+import { CrushContextQuiz } from '@/components/goals/CrushContextQuiz';
+import { CrushSprintPage } from '@/components/goals/CrushSprintPage';
 import { EditGoalsModal } from '@/components/goals/EditGoalsModal';
 import { WeeklyCheckInModal } from '@/components/goals/WeeklyCheckInModal';
 import { AddSkillModal } from '@/components/goals/AddSkillModal';
@@ -21,32 +24,20 @@ export default function Goals() {
   const userMode = (profile?.user_mode || 'crush') as 'crush' | 'climb';
 
   const {
-    crushGoals,
-    climbGoals,
-    weeklyProgress,
-    monthlyProgress,
-    loading: goalsLoading,
-    goalsSetup,
-    customGoals,
-    streakCount,
-    streakMonths,
-    updateCrushGoals,
-    updateClimbGoals,
-    logProgress,
-    addSkill,
-    logSkillHours,
-    toggleVisibilityActivity,
-    logVisibilityActivity,
-    submitCheckIn,
-    getGoalProgress,
-    setupGoals,
-    saveCustomGoal,
-    toggleCustomGoalStep,
-    logNetworkCheckIn,
+    crushGoals, climbGoals, weeklyProgress, monthlyProgress,
+    loading: goalsLoading, goalsSetup, customGoals, streakCount, streakMonths,
+    updateCrushGoals, updateClimbGoals, logProgress, addSkill, logSkillHours,
+    toggleVisibilityActivity, logVisibilityActivity, submitCheckIn,
+    getGoalProgress, getCrushWeeklyProgress, setupGoals, saveCustomGoal,
+    toggleCustomGoalStep, logNetworkCheckIn,
   } = useGoalCrusher();
 
   const { careerTarget, loading: targetLoading, generateSummary, saveTarget, deleteTarget } = useCareerTarget();
   const weeklyBrief = useWeeklyBrief();
+
+  // Crush mode context
+  const { context: crushContext, loading: crushContextLoading, generateSummary: generateCrushSummary, saveContext: saveCrushContext } = useCrushContext();
+  const crushBrief = useCrushBrief(crushContext);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
@@ -54,8 +45,9 @@ export default function Goals() {
   const [showLogHoursModal, setShowLogHoursModal] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<{ name: string; logged: number; hoursPerWeek: number } | null>(null);
   const [editingTarget, setEditingTarget] = useState(false);
+  const [editingCrushContext, setEditingCrushContext] = useState(false);
 
-  const loading = goalsLoading || targetLoading;
+  const loading = goalsLoading || targetLoading || crushContextLoading;
 
   if (loading) {
     return (
@@ -74,13 +66,8 @@ export default function Goals() {
       <CareerTargetQuiz
         onComplete={async (answers, summary) => {
           await saveTarget(answers, summary);
-          // Also ensure goals setup is done
           if (!goalsSetup) {
-            await setupGoals('climb', {
-              skills: [],
-              networkContacts: 5,
-              visibilityActivities: [],
-            });
+            await setupGoals('climb', { skills: [], networkContacts: 5, visibilityActivities: [] });
           }
           setEditingTarget(false);
         }}
@@ -98,7 +85,35 @@ export default function Goals() {
     );
   }
 
-  // CRUSH MODE: Goals setup
+  // CRUSH MODE: Context Quiz (first-time or editing)
+  if (userMode === 'crush' && (!crushContext || editingCrushContext)) {
+    return (
+      <CrushContextQuiz
+        onComplete={async (answers, summary) => {
+          await saveCrushContext(answers, summary);
+          if (!goalsSetup) {
+            await setupGoals('crush', {
+              applications: 5,
+              newContacts: 3,
+              followUps: 2,
+              interviewPrepHours: 3,
+            });
+          }
+          setEditingCrushContext(false);
+        }}
+        onGenerateSummary={generateCrushSummary}
+        initialAnswers={crushContext ? {
+          searchStage: crushContext.search_stage,
+          targetRole: crushContext.target_role,
+          targetCompanies: crushContext.target_companies || '',
+          frictionType: crushContext.friction_type,
+          urgency: crushContext.urgency,
+        } : undefined}
+      />
+    );
+  }
+
+  // CRUSH MODE: Goals setup (numbers only — happens after context quiz if needed)
   if (userMode === 'crush' && !goalsSetup) {
     return (
       <GoalCrusherSetup
@@ -175,12 +190,16 @@ export default function Goals() {
 
         {/* Mode-specific content */}
         {userMode === 'crush' ? (
-          <CrushModeGoals
+          <CrushSprintPage
+            searchContext={crushContext!}
             goals={crushGoals}
             progress={weeklyProgress}
+            brief={crushBrief}
             onLogProgress={logProgress}
             onEditGoals={() => setShowEditModal(true)}
+            onEditContext={() => setEditingCrushContext(true)}
             getGoalProgress={getGoalProgress}
+            getCrushWeeklyProgress={getCrushWeeklyProgress}
           />
         ) : (
           <ClimbGoalCrusher
@@ -203,7 +222,7 @@ export default function Goals() {
         )}
 
         {/* Floating Action Button for Mobile */}
-        <div className="fixed bottom-6 right-6 sm:hidden z-50">
+        <div className="fixed bottom-24 right-6 sm:hidden z-50">
           <ButtonRetro
             size="lg"
             className="rounded-full w-14 h-14 p-0 shadow-lg"
