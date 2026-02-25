@@ -525,7 +525,14 @@ export default function ApplicationDetail() {
           {/* Header Actions */}
           <div className="flex gap-2 shrink-0">
             {app.job_posting_url && (
-              <ButtonRetro size="sm" variant="outline" onClick={() => window.open(app.job_posting_url!, '_blank')}>
+              <ButtonRetro size="sm" variant="outline" onClick={() => {
+                try {
+                  const url = new URL(app.job_posting_url!);
+                  if (['http:', 'https:'].includes(url.protocol)) {
+                    window.open(app.job_posting_url!, '_blank', 'noopener,noreferrer');
+                  }
+                } catch { /* invalid URL */ }
+              }}>
                 <ExternalLink className="h-4 w-4" />
               </ButtonRetro>
             )}
@@ -782,7 +789,7 @@ export default function ApplicationDetail() {
                   <>
                     {app.job_posting_url && (
                       <a 
-                        href={app.job_posting_url} 
+                        href={(() => { try { const u = new URL(app.job_posting_url!); return ['http:', 'https:'].includes(u.protocol) ? app.job_posting_url! : '#'; } catch { return '#'; } })()}
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="text-primary hover:underline text-sm flex items-center gap-1 mb-3"
@@ -1006,7 +1013,14 @@ export default function ApplicationDetail() {
             <h3 className="font-bold mb-4">Quick Actions</h3>
             <div className="space-y-2">
               {app.job_posting_url && (
-                <ButtonRetro variant="outline" className="w-full justify-start gap-2" onClick={() => window.open(app.job_posting_url!, '_blank')}>
+                <ButtonRetro variant="outline" className="w-full justify-start gap-2" onClick={() => {
+                  try {
+                    const url = new URL(app.job_posting_url!);
+                    if (['http:', 'https:'].includes(url.protocol)) {
+                      window.open(app.job_posting_url!, '_blank', 'noopener,noreferrer');
+                    }
+                  } catch { /* invalid URL */ }
+                }}>
                   <ExternalLink className="h-4 w-4" /> View Job Posting
                 </ButtonRetro>
               )}
