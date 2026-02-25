@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.career-briefing]
 verify_jwt = false
+
+[functions.weekly-brief]
+verify_jwt = false
