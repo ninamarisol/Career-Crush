@@ -7,7 +7,7 @@ import { ButtonRetro } from '@/components/ui/button-retro';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Star, MessageSquare, BarChart3, Target, Plus, Search, Sparkles, Lightbulb, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Star, MessageSquare, BarChart3, Target, Plus, Search, Sparkles } from 'lucide-react';
 import { QuickAddModal } from '@/components/track-record/QuickAddModal';
 import { StarStoryBuilderModal } from '@/components/track-record/StarStoryBuilderModal';
 import { EntryDetailModal } from '@/components/track-record/EntryDetailModal';
@@ -115,7 +115,6 @@ export default function TrackRecord() {
   const filteredEntries = useMemo(() => {
     let result = [...entries];
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(entry =>
@@ -126,17 +125,14 @@ export default function TrackRecord() {
       );
     }
 
-    // Type filter
     if (typeFilter !== 'all') {
       result = result.filter(entry => entry.entry_type === typeFilter);
     }
 
-    // Status filter
     if (statusFilter !== 'all') {
       result = result.filter(entry => entry.status === statusFilter);
     }
 
-    // Sort
     switch (sortBy) {
       case 'recent':
         result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -152,7 +148,6 @@ export default function TrackRecord() {
     return result;
   }, [entries, searchQuery, typeFilter, statusFilter, sortBy]);
 
-  // Group entries by type
   const groupedEntries = useMemo(() => {
     const groups: Record<string, TrackRecordEntry[]> = {
       star_story: [],
@@ -168,15 +163,6 @@ export default function TrackRecord() {
     return groups;
   }, [filteredEntries]);
 
-  const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    entries.forEach(entry => {
-      entry.manual_tags.forEach(tag => tags.add(tag));
-      entry.ai_suggested_tags.forEach(tag => tags.add(tag));
-    });
-    return Array.from(tags);
-  }, [entries]);
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -186,37 +172,39 @@ export default function TrackRecord() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-black">Track Record</h1>
-        <p className="text-muted-foreground">Your proof of impact—ready when you need it</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black">Track Record</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Your proof of impact—ready when you need it</p>
+        </div>
       </div>
 
       {/* Quick Add Section */}
-      <CardRetro className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Plus className="h-5 w-5 text-primary" />
-          <h2 className="font-bold text-lg">Quick Add to Track Record</h2>
+      <CardRetro className="p-4 sm:p-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Plus className="h-5 w-5 text-primary shrink-0" />
+          <h2 className="font-bold text-base sm:text-lg">Quick Add to Track Record</h2>
         </div>
-        <p className="text-muted-foreground mb-4">
+        <p className="text-sm text-muted-foreground mb-3 sm:mb-4">
           Paste feedback, describe a win, or tell a story about your impact...
         </p>
-        <div className="flex gap-3">
-          <ButtonRetro onClick={() => setQuickAddOpen(true)}>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <ButtonRetro onClick={() => setQuickAddOpen(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Entry
           </ButtonRetro>
-          <ButtonRetro variant="secondary" onClick={() => setStarBuilderOpen(true)}>
+          <ButtonRetro variant="secondary" onClick={() => setStarBuilderOpen(true)} className="w-full sm:w-auto">
             <Star className="h-4 w-4 mr-2" />
-            Build STAR Story Instead
+            Build STAR Story
           </ButtonRetro>
         </div>
       </CardRetro>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-[200px]">
+      {/* Filters - stacked on mobile */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search entries..."
@@ -225,58 +213,58 @@ export default function TrackRecord() {
             className="pl-10"
           />
         </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Type: All" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="star_story">STAR Stories</SelectItem>
-            <SelectItem value="feedback_praise">Feedback/Praise</SelectItem>
-            <SelectItem value="metric_outcome">Metrics/Outcomes</SelectItem>
-            <SelectItem value="project_highlight">Project Highlights</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Status: All" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="ready_to_use">Ready to Use</SelectItem>
-            <SelectItem value="needs_refinement">Needs Refinement</SelectItem>
-            <SelectItem value="needs_refresh">Needs Refresh</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recent">Most Recent</SelectItem>
-            <SelectItem value="strength">Strength Score</SelectItem>
-            <SelectItem value="usage">Most Used</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2 overflow-x-auto scrollbar-none">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[130px] sm:w-[160px] shrink-0">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="star_story">STAR Stories</SelectItem>
+              <SelectItem value="feedback_praise">Feedback</SelectItem>
+              <SelectItem value="metric_outcome">Metrics</SelectItem>
+              <SelectItem value="project_highlight">Projects</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[120px] sm:w-[160px] shrink-0">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="ready_to_use">Ready</SelectItem>
+              <SelectItem value="needs_refinement">Refine</SelectItem>
+              <SelectItem value="needs_refresh">Refresh</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[120px] sm:w-[160px] shrink-0">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recent">Recent</SelectItem>
+              <SelectItem value="strength">Strength</SelectItem>
+              <SelectItem value="usage">Used</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Entries by Group */}
       {entries.length === 0 ? (
-        <CardRetro className="p-12 text-center">
-          <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="font-bold text-xl mb-2">Start Building Your Track Record</h3>
-          <p className="text-muted-foreground mb-6">
-            Add your achievements, feedback, and success stories to prepare for interviews and reviews.
+        <CardRetro className="p-8 sm:p-12 text-center">
+          <Sparkles className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="font-bold text-lg sm:text-xl mb-2">Start Building Your Track Record</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-6">
+            Add your achievements, feedback, and success stories.
           </p>
-          <div className="flex gap-3 justify-center">
-            <ButtonRetro onClick={() => setQuickAddOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Your First Entry
-            </ButtonRetro>
-          </div>
+          <ButtonRetro onClick={() => setQuickAddOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Your First Entry
+          </ButtonRetro>
         </CardRetro>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {Object.entries(groupedEntries).map(([type, typeEntries]) => {
             if (typeEntries.length === 0) return null;
             const config = entryTypeConfig[type as keyof typeof entryTypeConfig];
@@ -284,12 +272,12 @@ export default function TrackRecord() {
             
             return (
               <div key={type}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Icon className={`h-5 w-5 ${config.color}`} />
-                  <h3 className="font-bold text-lg">{config.label}</h3>
+                <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${config.color}`} />
+                  <h3 className="font-bold text-base sm:text-lg">{config.label}</h3>
                   <Badge variant="secondary">{typeEntries.length}</Badge>
                 </div>
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
                   {typeEntries.map(entry => (
                     <TrackRecordCard
                       key={entry.id}

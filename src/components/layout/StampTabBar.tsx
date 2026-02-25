@@ -4,12 +4,12 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const navItems = [
-  { to: '/home', icon: Home, label: 'Home', isHero: false },
-  { to: '/applications', icon: Briefcase, label: 'Applications', isHero: false },
-  { to: '/track-record', icon: Trophy, label: 'Track Record', isHero: false },
-  { to: '/contacts', icon: Users, label: 'Contacts', isHero: false },
-  { to: '/goals', icon: Target, label: 'Goal Crusher', isHero: true },
-  { to: '/profile', icon: User, label: 'Profile', isHero: false },
+  { to: '/home', icon: Home, label: 'Home', shortLabel: 'Home', isHero: false },
+  { to: '/applications', icon: Briefcase, label: 'Applications', shortLabel: 'Apps', isHero: false },
+  { to: '/track-record', icon: Trophy, label: 'Track Record', shortLabel: 'Track', isHero: false },
+  { to: '/contacts', icon: Users, label: 'Contacts', shortLabel: 'Contacts', isHero: false },
+  { to: '/goals', icon: Target, label: 'Goal Crusher', shortLabel: 'Goals', isHero: true },
+  { to: '/profile', icon: User, label: 'Profile', shortLabel: 'Profile', isHero: false },
 ];
 
 export function StampTabBar() {
@@ -66,14 +66,12 @@ export function StampTabBar() {
                   <Star className="stamp-hero-star" aria-hidden="true" />
                 )}
               </div>
-              {(!isMobile || isActive) && (
-                <span className={cn(
-                  "stamp-label",
-                  item.isHero && "stamp-label-hero"
-                )}>
-                  {item.label}
-                </span>
-              )}
+              <span className={cn(
+                "stamp-label",
+                item.isHero && "stamp-label-hero"
+              )}>
+                {isMobile ? item.shortLabel : item.label}
+              </span>
               {isActive && <div className="stamp-perforation" aria-hidden="true" />}
             </NavLink>
           );

@@ -290,28 +290,25 @@ export default function Profile() {
   const completionPercentage = calculateCompletion();
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl sm:text-4xl font-black mb-2">
-            Your Profile 👤
-          </h1>
-          <p className="text-muted-foreground">
-            Build your master resume and set your dream job preferences
-          </p>
-        </motion.div>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black mb-1 sm:mb-2">
+          Your Profile 👤
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
+          Build your master resume and set your dream job preferences
+        </p>
+      </motion.div>
 
         {/* Profile Completion Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-6"
         >
           <CardRetro>
             <CardRetroContent className="p-4">
@@ -337,7 +334,7 @@ export default function Profile() {
         </motion.div>
 
         {/* Tabs - Grid layout for better visibility */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {tabs.map((tab) => (
             <ButtonRetro
               key={tab.id}
@@ -623,7 +620,6 @@ export default function Profile() {
             </div>
           )}
         </motion.div>
-      </div>
     </div>
   );
 }

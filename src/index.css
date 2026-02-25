@@ -469,6 +469,8 @@ html.dark.theme-purple {
   background: hsl(var(--card));
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
   padding: 0 6px 6px;
+  /* Safe area for notched phones */
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
 }
 
 .dark .stamp-bar {
@@ -519,6 +521,7 @@ html.dark.theme-purple {
   transition: all 150ms ease;
   text-decoration: none;
   max-width: 100px;
+  min-width: 0;
 }
 
 .stamp-unit:focus-visible {
@@ -580,6 +583,9 @@ html.dark.theme-purple {
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
   transition: color 150ms ease;
 }
 
@@ -653,12 +659,37 @@ html.dark.theme-purple {
 }
 
 @media (max-width: 767px) {
+  .stamp-bar {
+    padding: 0 3px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+  .stamp-items {
+    gap: 2px;
+    padding-top: 8px;
+  }
   .stamp-unit {
-    padding: 8px 4px;
-    max-width: 64px;
+    padding: 6px 2px;
+    max-width: none;
+    border-radius: 8px;
+    gap: 1px;
+  }
+  .stamp-icon {
+    width: 20px;
+    height: 20px;
   }
   .stamp-label {
-    font-size: 8px;
-    letter-spacing: 1px;
+    font-size: 7px;
+    letter-spacing: 0.5px;
+  }
+  .stamp-hero {
+    padding-top: 4px;
+    padding-bottom: 10px;
+    margin-top: -2px;
+  }
+  .stamp-hero-star {
+    top: -2px;
+    right: -3px;
+    width: 6px;
+    height: 6px;
   }
 }
