@@ -144,22 +144,21 @@ export default function Goals() {
       }));
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div>
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
         >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <Target className="w-7 h-7 text-primary" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 rounded-xl bg-primary/10 shrink-0">
+                <Target className="w-5 h-5 sm:w-7 sm:h-7 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black">Goal Crusher</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black">Goal Crusher</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {userMode === 'crush'
                     ? 'Weekly targets for your job search'
                     : 'Monthly sprints for career growth'

@@ -29,18 +29,15 @@ export function ModeWelcome({ displayName, mode, quote }: ModeWelcomeProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-primary/20 border-2 border-border">
-          <Icon className="h-6 w-6 text-primary" />
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="p-1.5 sm:p-2 rounded-lg bg-primary/20 border-2 border-border shrink-0">
+          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
         </div>
-        <div>
-          <h1 className="text-4xl font-black">
-            Welcome back, {displayName || 'Friend'} {config.emoji}
-          </h1>
-          
-        </div>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight truncate">
+          Welcome back, {displayName || 'Friend'} {config.emoji}
+        </h1>
       </div>
-      <p className="text-muted-foreground italic">{quote}</p>
+      <p className="text-sm sm:text-base text-muted-foreground italic">{quote}</p>
     </div>
   );
 }

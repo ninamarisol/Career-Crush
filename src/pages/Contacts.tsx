@@ -138,24 +138,23 @@ export default function Contacts() {
   };
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div>
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-black mb-1">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black">
                 Contacts 📇
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Manage your professional network and follow-ups
               </p>
             </div>
-            <ButtonRetro onClick={() => { setEditingContact(null); setAddDialogOpen(true); }}>
+            <ButtonRetro className="w-full sm:w-auto" onClick={() => { setEditingContact(null); setAddDialogOpen(true); }}>
               <Plus className="h-4 w-4" /> Add Contact
             </ButtonRetro>
           </div>
@@ -166,7 +165,7 @@ export default function Contacts() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"
+          className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
         >
           <CardRetro className="cursor-pointer hover:shadow-retro-lg transition-shadow" onClick={() => setFilterBy('all')}>
             <CardRetroContent className="p-4 flex items-center gap-3">
@@ -222,7 +221,7 @@ export default function Contacts() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="flex flex-col sm:flex-row gap-3 mb-6"
+          className="flex flex-col sm:flex-row gap-3"
         >
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -292,7 +291,6 @@ export default function Contacts() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-4"
           >
             <Badge variant="secondary" className="gap-2">
               Filtering: {filterBy.charAt(0).toUpperCase() + filterBy.slice(1).replace('-', ' ')}
@@ -303,7 +301,7 @@ export default function Contacts() {
 
         {/* Contacts Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {[1, 2, 3, 4].map((i) => (
               <CardRetro key={i}>
                 <CardRetroContent className="p-4">
@@ -345,7 +343,7 @@ export default function Contacts() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4"
           >
             <AnimatePresence mode="popLayout">
               {filteredContacts.map((contact) => (

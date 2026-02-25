@@ -56,19 +56,20 @@ export default function Applications() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-4xl font-black">Applications Pipeline 💼</h1>
-          <p className="text-muted-foreground">Keep track of every opportunity.</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black">Applications Pipeline 💼</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Keep track of every opportunity.</p>
         </div>
         <AddApplicationDialog trigger={
-          <ButtonRetro><Plus className="h-4 w-4" /> Add Application</ButtonRetro>
+          <ButtonRetro className="w-full sm:w-auto"><Plus className="h-4 w-4" /> Add Application</ButtonRetro>
         } />
       </div>
 
-      {/* View Toggle & Filters */}
-      <div className="flex flex-wrap gap-4 items-center justify-between">
+      {/* View Toggle & Search */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <div className="flex gap-2">
           {[
             { id: 'card' as ViewMode, icon: LayoutGrid, label: 'Card' },
@@ -76,23 +77,22 @@ export default function Applications() {
             { id: 'map' as ViewMode, icon: Map, label: 'Map' },
           ].map(v => (
             <ButtonRetro key={v.id} variant={viewMode === v.id ? 'default' : 'outline'} size="sm" onClick={() => setViewMode(v.id)}>
-              <v.icon className="h-4 w-4" /> {v.label}
+              <v.icon className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">{v.label}</span>
             </ButtonRetro>
           ))}
         </div>
-        <div className="flex gap-3 flex-1 max-w-md">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <InputRetro placeholder="Search roles or companies..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
-          </div>
+        <div className="relative flex-1 sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <InputRetro placeholder="Search roles or companies..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
         </div>
       </div>
 
-      {/* Status Filter Pills */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Status Filter Pills - horizontal scroll on mobile */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap scrollbar-none">
         {(['all', 'Saved', 'Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted'] as const).map(s => (
           <button key={s} onClick={() => setStatusFilter(s)} className={cn(
-            "px-3 py-1 rounded-full border-2 border-border text-sm font-bold transition-all",
+            "px-3 py-1 rounded-full border-2 border-border text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0",
             statusFilter === s ? "bg-primary text-primary-foreground shadow-retro-sm" : "bg-card hover:bg-muted"
           )}>
             {s === 'all' ? 'All' : s} ({getStatusCount(s)})
@@ -102,10 +102,10 @@ export default function Applications() {
 
       {/* Empty State */}
       {filteredApps.length === 0 && (
-        <CardRetro className="p-12 text-center">
-          <Briefcase className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-2xl font-bold">No applications found</h3>
-          <p className="text-muted-foreground mt-2">
+        <CardRetro className="p-8 sm:p-12 text-center">
+          <BriefcaseIcon className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-xl sm:text-2xl font-bold">No applications found</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mt-2">
             {applications.length === 0 
               ? "Start tracking your job search by adding your first application!"
               : "No applications match your current filters."}
@@ -120,26 +120,26 @@ export default function Applications() {
 
       {/* Card View */}
       {viewMode === 'card' && filteredApps.length > 0 && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredApps.map(app => {
             const matchBreakdown = calculateMatchScore(app, jobPreferences);
             const matchScore = matchBreakdown.totalScore;
             
             return (
               <Link key={app.id} to={`/applications/${app.id}`}>
-                <CardRetro hoverable className="p-5 h-full">
+                <CardRetro hoverable className="p-4 sm:p-5 h-full">
                   <div className="flex justify-between items-start mb-3">
-                    <div className="w-12 h-12 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center text-xl font-black">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/20 border-2 border-border flex items-center justify-center text-lg sm:text-xl font-black shrink-0">
                       {app.company.charAt(0).toUpperCase()}
                     </div>
                     <StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge>
                   </div>
-                  <h3 className="font-bold text-lg">{app.position}</h3>
-                  <p className="text-muted-foreground flex items-center gap-1 mt-1"><Building2 className="h-3 w-3" /> {app.company}</p>
-                  {app.location && <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {app.location}</p>}
+                  <h3 className="font-bold text-base sm:text-lg leading-tight">{app.position}</h3>
+                  <p className="text-muted-foreground flex items-center gap-1 mt-1 text-sm"><Building2 className="h-3 w-3 shrink-0" /> <span className="truncate">{app.company}</span></p>
+                  {app.location && <p className="text-muted-foreground flex items-center gap-1 text-sm"><MapPin className="h-3 w-3 shrink-0" /> <span className="truncate">{app.location}</span></p>}
                   {(app.salary_min || app.salary_max) && (
-                    <p className="text-muted-foreground flex items-center gap-1">
-                      <DollarSign className="h-3 w-3" /> {formatSalary(app.salary_min, app.salary_max)}
+                    <p className="text-muted-foreground flex items-center gap-1 text-sm">
+                      <DollarSign className="h-3 w-3 shrink-0" /> {formatSalary(app.salary_min, app.salary_max)}
                     </p>
                   )}
                   
@@ -160,14 +160,14 @@ export default function Applications() {
                   )}
                   
                   {/* Scores */}
-                  <div className="flex gap-4 mt-4 pt-3 border-t-2 border-border">
-                    <div className="flex-1">
+                  <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4 pt-3 border-t-2 border-border">
+                    <div className="flex-1 min-w-0">
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Target className="h-3 w-3" /> Match
                       </span>
                       <p className={cn("font-bold text-sm", getScoreColor(matchScore))}>{matchScore}%</p>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <FileText className="h-3 w-3" /> Resume
                       </span>
@@ -175,7 +175,7 @@ export default function Applications() {
                         {app.resume_score ? `${app.resume_score}%` : '—'}
                       </p>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <span className="text-xs text-muted-foreground">Applied</span>
                       <p className="font-bold text-sm">{new Date(app.date_applied).toLocaleDateString()}</p>
                     </div>
@@ -187,44 +187,46 @@ export default function Applications() {
         </div>
       )}
 
-      {/* List View */}
+      {/* List View - scrollable table on mobile */}
       {viewMode === 'list' && filteredApps.length > 0 && (
         <CardRetro className="overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted">
-              <tr className="text-left text-xs font-bold uppercase tracking-wide">
-                <th className="p-4">Company</th>
-                <th className="p-4">Role</th>
-                <th className="p-4">Location</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Match</th>
-                <th className="p-4">Resume</th>
-                <th className="p-4">Salary</th>
-                <th className="p-4">Applied</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredApps.map(app => {
-                const matchBreakdown = calculateMatchScore(app, jobPreferences);
-                const matchScore = matchBreakdown.totalScore;
-                
-                return (
-                  <tr key={app.id} className="border-t-2 border-border hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/applications/${app.id}`)}>
-                    <td className="p-4 font-bold">{app.company}</td>
-                    <td className="p-4">{app.position}</td>
-                    <td className="p-4 text-muted-foreground">{app.location || '-'}</td>
-                    <td className="p-4"><StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge></td>
-                    <td className={cn("p-4 font-bold", getScoreColor(matchScore))}>{matchScore}%</td>
-                    <td className={cn("p-4 font-bold", app.resume_score ? getScoreColor(app.resume_score) : 'text-muted-foreground')}>
-                      {app.resume_score ? `${app.resume_score}%` : '-'}
-                    </td>
-                    <td className="p-4 text-muted-foreground">{formatSalary(app.salary_min, app.salary_max) || '-'}</td>
-                    <td className="p-4 text-muted-foreground">{new Date(app.date_applied).toLocaleDateString()}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px]">
+              <thead className="bg-muted">
+                <tr className="text-left text-xs font-bold uppercase tracking-wide">
+                  <th className="p-3 sm:p-4">Company</th>
+                  <th className="p-3 sm:p-4">Role</th>
+                  <th className="p-3 sm:p-4 hidden sm:table-cell">Location</th>
+                  <th className="p-3 sm:p-4">Status</th>
+                  <th className="p-3 sm:p-4">Match</th>
+                  <th className="p-3 sm:p-4 hidden md:table-cell">Resume</th>
+                  <th className="p-3 sm:p-4 hidden lg:table-cell">Salary</th>
+                  <th className="p-3 sm:p-4 hidden sm:table-cell">Applied</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredApps.map(app => {
+                  const matchBreakdown = calculateMatchScore(app, jobPreferences);
+                  const matchScore = matchBreakdown.totalScore;
+                  
+                  return (
+                    <tr key={app.id} className="border-t-2 border-border hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/applications/${app.id}`)}>
+                      <td className="p-3 sm:p-4 font-bold">{app.company}</td>
+                      <td className="p-3 sm:p-4 max-w-[150px] truncate">{app.position}</td>
+                      <td className="p-3 sm:p-4 text-muted-foreground hidden sm:table-cell">{app.location || '-'}</td>
+                      <td className="p-3 sm:p-4"><StatusBadge status={getStatusColor(app.status) as any}>{app.status}</StatusBadge></td>
+                      <td className={cn("p-3 sm:p-4 font-bold", getScoreColor(matchScore))}>{matchScore}%</td>
+                      <td className={cn("p-3 sm:p-4 font-bold hidden md:table-cell", app.resume_score ? getScoreColor(app.resume_score) : 'text-muted-foreground')}>
+                        {app.resume_score ? `${app.resume_score}%` : '-'}
+                      </td>
+                      <td className="p-3 sm:p-4 text-muted-foreground hidden lg:table-cell">{formatSalary(app.salary_min, app.salary_max) || '-'}</td>
+                      <td className="p-3 sm:p-4 text-muted-foreground hidden sm:table-cell">{new Date(app.date_applied).toLocaleDateString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </CardRetro>
       )}
 
@@ -236,7 +238,7 @@ export default function Applications() {
   );
 }
 
-function Briefcase(props: React.SVGProps<SVGSVGElement>) {
+function BriefcaseIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>

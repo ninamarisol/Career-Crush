@@ -110,7 +110,7 @@ export default function Home() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       <ModeWelcome 
         displayName={profile?.display_name || 'Friend'}
         mode={userMode}
