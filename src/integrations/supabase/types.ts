@@ -191,6 +191,51 @@ export type Database = {
         }
         Relationships: []
       }
+      career_targets: {
+        Row: {
+          ai_summary: string | null
+          biggest_blocker: string
+          blocker_custom_text: string | null
+          created_at: string
+          id: string
+          review_cycle: string | null
+          role_title: string
+          target_destination: string
+          time_in_role: string
+          timeline: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          biggest_blocker: string
+          blocker_custom_text?: string | null
+          created_at?: string
+          id?: string
+          review_cycle?: string | null
+          role_title: string
+          target_destination: string
+          time_in_role: string
+          timeline: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          biggest_blocker?: string
+          blocker_custom_text?: string | null
+          created_at?: string
+          id?: string
+          review_cycle?: string | null
+          role_title?: string
+          target_destination?: string
+          time_in_role?: string
+          timeline?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       career_wins: {
         Row: {
           category: string | null
