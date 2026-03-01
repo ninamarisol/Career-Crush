@@ -13,10 +13,9 @@ interface DreamJobProfilerProps {
   onUpdate: (preferences: JobPreferences) => void;
   onComplete?: () => void;
   isOnboarding?: boolean;
-  skipPriorities?: boolean;
 }
 
-const allSurveySteps = [
+const surveySteps = [
   { id: 'locations', title: 'Where do you want to work?', icon: MapPin, emoji: '📍' },
   { id: 'company', title: 'What size company?', icon: Building2, emoji: '🏢' },
   { id: 'roles', title: 'What type of roles?', icon: Briefcase, emoji: '💼' },
@@ -37,8 +36,7 @@ const priorityLabels: { key: keyof PriorityWeights; label: string; emoji: string
   { key: 'workStyle', label: 'Work Style', emoji: '💖', description: 'How much does work culture/style matter?' },
 ];
 
-export function DreamJobProfiler({ preferences, onUpdate, onComplete, isOnboarding = false, skipPriorities = false }: DreamJobProfilerProps) {
-  const surveySteps = skipPriorities ? allSurveySteps.filter(s => s.id !== 'priorities') : allSurveySteps;
+export function DreamJobProfiler({ preferences, onUpdate, onComplete, isOnboarding = false }: DreamJobProfilerProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [customRoleInput, setCustomRoleInput] = useState('');

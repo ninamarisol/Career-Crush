@@ -91,7 +91,6 @@ export default function Onboarding() {
             onUpdate={handlePreferencesUpdate}
             onComplete={handleDreamJobComplete}
             isOnboarding={true}
-            skipPriorities={selectedMode === 'crush'}
           />
         </div>
       </div>
