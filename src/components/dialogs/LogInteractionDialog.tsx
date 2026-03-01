@@ -4,9 +4,9 @@ import { ButtonRetro } from '@/components/ui/button-retro';
 import { InputRetro } from '@/components/ui/input-retro';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Contact, ContactInteraction } from '@/hooks/useContacts';
-import { Mail, Phone, Users, Linkedin, Coffee, Calendar, MoreHorizontal } from 'lucide-react';
+import { Mail, Phone, Users, Linkedin, Coffee, Calendar, MoreHorizontal, ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface LogInteractionDialogProps {
   open: boolean;
@@ -15,14 +15,19 @@ interface LogInteractionDialogProps {
   onSubmit: (interaction: Omit<ContactInteraction, 'id' | 'user_id' | 'created_at'>) => void;
 }
 
-const interactionTypes = [
-  { value: 'email', label: 'Email', icon: Mail },
-  { value: 'call', label: 'Phone Call', icon: Phone },
-  { value: 'meeting', label: 'Meeting', icon: Users },
-  { value: 'linkedin', label: 'LinkedIn', icon: Linkedin },
-  { value: 'coffee', label: 'Coffee Chat', icon: Coffee },
-  { value: 'event', label: 'Event', icon: Calendar },
-  { value: 'other', label: 'Other', icon: MoreHorizontal },
+const interactionTypes: {
+  value: ContactInteraction['type'];
+  label: string;
+  icon: React.ElementType;
+  color: string;
+}[] = [
+  { value: 'email', label: 'Email', icon: Mail, color: 'text-blue-500' },
+  { value: 'call', label: 'Call', icon: Phone, color: 'text-green-500' },
+  { value: 'meeting', label: 'Meeting', icon: Users, color: 'text-purple-500' },
+  { value: 'linkedin', label: 'LinkedIn', icon: Linkedin, color: 'text-blue-600' },
+  { value: 'coffee', label: 'Coffee', icon: Coffee, color: 'text-amber-600' },
+  { value: 'event', label: 'Event', icon: Calendar, color: 'text-primary' },
+  { value: 'other', label: 'Other', icon: MoreHorizontal, color: 'text-muted-foreground' },
 ];
 
 export function LogInteractionDialog({
@@ -61,56 +66,51 @@ export function LogInteractionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-black">
-            Log Interaction 💬
-          </DialogTitle>
-          <p className="text-muted-foreground">
-            with <span className="font-bold text-foreground">{contact.name}</span>
+          <DialogTitle className="text-xl font-black">Log Interaction</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            with <span className="font-semibold text-foreground">{contact.name}</span>
+            {contact.company && (
+              <span className="text-muted-foreground"> · {contact.company}</span>
+            )}
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Type Selection */}
+        <form onSubmit={handleSubmit} className="space-y-5 pt-1">
+          {/* Interaction Type */}
           <div className="space-y-2">
-            <Label>Interaction Type</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              How did you connect?
+            </Label>
             <div className="grid grid-cols-4 gap-2">
-              {interactionTypes.slice(0, 4).map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setType(t.value as ContactInteraction['type'])}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all ${
-                    type === t.value
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <t.icon className={`h-5 w-5 ${type === t.value ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <span className="text-xs font-medium">{t.label}</span>
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {interactionTypes.slice(4).map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setType(t.value as ContactInteraction['type'])}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all ${
-                    type === t.value
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <t.icon className={`h-5 w-5 ${type === t.value ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <span className="text-xs font-medium">{t.label}</span>
-                </button>
-              ))}
+              {interactionTypes.map((t) => {
+                const Icon = t.icon;
+                const active = type === t.value;
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setType(t.value)}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-all text-center',
+                      active
+                        ? 'border-primary bg-primary/10 shadow-sm'
+                        : 'border-border hover:border-primary/40 hover:bg-muted/50'
+                    )}
+                  >
+                    <Icon
+                      className={cn('h-5 w-5', active ? t.color : 'text-muted-foreground')}
+                    />
+                    <span className={cn('text-[11px] font-medium leading-tight', active ? 'text-foreground' : 'text-muted-foreground')}>
+                      {t.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Date */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="interaction-date">Date</Label>
             <InputRetro
               id="interaction-date"
@@ -122,30 +122,33 @@ export function LogInteractionDialog({
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="interaction-notes">Notes</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="interaction-notes">What did you discuss?</Label>
             <Textarea
               id="interaction-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="What did you discuss?"
+              placeholder="Topics covered, updates shared, questions asked…"
               rows={3}
             />
           </div>
 
           {/* Outcome */}
-          <div className="space-y-2">
-            <Label htmlFor="outcome">Outcome / Next Steps</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="outcome" className="flex items-center gap-1">
+              <ArrowRight className="h-3.5 w-3.5" />
+              Outcome / Next Steps
+            </Label>
             <InputRetro
               id="outcome"
               value={outcome}
               onChange={(e) => setOutcome(e.target.value)}
-              placeholder="e.g., Will send resume, scheduled interview"
+              placeholder="e.g. Will send resume, scheduled call for next week"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-2 pt-2 border-t border-border">
             <ButtonRetro type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </ButtonRetro>
