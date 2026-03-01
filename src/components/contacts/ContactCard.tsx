@@ -32,6 +32,7 @@ interface ContactCardProps {
   onDelete: (id: string) => void;
   onLogInteraction: (contact: Contact) => void;
   onScheduleFollowUp: (contact: Contact) => void;
+  onClick?: (contact: Contact) => void;
 }
 
 const strengthConfig = {
