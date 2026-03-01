@@ -32,6 +32,7 @@ interface ContactCardProps {
   onDelete: (id: string) => void;
   onLogInteraction: (contact: Contact) => void;
   onScheduleFollowUp: (contact: Contact) => void;
+  onClick?: (contact: Contact) => void;
 }
 
 const strengthConfig = {
@@ -72,6 +73,7 @@ export function ContactCard({
   onDelete,
   onLogInteraction,
   onScheduleFollowUp,
+  onClick,
 }: ContactCardProps) {
   const linkedApp = applications.find((a) => a.id === contact.application_id);
   const isOverdue =
@@ -90,9 +92,10 @@ export function ContactCard({
     >
       <CardRetro
         className={cn(
-          'hover:shadow-retro-lg transition-all border-l-4 overflow-hidden',
+          'hover:shadow-retro-lg transition-all border-l-4 overflow-hidden cursor-pointer',
           cfg.border
         )}
+        onClick={() => onClick?.(contact)}
       >
         <CardRetroContent className="p-0">
           {/* Top section */}

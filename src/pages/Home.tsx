@@ -74,7 +74,7 @@ export default function Home() {
 
   const recentApps = applications.slice(0, 3);
   const upcomingEvents = events.slice(0, 3);
-  const smartSteps = useSmartSteps(applications, events);
+  const smartSteps = useSmartSteps(applications, events, contacts);
 
   const getQuickActions = () => {
     if (userMode === 'climb') {

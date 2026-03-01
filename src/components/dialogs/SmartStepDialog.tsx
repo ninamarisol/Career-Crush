@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ButtonRetro } from '@/components/ui/button-retro';
-import { Check, Sparkles, Mail, Users, FileText } from 'lucide-react';
+import { Check, Sparkles, Mail, Users, FileText, Heart } from 'lucide-react';
 
 interface SmartStepDialogProps {
   trigger: React.ReactNode;
   step: {
     title: string;
     description: string;
-    type: 'optimize' | 'followup' | 'network' | 'prepare' | 'apply';
+    type: 'optimize' | 'followup' | 'network' | 'prepare' | 'apply' | 'reconnect';
   };
 }
 
@@ -28,6 +28,8 @@ export function SmartStepDialog({ trigger, step }: SmartStepDialogProps) {
         return <Sparkles className="h-8 w-8 text-primary" />;
       case 'apply':
         return <FileText className="h-8 w-8 text-primary" />;
+      case 'reconnect':
+        return <Heart className="h-8 w-8 text-primary" />;
     }
   };
 
@@ -114,6 +116,26 @@ export function SmartStepDialog({ trigger, step }: SmartStepDialogProps) {
             </div>
             <ButtonRetro className="w-full" onClick={() => setCompleted(true)}>
               <Users className="h-4 w-4" /> Mark Outreach Done
+            </ButtonRetro>
+          </div>
+        );
+      case 'reconnect':
+        return (
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg border-2 border-border">
+              <h4 className="font-bold mb-2">Reconnection Ideas</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Share an article or resource relevant to their work</li>
+                <li>• Ask about a project they mentioned last time</li>
+                <li>• Invite them for a quick virtual coffee catch-up</li>
+                <li>• Congratulate them on any recent achievements</li>
+              </ul>
+            </div>
+            <div className="p-4 bg-primary/10 rounded-lg border-2 border-border">
+              <p className="text-sm font-bold">💡 Consistent check-ins build lasting professional relationships!</p>
+            </div>
+            <ButtonRetro className="w-full" onClick={() => setCompleted(true)}>
+              <Heart className="h-4 w-4" /> Mark Reconnected
             </ButtonRetro>
           </div>
         );

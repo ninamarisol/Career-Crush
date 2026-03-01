@@ -16,6 +16,7 @@ import {
 import { useContacts, useContactInteractions, Contact } from '@/hooks/useContacts';
 import { useApp } from '@/context/AppContext';
 import { ContactCard } from '@/components/contacts/ContactCard';
+import { ContactDetailDialog } from '@/components/contacts/ContactDetailDialog';
 import { AddContactDialog } from '@/components/dialogs/AddContactDialog';
 import { LogInteractionDialog } from '@/components/dialogs/LogInteractionDialog';
 import { ScheduleFollowUpDialog } from '@/components/dialogs/ScheduleFollowUpDialog';
@@ -38,6 +39,7 @@ export default function Contacts() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [interactionContact, setInteractionContact] = useState<Contact | null>(null);
   const [followUpContact, setFollowUpContact] = useState<Contact | null>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   const { addInteraction } = useContactInteractions(interactionContact?.id || null);
 
@@ -367,6 +369,7 @@ export default function Contacts() {
                 onDelete={deleteContact}
                 onLogInteraction={setInteractionContact}
                 onScheduleFollowUp={setFollowUpContact}
+                onClick={setSelectedContact}
               />
             ))}
           </AnimatePresence>
@@ -394,6 +397,15 @@ export default function Contacts() {
         onOpenChange={(open) => !open && setFollowUpContact(null)}
         contact={followUpContact}
         onSubmit={handleScheduleFollowUp}
+      />
+
+      <ContactDetailDialog
+        contact={selectedContact}
+        open={!!selectedContact}
+        onOpenChange={(open) => !open && setSelectedContact(null)}
+        applications={applications}
+        onLogInteraction={setInteractionContact}
+        onScheduleFollowUp={setFollowUpContact}
       />
     </div>
   );
