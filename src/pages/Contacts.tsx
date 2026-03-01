@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, SortAsc, Users, Clock, AlertCircle, UserCheck } from 'lucide-react';
+import { Plus, Search, X, Users, Clock, AlertCircle, UserCheck, Network } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { InputRetro } from '@/components/ui/input-retro';
 import { CardRetro, CardRetroContent } from '@/components/ui/card-retro';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -12,13 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
 import { useContacts, useContactInteractions, Contact } from '@/hooks/useContacts';
 import { useApp } from '@/context/AppContext';
 import { ContactCard } from '@/components/contacts/ContactCard';
@@ -28,69 +22,66 @@ import { ScheduleFollowUpDialog } from '@/components/dialogs/ScheduleFollowUpDia
 import { isPast, parseISO } from 'date-fns';
 
 type SortOption = 'recent' | 'name' | 'company' | 'strength';
-type FilterOption = 'all' | 'follow-up' | 'overdue' | 'acquaintance' | 'professional' | 'close' | 'mentor';
+type TabOption = 'all' | 'follow-up' | 'overdue' | 'mentors';
+
+const strengthOrder: Record<string, number> = { mentor: 0, close: 1, professional: 2, acquaintance: 3 };
 
 export default function Contacts() {
   const { contacts, loading, addContact, updateContact, deleteContact } = useContacts();
   const { applications, addEvent } = useApp();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
-  const [filterBy, setFilterBy] = useState<FilterOption>('all');
-  
+  const [activeTab, setActiveTab] = useState<TabOption>('all');
+
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [interactionContact, setInteractionContact] = useState<Contact | null>(null);
   const [followUpContact, setFollowUpContact] = useState<Contact | null>(null);
-  
+
   const { addInteraction } = useContactInteractions(interactionContact?.id || null);
 
-  // Stats
   const stats = useMemo(() => {
-    const overdue = contacts.filter(c => 
-      c.next_follow_up && isPast(parseISO(c.next_follow_up)) && c.follow_up_status !== 'completed'
+    const overdue = contacts.filter(
+      (c) => c.next_follow_up && isPast(parseISO(c.next_follow_up)) && c.follow_up_status !== 'completed'
     ).length;
-    const scheduled = contacts.filter(c => c.follow_up_status === 'scheduled').length;
-    const mentors = contacts.filter(c => c.connection_strength === 'mentor').length;
-    
+    const scheduled = contacts.filter((c) => c.follow_up_status === 'scheduled').length;
+    const mentors = contacts.filter((c) => c.connection_strength === 'mentor').length;
     return { total: contacts.length, overdue, scheduled, mentors };
   }, [contacts]);
 
-  // Filtered and sorted contacts
   const filteredContacts = useMemo(() => {
     let result = [...contacts];
 
-    // Search filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.company?.toLowerCase().includes(q) ||
-        c.position?.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q) ||
-        c.tags.some(t => t.toLowerCase().includes(q))
+      result = result.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.company?.toLowerCase().includes(q) ||
+          c.position?.toLowerCase().includes(q) ||
+          c.email?.toLowerCase().includes(q) ||
+          c.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
 
-    // Category filter
-    switch (filterBy) {
+    switch (activeTab) {
       case 'follow-up':
-        result = result.filter(c => c.follow_up_status === 'scheduled');
+        result = result.filter((c) => c.follow_up_status === 'scheduled');
         break;
       case 'overdue':
-        result = result.filter(c => 
-          c.next_follow_up && isPast(parseISO(c.next_follow_up)) && c.follow_up_status !== 'completed'
+        result = result.filter(
+          (c) =>
+            c.next_follow_up &&
+            isPast(parseISO(c.next_follow_up)) &&
+            c.follow_up_status !== 'completed'
         );
         break;
-      case 'acquaintance':
-      case 'professional':
-      case 'close':
-      case 'mentor':
-        result = result.filter(c => c.connection_strength === filterBy);
+      case 'mentors':
+        result = result.filter((c) => c.connection_strength === 'mentor');
         break;
     }
 
-    // Sort
     switch (sortBy) {
       case 'name':
         result.sort((a, b) => a.name.localeCompare(b.name));
@@ -99,7 +90,6 @@ export default function Contacts() {
         result.sort((a, b) => (a.company || '').localeCompare(b.company || ''));
         break;
       case 'strength':
-        const strengthOrder = { mentor: 0, close: 1, professional: 2, acquaintance: 3 };
         result.sort((a, b) => strengthOrder[a.connection_strength] - strengthOrder[b.connection_strength]);
         break;
       case 'recent':
@@ -108,9 +98,11 @@ export default function Contacts() {
     }
 
     return result;
-  }, [contacts, searchQuery, filterBy, sortBy]);
+  }, [contacts, searchQuery, activeTab, sortBy]);
 
-  const handleAddContact = async (contactData: Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const handleAddContact = async (
+    contactData: Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+  ) => {
     if (editingContact) {
       await updateContact(editingContact.id, contactData);
     } else {
@@ -124,243 +116,262 @@ export default function Contacts() {
     setAddDialogOpen(true);
   };
 
-  const handleScheduleFollowUp = async (date: string, event: Parameters<typeof addEvent>[0]) => {
+  const handleScheduleFollowUp = async (
+    date: string,
+    event: Parameters<typeof addEvent>[0]
+  ) => {
     if (!followUpContact) return;
-    
-    // Update contact with follow-up date
     await updateContact(followUpContact.id, {
       next_follow_up: date,
       follow_up_status: 'scheduled',
     });
-    
-    // Add to calendar
     await addEvent(event);
   };
 
+  const emptyMessages: Record<TabOption, { title: string; body: string }> = {
+    all: { title: 'No contacts yet', body: 'Start building your professional network!' },
+    'follow-up': { title: 'No follow-ups scheduled', body: 'Keep in touch—schedule a follow-up with someone.' },
+    overdue: { title: 'You\'re all caught up!', body: 'No overdue follow-ups. Great work!' },
+    mentors: { title: 'No mentors added yet', body: 'Add someone as a mentor to see them here.' },
+  };
+
+  const currentEmpty = emptyMessages[activeTab];
+
   return (
-    <div>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black">
-                Contacts 📇
-              </h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Manage your professional network and follow-ups
-              </p>
+    <div className="space-y-5 sm:space-y-6">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="p-2 rounded-xl bg-primary/15">
+                <Network className="h-5 w-5 text-primary" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">Contacts</h1>
             </div>
-            <ButtonRetro className="w-full sm:w-auto" onClick={() => { setEditingContact(null); setAddDialogOpen(true); }}>
-              <Plus className="h-4 w-4" /> Add Contact
-            </ButtonRetro>
+            <p className="text-sm sm:text-base text-muted-foreground pl-1">
+              Your professional network — nurture it intentionally.
+            </p>
           </div>
-        </motion.div>
-
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
-        >
-          <CardRetro className="cursor-pointer hover:shadow-retro-lg transition-shadow" onClick={() => setFilterBy('all')}>
-            <CardRetroContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-black">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-            </CardRetroContent>
-          </CardRetro>
-          
-          <CardRetro className="cursor-pointer hover:shadow-retro-lg transition-shadow" onClick={() => setFilterBy('follow-up')}>
-            <CardRetroContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/30">
-                <Clock className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="text-2xl font-black">{stats.scheduled}</p>
-                <p className="text-xs text-muted-foreground">Scheduled</p>
-              </div>
-            </CardRetroContent>
-          </CardRetro>
-          
-          <CardRetro className="cursor-pointer hover:shadow-retro-lg transition-shadow" onClick={() => setFilterBy('overdue')}>
-            <CardRetroContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-destructive/20">
-                <AlertCircle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-2xl font-black">{stats.overdue}</p>
-                <p className="text-xs text-muted-foreground">Overdue</p>
-              </div>
-            </CardRetroContent>
-          </CardRetro>
-          
-          <CardRetro className="cursor-pointer hover:shadow-retro-lg transition-shadow" onClick={() => setFilterBy('mentor')}>
-            <CardRetroContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <UserCheck className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-black">{stats.mentors}</p>
-                <p className="text-xs text-muted-foreground">Mentors</p>
-              </div>
-            </CardRetroContent>
-          </CardRetro>
-        </motion.div>
-
-        {/* Search & Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-col sm:flex-row gap-3"
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <InputRetro
-              placeholder="Search contacts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <ButtonRetro variant="outline" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filter
-                  {filterBy !== 'all' && (
-                    <Badge variant="secondary" className="ml-1 text-xs">1</Badge>
-                  )}
-                </ButtonRetro>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setFilterBy('all')}>
-                  All Contacts
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setFilterBy('follow-up')}>
-                  Scheduled Follow-ups
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterBy('overdue')}>
-                  Overdue Follow-ups
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setFilterBy('mentor')}>
-                  Mentors
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterBy('close')}>
-                  Close Contacts
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterBy('professional')}>
-                  Professional
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterBy('acquaintance')}>
-                  Acquaintances
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Select value={sortBy} onValueChange={(v: SortOption) => setSortBy(v)}>
-              <SelectTrigger className="w-[140px]">
-                <SortAsc className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recent">Recent</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="company">Company</SelectItem>
-                <SelectItem value="strength">Strength</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </motion.div>
-
-        {/* Active Filter Badge */}
-        {filterBy !== 'all' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+          <ButtonRetro
+            className="w-full sm:w-auto shrink-0"
+            onClick={() => {
+              setEditingContact(null);
+              setAddDialogOpen(true);
+            }}
           >
-            <Badge variant="secondary" className="gap-2">
-              Filtering: {filterBy.charAt(0).toUpperCase() + filterBy.slice(1).replace('-', ' ')}
-              <button onClick={() => setFilterBy('all')} className="hover:text-destructive">×</button>
-            </Badge>
-          </motion.div>
-        )}
+            <Plus className="h-4 w-4" />
+            Add Contact
+          </ButtonRetro>
+        </div>
+      </motion.div>
 
-        {/* Contacts Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <CardRetro key={i}>
-                <CardRetroContent className="p-4">
-                  <div className="animate-pulse space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-muted" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-muted rounded w-3/4" />
-                        <div className="h-3 bg-muted rounded w-1/2" />
-                      </div>
+      {/* Stats Row */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
+      >
+        {[
+          {
+            icon: Users,
+            value: stats.total,
+            label: 'Total',
+            color: 'text-primary',
+            bg: 'bg-primary/12',
+            tab: 'all' as TabOption,
+          },
+          {
+            icon: Clock,
+            value: stats.scheduled,
+            label: 'Follow-ups',
+            color: 'text-secondary-foreground',
+            bg: 'bg-secondary/25',
+            tab: 'follow-up' as TabOption,
+          },
+          {
+            icon: AlertCircle,
+            value: stats.overdue,
+            label: 'Overdue',
+            color: 'text-destructive',
+            bg: 'bg-destructive/12',
+            tab: 'overdue' as TabOption,
+          },
+          {
+            icon: UserCheck,
+            value: stats.mentors,
+            label: 'Mentors',
+            color: 'text-primary',
+            bg: 'bg-primary/12',
+            tab: 'mentors' as TabOption,
+          },
+        ].map(({ icon: Icon, value, label, color, bg, tab }) => (
+          <CardRetro
+            key={label}
+            className={`cursor-pointer transition-all hover:shadow-retro-lg ${
+              activeTab === tab ? 'ring-2 ring-primary ring-offset-1' : ''
+            }`}
+            onClick={() => setActiveTab(tab)}
+          >
+            <CardRetroContent className="p-3 sm:p-4 flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${bg} shrink-0`}>
+                <Icon className={`h-5 w-5 ${color}`} />
+              </div>
+              <div>
+                <p className="text-xl sm:text-2xl font-black leading-none">{value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+              </div>
+            </CardRetroContent>
+          </CardRetro>
+        ))}
+      </motion.div>
+
+      {/* Search + Sort */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.14 }}
+        className="flex flex-col sm:flex-row gap-2 sm:gap-3"
+      >
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <InputRetro
+            placeholder="Search by name, company, tag…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-9"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <Select value={sortBy} onValueChange={(v: SortOption) => setSortBy(v)}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recent">Most Recent</SelectItem>
+            <SelectItem value="name">Name A–Z</SelectItem>
+            <SelectItem value="company">Company</SelectItem>
+            <SelectItem value="strength">Relationship</SelectItem>
+          </SelectContent>
+        </Select>
+      </motion.div>
+
+      {/* Tab Filter */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.18 }}
+      >
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabOption)}>
+          <TabsList className="w-full sm:w-auto grid grid-cols-4 sm:flex">
+            <TabsTrigger value="all" className="flex items-center gap-1.5">
+              All
+              {contacts.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                  {contacts.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="follow-up" className="flex items-center gap-1.5">
+              Follow-ups
+              {stats.scheduled > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                  {stats.scheduled}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="overdue" className="flex items-center gap-1.5">
+              Overdue
+              {stats.overdue > 0 && (
+                <Badge className="text-[10px] px-1.5 py-0 h-4 bg-destructive text-destructive-foreground">
+                  {stats.overdue}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="mentors">Mentors</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </motion.div>
+
+      {/* Results count */}
+      {!loading && contacts.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {filteredContacts.length === contacts.length
+            ? `${contacts.length} contact${contacts.length !== 1 ? 's' : ''}`
+            : `${filteredContacts.length} of ${contacts.length} contact${contacts.length !== 1 ? 's' : ''}`}
+          {searchQuery && ` matching "${searchQuery}"`}
+        </p>
+      )}
+
+      {/* Content */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <CardRetro key={i}>
+              <CardRetroContent className="p-4">
+                <div className="animate-pulse space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-muted" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
                     </div>
                   </div>
-                </CardRetroContent>
-              </CardRetro>
-            ))}
+                  <div className="h-3 bg-muted rounded w-full" />
+                  <div className="h-3 bg-muted rounded w-2/3" />
+                </div>
+              </CardRetroContent>
+            </CardRetro>
+          ))}
+        </div>
+      ) : filteredContacts.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16 px-4"
+        >
+          <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Network className="h-10 w-10 text-primary/60" />
           </div>
-        ) : filteredContacts.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
-          >
-            <div className="text-6xl mb-4">📇</div>
-            <h3 className="text-xl font-bold mb-2">
-              {contacts.length === 0 ? 'No contacts yet' : 'No matches found'}
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {contacts.length === 0
-                ? 'Start building your professional network!'
-                : 'Try adjusting your search or filters'}
-            </p>
-            {contacts.length === 0 && (
-              <ButtonRetro onClick={() => setAddDialogOpen(true)}>
-                <Plus className="h-4 w-4" /> Add Your First Contact
-              </ButtonRetro>
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4"
-          >
-            <AnimatePresence mode="popLayout">
-              {filteredContacts.map((contact) => (
-                <ContactCard
-                  key={contact.id}
-                  contact={contact}
-                  applications={applications}
-                  onEdit={handleEdit}
-                  onDelete={deleteContact}
-                  onLogInteraction={setInteractionContact}
-                  onScheduleFollowUp={setFollowUpContact}
-                />
-              ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </div>
+          <h3 className="text-xl font-bold mb-2">{currentEmpty.title}</h3>
+          <p className="text-muted-foreground text-sm mb-5 max-w-xs mx-auto">{currentEmpty.body}</p>
+          {contacts.length === 0 && (
+            <ButtonRetro onClick={() => setAddDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Add Your First Contact
+            </ButtonRetro>
+          )}
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredContacts.map((contact) => (
+              <ContactCard
+                key={contact.id}
+                contact={contact}
+                applications={applications}
+                onEdit={handleEdit}
+                onDelete={deleteContact}
+                onLogInteraction={setInteractionContact}
+                onScheduleFollowUp={setFollowUpContact}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       {/* Dialogs */}
       <AddContactDialog
