@@ -16,7 +16,7 @@ interface DreamJobProfilerProps {
   skipPriorities?: boolean;
 }
 
-const surveySteps = [
+const allSurveySteps = [
   { id: 'locations', title: 'Where do you want to work?', icon: MapPin, emoji: '📍' },
   { id: 'company', title: 'What size company?', icon: Building2, emoji: '🏢' },
   { id: 'roles', title: 'What type of roles?', icon: Briefcase, emoji: '💼' },
