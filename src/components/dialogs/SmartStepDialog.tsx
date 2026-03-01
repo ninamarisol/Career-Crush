@@ -28,6 +28,8 @@ export function SmartStepDialog({ trigger, step }: SmartStepDialogProps) {
         return <Sparkles className="h-8 w-8 text-primary" />;
       case 'apply':
         return <FileText className="h-8 w-8 text-primary" />;
+      case 'reconnect':
+        return <Heart className="h-8 w-8 text-primary" />;
     }
   };
 
