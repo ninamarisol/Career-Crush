@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Building2, Briefcase, Factory, Heart, DollarSign, AlertTriangle, ChevronRight, ChevronLeft, Check, Plus, X, MessageSquare, SlidersHorizontal } from 'lucide-react';
+import { MapPin, Building2, Briefcase, Factory, Heart, DollarSign, AlertTriangle, ChevronRight, ChevronLeft, Check, Plus, X, MessageSquare, Trophy } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { InputRetro } from '@/components/ui/input-retro';
-import { Slider } from '@/components/ui/slider';
+import { PriorityRanker } from '@/components/profile/PriorityRanker';
 import { JobPreferences, PriorityWeights, regionOptions, companySizeOptions, industryOptions, roleTypeOptions, defaultPriorityWeights } from '@/lib/data';
 import { cn } from '@/lib/utils';
 
