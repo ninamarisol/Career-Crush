@@ -59,8 +59,13 @@ export default function Onboarding() {
       theme_color: theme,
       user_mode: selectedMode,
     });
-    // Always show dream job profiler for both modes
-    setShowDreamJobProfiler(true);
+    // Move to dream job profiler for crush mode, or complete for climb mode
+    if (selectedMode === 'crush') {
+      setShowDreamJobProfiler(true);
+    } else {
+      await updateProfile({ onboarding_complete: true });
+      toast.success('Welcome to Career Crush! 🎉');
+    }
   };
 
   const handlePreferencesUpdate = (preferences: JobPreferences) => {
