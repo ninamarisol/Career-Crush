@@ -39,6 +39,7 @@ export default function Contacts() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [interactionContact, setInteractionContact] = useState<Contact | null>(null);
   const [followUpContact, setFollowUpContact] = useState<Contact | null>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   const { addInteraction } = useContactInteractions(interactionContact?.id || null);
 
