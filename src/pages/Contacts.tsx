@@ -16,6 +16,7 @@ import {
 import { useContacts, useContactInteractions, Contact } from '@/hooks/useContacts';
 import { useApp } from '@/context/AppContext';
 import { ContactCard } from '@/components/contacts/ContactCard';
+import { ContactDetailDialog } from '@/components/contacts/ContactDetailDialog';
 import { AddContactDialog } from '@/components/dialogs/AddContactDialog';
 import { LogInteractionDialog } from '@/components/dialogs/LogInteractionDialog';
 import { ScheduleFollowUpDialog } from '@/components/dialogs/ScheduleFollowUpDialog';
