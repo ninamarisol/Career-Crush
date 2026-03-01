@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Building2, Briefcase, Factory, Heart, DollarSign, AlertTriangle, ChevronRight, ChevronLeft, Check, Plus, X, MessageSquare, SlidersHorizontal } from 'lucide-react';
+import { MapPin, Building2, Briefcase, Factory, Heart, DollarSign, AlertTriangle, ChevronRight, ChevronLeft, Check, Plus, X, MessageSquare, Trophy } from 'lucide-react';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { CardRetro, CardRetroContent, CardRetroHeader, CardRetroTitle } from '@/components/ui/card-retro';
 import { InputRetro } from '@/components/ui/input-retro';
-import { Slider } from '@/components/ui/slider';
+import { PriorityRanker } from '@/components/profile/PriorityRanker';
 import { JobPreferences, PriorityWeights, regionOptions, companySizeOptions, industryOptions, roleTypeOptions, defaultPriorityWeights } from '@/lib/data';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +24,7 @@ const surveySteps = [
   { id: 'salary', title: 'Salary expectations?', icon: DollarSign, emoji: '💰' },
   { id: 'dealbreakers', title: 'Any dealbreakers?', icon: AlertTriangle, emoji: '🚫' },
   { id: 'notes', title: 'Anything else we should know?', icon: MessageSquare, emoji: '📝' },
-  { id: 'priorities', title: 'Set your priorities', icon: SlidersHorizontal, emoji: '⚖️' },
+  { id: 'priorities', title: 'Rank your priorities', icon: Trophy, emoji: '🏆' },
 ];
 
 const priorityLabels: { key: keyof PriorityWeights; label: string; emoji: string; description: string }[] = [
@@ -583,55 +583,10 @@ export function DreamJobProfiler({ preferences, onUpdate, onComplete, isOnboardi
 
       case 'priorities':
         return (
-          <div className="space-y-6">
-            <div className="p-4 bg-muted/50 rounded-lg mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-bold">
-                  Adjust how much each factor impacts your match score
-                </p>
-                <span className={cn(
-                  "text-lg font-black px-3 py-1 rounded-full",
-                  totalWeight === 100 ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"
-                )}>
-                  {totalWeight}%
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Total must equal 100%. Sliders will auto-adjust to maintain the total.
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              {priorityLabels.map((priority) => (
-                <div key={priority.key} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{priority.emoji}</span>
-                      <span className="font-bold">{priority.label}</span>
-                    </div>
-                    <span className="text-lg font-black text-primary min-w-[3rem] text-right">
-                      {weights[priority.key]}%
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-2">{priority.description}</p>
-                  <Slider
-                    value={[weights[priority.key]]}
-                    onValueChange={(value) => updatePriorityWeight(priority.key, value[0])}
-                    max={100}
-                    min={0}
-                    step={5}
-                    className="w-full"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-center pt-4">
-              <ButtonRetro variant="outline" size="sm" onClick={resetWeights}>
-                Reset to Defaults
-              </ButtonRetro>
-            </div>
-          </div>
+          <PriorityRanker
+            weights={weights}
+            onChange={(newWeights) => onUpdate({ ...safePreferences, priorityWeights: newWeights })}
+          />
         );
 
       default:
