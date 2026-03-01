@@ -37,7 +37,7 @@ const priorityLabels: { key: keyof PriorityWeights; label: string; emoji: string
   { key: 'workStyle', label: 'Work Style', emoji: '💖', description: 'How much does work culture/style matter?' },
 ];
 
-export function DreamJobProfiler({ preferences, onUpdate, onComplete, isOnboarding = false }: DreamJobProfilerProps) {
+export function DreamJobProfiler({ preferences, onUpdate, onComplete, isOnboarding = false, skipPriorities = false }: DreamJobProfilerProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [customRoleInput, setCustomRoleInput] = useState('');
