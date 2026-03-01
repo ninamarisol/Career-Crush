@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ButtonRetro } from '@/components/ui/button-retro';
-import { Check, Sparkles, Mail, Users, FileText } from 'lucide-react';
+import { Check, Sparkles, Mail, Users, FileText, Heart } from 'lucide-react';
 
 interface SmartStepDialogProps {
   trigger: React.ReactNode;
   step: {
     title: string;
     description: string;
-    type: 'optimize' | 'followup' | 'network' | 'prepare' | 'apply';
+    type: 'optimize' | 'followup' | 'network' | 'prepare' | 'apply' | 'reconnect';
   };
 }
 
