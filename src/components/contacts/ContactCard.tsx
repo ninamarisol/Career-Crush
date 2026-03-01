@@ -73,6 +73,7 @@ export function ContactCard({
   onDelete,
   onLogInteraction,
   onScheduleFollowUp,
+  onClick,
 }: ContactCardProps) {
   const linkedApp = applications.find((a) => a.id === contact.application_id);
   const isOverdue =
