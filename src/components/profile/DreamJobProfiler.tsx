@@ -13,6 +13,7 @@ interface DreamJobProfilerProps {
   onUpdate: (preferences: JobPreferences) => void;
   onComplete?: () => void;
   isOnboarding?: boolean;
+  skipPriorities?: boolean;
 }
 
 const surveySteps = [
