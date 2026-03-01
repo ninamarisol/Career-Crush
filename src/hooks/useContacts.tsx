@@ -197,10 +197,52 @@ export function useContactInteractions(contactId: string | null) {
     return data as ContactInteraction;
   };
 
+  const updateInteraction = async (id: string, updates: Partial<Pick<ContactInteraction, 'type' | 'date' | 'notes' | 'outcome'>>) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('contact_interactions')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error updating interaction:', error);
+      toast.error('Failed to update interaction');
+      return;
+    }
+
+    setInteractions((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, ...updates } : i))
+    );
+    toast.success('Interaction updated!');
+  };
+
+  const deleteInteraction = async (id: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('contact_interactions')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error deleting interaction:', error);
+      toast.error('Failed to delete interaction');
+      return;
+    }
+
+    setInteractions((prev) => prev.filter((i) => i.id !== id));
+    toast.success('Interaction deleted');
+  };
+
   return {
     interactions,
     loading,
     addInteraction,
+    updateInteraction,
+    deleteInteraction,
     refetch: fetchInteractions,
   };
 }
