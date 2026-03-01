@@ -24,7 +24,7 @@ const surveySteps = [
   { id: 'salary', title: 'Salary expectations?', icon: DollarSign, emoji: '💰' },
   { id: 'dealbreakers', title: 'Any dealbreakers?', icon: AlertTriangle, emoji: '🚫' },
   { id: 'notes', title: 'Anything else we should know?', icon: MessageSquare, emoji: '📝' },
-  { id: 'priorities', title: 'Set your priorities', icon: SlidersHorizontal, emoji: '⚖️' },
+  { id: 'priorities', title: 'Rank your priorities', icon: Trophy, emoji: '🏆' },
 ];
 
 const priorityLabels: { key: keyof PriorityWeights; label: string; emoji: string; description: string }[] = [
