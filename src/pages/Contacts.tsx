@@ -398,6 +398,15 @@ export default function Contacts() {
         contact={followUpContact}
         onSubmit={handleScheduleFollowUp}
       />
+
+      <ContactDetailDialog
+        contact={selectedContact}
+        open={!!selectedContact}
+        onOpenChange={(open) => !open && setSelectedContact(null)}
+        applications={applications}
+        onLogInteraction={setInteractionContact}
+        onScheduleFollowUp={setFollowUpContact}
+      />
     </div>
   );
 }

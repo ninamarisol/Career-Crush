@@ -92,9 +92,10 @@ export function ContactCard({
     >
       <CardRetro
         className={cn(
-          'hover:shadow-retro-lg transition-all border-l-4 overflow-hidden',
+          'hover:shadow-retro-lg transition-all border-l-4 overflow-hidden cursor-pointer',
           cfg.border
         )}
+        onClick={() => onClick?.(contact)}
       >
         <CardRetroContent className="p-0">
           {/* Top section */}

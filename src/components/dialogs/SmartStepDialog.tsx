@@ -119,6 +119,26 @@ export function SmartStepDialog({ trigger, step }: SmartStepDialogProps) {
             </ButtonRetro>
           </div>
         );
+      case 'reconnect':
+        return (
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg border-2 border-border">
+              <h4 className="font-bold mb-2">Reconnection Ideas</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Share an article or resource relevant to their work</li>
+                <li>• Ask about a project they mentioned last time</li>
+                <li>• Invite them for a quick virtual coffee catch-up</li>
+                <li>• Congratulate them on any recent achievements</li>
+              </ul>
+            </div>
+            <div className="p-4 bg-primary/10 rounded-lg border-2 border-border">
+              <p className="text-sm font-bold">💡 Consistent check-ins build lasting professional relationships!</p>
+            </div>
+            <ButtonRetro className="w-full" onClick={() => setCompleted(true)}>
+              <Heart className="h-4 w-4" /> Mark Reconnected
+            </ButtonRetro>
+          </div>
+        );
       case 'prepare':
       case 'apply':
       default:
