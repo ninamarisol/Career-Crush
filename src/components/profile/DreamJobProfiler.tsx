@@ -38,6 +38,7 @@ const priorityLabels: { key: keyof PriorityWeights; label: string; emoji: string
 ];
 
 export function DreamJobProfiler({ preferences, onUpdate, onComplete, isOnboarding = false, skipPriorities = false }: DreamJobProfilerProps) {
+  const surveySteps = skipPriorities ? allSurveySteps.filter(s => s.id !== 'priorities') : allSurveySteps;
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [customRoleInput, setCustomRoleInput] = useState('');
