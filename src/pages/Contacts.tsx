@@ -369,6 +369,7 @@ export default function Contacts() {
                 onDelete={deleteContact}
                 onLogInteraction={setInteractionContact}
                 onScheduleFollowUp={setFollowUpContact}
+                onClick={setSelectedContact}
               />
             ))}
           </AnimatePresence>
