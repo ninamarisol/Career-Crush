@@ -213,14 +213,9 @@ export function CareerPather({ resume, preferences }: CareerPatherProps) {
     setResult(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) { toast.error('Please log in first'); return; }
       const response = await fetch(CHAT_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: await getAuthedFunctionHeaders(),
         body: JSON.stringify({
           resume, preferences,
           applications: applications.slice(0, 20),
