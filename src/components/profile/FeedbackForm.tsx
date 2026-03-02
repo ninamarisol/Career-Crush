@@ -39,13 +39,11 @@ export function FeedbackForm() {
 
     setIsSending(true);
     try {
-      const { error } = await supabase.functions.invoke('send-feedback', {
-        body: {
-          userName: profile?.display_name || 'Anonymous User',
-          userEmail: user?.email || 'no-email@unknown.com',
-          message: message.trim(),
-          feedbackType,
-        },
+      await invokeAuthedFunction('send-feedback', {
+        userName: profile?.display_name || 'Anonymous User',
+        userEmail: user?.email || 'no-email@unknown.com',
+        message: message.trim(),
+        feedbackType,
       });
 
       if (error) throw error;
