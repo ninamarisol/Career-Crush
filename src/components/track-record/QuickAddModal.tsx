@@ -59,11 +59,10 @@ export function QuickAddModal({ open, onOpenChange }: QuickAddModalProps) {
 
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-track-record', {
-        body: { type: 'quick_add', content: text },
+      const data = await invokeAuthedFunction<AIAnalysis>('analyze-track-record', {
+        type: 'quick_add',
+        content: text,
       });
-
-      if (error) throw error;
       setAnalysis(data);
       if (data.entryType) {
         setEntryType(data.entryType);

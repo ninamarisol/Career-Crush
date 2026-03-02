@@ -106,11 +106,10 @@ export function useWeeklyBrief() {
     setShowAlternate(false);
 
     try {
-      const { data, error } = await supabase.functions.invoke('weekly-brief', {
-        body: { dataSnapshot },
+      const data = await invokeAuthedFunction<WeeklyBriefData & { error?: string }>('weekly-brief', {
+        dataSnapshot,
       });
 
-      if (error) throw error;
       if (data?.error) {
         toast.error(data.error);
         return;

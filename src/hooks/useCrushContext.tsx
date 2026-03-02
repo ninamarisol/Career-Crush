@@ -48,10 +48,9 @@ export function useCrushContext() {
 
   const generateSummary = useCallback(async (answers: CrushQuizAnswers): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('crush-context-summary', {
-        body: { answers },
+      const data = await invokeAuthedFunction<{ summary?: string }>('crush-context-summary', {
+        answers,
       });
-      if (error) throw error;
       return data?.summary || null;
     } catch (e) {
       console.error('Failed to generate crush summary:', e);

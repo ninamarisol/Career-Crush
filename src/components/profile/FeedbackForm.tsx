@@ -46,7 +46,7 @@ export function FeedbackForm() {
         feedbackType,
       });
 
-      if (error) throw error;
+      
 
       toast.success('Thank you! Your feedback has been sent 💜');
       setMessage('');

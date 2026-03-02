@@ -54,14 +54,11 @@ export function StarStoryBuilderModal({ open, onOpenChange }: StarStoryBuilderMo
 
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-track-record', {
-        body: {
-          type: 'star_story',
-          starStructure: { situation, task, action, result },
-        },
+      const data = await invokeAuthedFunction<AIAnalysis>('analyze-track-record', {
+        type: 'star_story',
+        starStructure: { situation, task, action, result },
       });
 
-      if (error) throw error;
       setAnalysis(data);
     } catch (err) {
       console.error('Analysis error:', err);
