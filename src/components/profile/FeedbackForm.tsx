@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 import { cn } from '@/lib/utils';
 
 type FeedbackType = 'suggestion' | 'improvement' | 'bug' | 'other';
