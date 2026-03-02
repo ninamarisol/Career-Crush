@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-
+import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 export interface CareerTarget {
   id: string;
   user_id: string;
@@ -53,10 +53,9 @@ export function useCareerTarget() {
 
   const generateSummary = async (answers: QuizAnswers): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('career-target-summary', {
-        body: { quizAnswers: answers },
+      const data = await invokeAuthedFunction<{ summary?: string; error?: string }>('career-target-summary', {
+        quizAnswers: answers,
       });
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data.summary || null;
     } catch (e: any) {

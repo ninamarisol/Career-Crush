@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { startOfWeek, endOfWeek, subDays, format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import type { JobSearchContext } from '@/hooks/useCrushContext';
-
+import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 export interface CrushBriefData {
   weeklyBrief: string;
   oneMove: string;
@@ -81,10 +81,10 @@ export function useCrushBrief(searchContext: JobSearchContext | null) {
     setShowAlternate(false);
 
     try {
-      const { data, error } = await supabase.functions.invoke('crush-brief', {
-        body: { dataSnapshot, searchContext },
+      const data = await invokeAuthedFunction<CrushBriefData & { error?: string }>('crush-brief', {
+        dataSnapshot,
+        searchContext,
       });
-      if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       setBrief(data as CrushBriefData);
     } catch (e) {

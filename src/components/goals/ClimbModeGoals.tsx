@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/context/AppContext';
 import { useContacts } from '@/hooks/useContacts';
 import type { ClimbModeGoals as ClimbGoalsType, MonthlyProgress, VisibilityActivity, CustomGoal } from '@/hooks/useGoalCrusher';
+import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 export interface BriefingData {
@@ -213,11 +214,10 @@ export function ClimbModeGoals({
       const snapshot = await buildSnapshot();
       if (!snapshot) throw new Error('Could not build data snapshot');
 
-      const { data, error } = await supabase.functions.invoke('career-briefing', {
-        body: { dataSnapshot: snapshot },
+      const data = await invokeAuthedFunction<BriefingData & { error?: string }>('career-briefing', {
+        dataSnapshot: snapshot,
       });
 
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       setBriefing(data);

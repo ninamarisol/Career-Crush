@@ -6,7 +6,7 @@ import { useCareerData } from '@/hooks/useCareerData';
 import { useApp } from '@/context/AppContext';
 import { differenceInDays, format, subDays } from 'date-fns';
 import { toast } from 'sonner';
-
+import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 export interface WeeklyBriefData {
   weeklyBrief: string;
   oneMove: string;
@@ -106,11 +106,10 @@ export function useWeeklyBrief() {
     setShowAlternate(false);
 
     try {
-      const { data, error } = await supabase.functions.invoke('weekly-brief', {
-        body: { dataSnapshot },
+      const data = await invokeAuthedFunction<WeeklyBriefData & { error?: string }>('weekly-brief', {
+        dataSnapshot,
       });
 
-      if (error) throw error;
       if (data?.error) {
         toast.error(data.error);
         return;

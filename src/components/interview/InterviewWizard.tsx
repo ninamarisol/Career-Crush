@@ -24,7 +24,7 @@ import {
   X,
   RefreshCw
 } from 'lucide-react';
-
+import { getAuthedFunctionHeaders } from '@/lib/cloudFunctions';
 interface PracticeQuestion {
   category: 'behavioral' | 'technical' | 'situational';
   question: string;
@@ -157,17 +157,9 @@ export function InterviewWizard({ applicationId, jobDescription, jobTitle, compa
 
     setGeneratingResearch(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error('Please log in first');
-        return;
-      }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/interview-prep`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: await getAuthedFunctionHeaders(),
         body: JSON.stringify({
           type: 'research',
           jobDescription,
@@ -218,17 +210,9 @@ export function InterviewWizard({ applicationId, jobDescription, jobTitle, compa
 
     setGeneratingQuestions(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error('Please log in first');
-        return;
-      }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/interview-prep`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: await getAuthedFunctionHeaders(),
         body: JSON.stringify({
           type: 'questions',
           jobDescription,
@@ -291,17 +275,9 @@ export function InterviewWizard({ applicationId, jobDescription, jobTitle, compa
 
     setGeneratingCoaching(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error('Please log in first');
-        return;
-      }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/interview-prep`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: await getAuthedFunctionHeaders(),
         body: JSON.stringify({
           type: 'coaching',
           jobDescription,

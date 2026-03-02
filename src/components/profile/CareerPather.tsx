@@ -19,7 +19,7 @@ import { useApp } from "@/context/AppContext";
 import { MasterResume, JobPreferences } from "@/lib/data";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
+import { getAuthedFunctionHeaders } from '@/lib/cloudFunctions';
 interface CareerPatherProps {
   resume: MasterResume;
   preferences: JobPreferences | null;
@@ -213,14 +213,9 @@ export function CareerPather({ resume, preferences }: CareerPatherProps) {
     setResult(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) { toast.error('Please log in first'); return; }
       const response = await fetch(CHAT_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: await getAuthedFunctionHeaders(),
         body: JSON.stringify({
           resume, preferences,
           applications: applications.slice(0, 20),

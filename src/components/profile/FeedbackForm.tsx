@@ -6,8 +6,8 @@ import { ButtonRetro } from '@/components/ui/button-retro';
 import { Textarea } from '@/components/ui/textarea';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 import { cn } from '@/lib/utils';
 
 type FeedbackType = 'suggestion' | 'improvement' | 'bug' | 'other';
@@ -39,16 +39,14 @@ export function FeedbackForm() {
 
     setIsSending(true);
     try {
-      const { error } = await supabase.functions.invoke('send-feedback', {
-        body: {
-          userName: profile?.display_name || 'Anonymous User',
-          userEmail: user?.email || 'no-email@unknown.com',
-          message: message.trim(),
-          feedbackType,
-        },
+      await invokeAuthedFunction('send-feedback', {
+        userName: profile?.display_name || 'Anonymous User',
+        userEmail: user?.email || 'no-email@unknown.com',
+        message: message.trim(),
+        feedbackType,
       });
 
-      if (error) throw error;
+      
 
       toast.success('Thank you! Your feedback has been sent 💜');
       setMessage('');

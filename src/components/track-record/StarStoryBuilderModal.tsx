@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
-
+import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 interface StarStoryBuilderModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -54,14 +54,11 @@ export function StarStoryBuilderModal({ open, onOpenChange }: StarStoryBuilderMo
 
     setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-track-record', {
-        body: {
-          type: 'star_story',
-          starStructure: { situation, task, action, result },
-        },
+      const data = await invokeAuthedFunction<AIAnalysis>('analyze-track-record', {
+        type: 'star_story',
+        starStructure: { situation, task, action, result },
       });
 
-      if (error) throw error;
       setAnalysis(data);
     } catch (err) {
       console.error('Analysis error:', err);
