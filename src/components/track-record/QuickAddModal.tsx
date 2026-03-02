@@ -11,8 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { invokeAuthedFunction } from '@/lib/cloudFunctions';
-
 interface QuickAddModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

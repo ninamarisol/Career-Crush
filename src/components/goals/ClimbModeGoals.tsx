@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/context/AppContext';
-import { useContacts } from '@/hooks/useContacts';
+import type { ClimbModeGoals as ClimbGoalsType, MonthlyProgress, VisibilityActivity, CustomGoal } from '@/hooks/useGoalCrusher';
 import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
