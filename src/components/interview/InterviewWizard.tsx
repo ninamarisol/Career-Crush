@@ -157,17 +157,9 @@ export function InterviewWizard({ applicationId, jobDescription, jobTitle, compa
 
     setGeneratingResearch(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error('Please log in first');
-        return;
-      }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/interview-prep`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: await getAuthedFunctionHeaders(),
         body: JSON.stringify({
           type: 'research',
           jobDescription,
