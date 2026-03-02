@@ -24,7 +24,7 @@ import {
   X,
   RefreshCw
 } from 'lucide-react';
-
+import { getAuthedFunctionHeaders } from '@/lib/cloudFunctions';
 interface PracticeQuestion {
   category: 'behavioral' | 'technical' | 'situational';
   question: string;

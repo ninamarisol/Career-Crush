@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { industryOptions, roleTypeOptions } from '@/lib/data';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
-
+import { getAuthedFunctionHeaders } from '@/lib/cloudFunctions';
 interface AddApplicationDialogProps {
   trigger?: React.ReactNode;
 }

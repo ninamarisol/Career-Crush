@@ -18,7 +18,7 @@ import { useMasterResume } from '@/hooks/useMasterResume';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InterviewWizard } from '@/components/interview/InterviewWizard';
-
+import { getAuthedFunctionHeaders } from '@/lib/cloudFunctions';
 type ApplicationStatus = 'Saved' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted';
 
 interface ResumeAnalysis {

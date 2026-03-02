@@ -19,7 +19,7 @@ import { useApp } from "@/context/AppContext";
 import { MasterResume, JobPreferences } from "@/lib/data";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
+import { getAuthedFunctionHeaders } from '@/lib/cloudFunctions';
 interface CareerPatherProps {
   resume: MasterResume;
   preferences: JobPreferences | null;
