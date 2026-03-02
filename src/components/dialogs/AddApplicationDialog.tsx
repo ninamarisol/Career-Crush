@@ -216,14 +216,9 @@ export function AddApplicationDialog({ trigger }: AddApplicationDialogProps) {
     setAnalysis(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) { toast.error('Please log in first'); return; }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-resume`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: await getAuthedFunctionHeaders(),
         body: JSON.stringify({
           resumeText: resume,
           jobDescription: jobDesc,
