@@ -6,7 +6,7 @@ import { useCareerData } from '@/hooks/useCareerData';
 import { useApp } from '@/context/AppContext';
 import { differenceInDays, format, subDays } from 'date-fns';
 import { toast } from 'sonner';
-
+import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 export interface WeeklyBriefData {
   weeklyBrief: string;
   oneMove: string;

@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { startOfWeek, endOfWeek, subDays, format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import type { JobSearchContext } from '@/hooks/useCrushContext';
-
+import { invokeAuthedFunction } from '@/lib/cloudFunctions';
 export interface CrushBriefData {
   weeklyBrief: string;
   oneMove: string;
