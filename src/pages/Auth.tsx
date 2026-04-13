@@ -161,14 +161,30 @@ export default function Auth() {
                   </ButtonRetro>
                 </form>
 
-                <p className="text-center text-sm text-muted-foreground mt-6">
-                  {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+                {mode === 'login' && (
+                  <div className="text-center mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setMode('forgot')}
+                      className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-center text-sm text-muted-foreground mt-4">
+                  {mode === 'forgot'
+                    ? 'Remember your password? '
+                    : mode === 'login'
+                    ? "Don't have an account? "
+                    : 'Already have an account? '}
                   <button
                     type="button"
-                    onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                    onClick={() => setMode(mode === 'signup' ? 'login' : mode === 'forgot' ? 'login' : 'signup')}
                     className="font-bold text-primary hover:underline"
                   >
-                    {mode === 'login' ? 'Sign up' : 'Sign in'}
+                    {mode === 'forgot' ? 'Sign in' : mode === 'login' ? 'Sign up' : 'Sign in'}
                   </button>
                 </p>
               </motion.div>
