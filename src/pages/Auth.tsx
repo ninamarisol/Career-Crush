@@ -1,18 +1,17 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CardRetro } from '@/components/ui/card-retro';
 import { ButtonRetro } from '@/components/ui/button-retro';
 import { InputRetro } from '@/components/ui/input-retro';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { Briefcase, Heart, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Auth() {
-  const navigate = useNavigate();
-  const { signIn, signUp, signInWithGoogle } = useAuth();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const { signIn, signUp } = useAuth();
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -25,7 +24,14 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (mode === 'signup') {
+      if (mode === 'forgot') {
+        const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast.success('Password reset email sent! Check your inbox 📬');
+        setMode('login');
+      } else if (mode === 'signup') {
         const { error } = await signUp(formData.email, formData.password, formData.displayName);
         if (error) throw error;
         toast.success('Account created! Welcome to Career Crush 🎉');
@@ -106,10 +112,12 @@ export default function Auth() {
                 transition={{ duration: 0.2 }}
               >
                 <h2 className="text-2xl font-black mb-2">
-                  {mode === 'login' ? 'Welcome Back! 👋' : 'Join the Crush! 🎉'}
+                  {mode === 'forgot' ? 'Reset Password 🔑' : mode === 'login' ? 'Welcome Back! 👋' : 'Join the Crush! 🎉'}
                 </h2>
                 <p className="text-muted-foreground mb-6">
-                  {mode === 'login'
+                  {mode === 'forgot'
+                    ? "Enter your email and we'll send you a reset link"
+                    : mode === 'login'
                     ? 'Sign in to continue your job search journey'
                     : 'Create your account and start tracking applications'}
                 </p>
