@@ -9,6 +9,7 @@ import { AppProvider, useApp } from "@/context/AppContext";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import Home from "./pages/Home";
 import Applications from "./pages/Applications";
@@ -70,6 +71,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/" element={<Auth />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
