@@ -149,22 +149,24 @@ export default function Auth() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold flex items-center gap-2">
-                      <Lock className="h-4 w-4" /> Password
-                    </label>
-                    <InputRetro
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      minLength={6}
-                    />
-                  </div>
+                  {mode !== 'forgot' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold flex items-center gap-2">
+                        <Lock className="h-4 w-4" /> Password
+                      </label>
+                      <InputRetro
+                        type="password"
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                  )}
 
                   <ButtonRetro type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+                    {loading ? 'Loading...' : mode === 'forgot' ? 'Send Reset Link' : mode === 'login' ? 'Sign In' : 'Create Account'}
                     <ArrowRight className="h-4 w-4" />
                   </ButtonRetro>
                 </form>
